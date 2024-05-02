@@ -39,6 +39,7 @@
     "@mui/icons-material": "^5.14.6",
     "@mui/material": "^5.14.6",
     "axios": "^1.4.0",
+    "babel": "^6.23.0",
     "leaflet": "^1.9.4",
     "react": "^18.2.0",
     "react-countup": "^6.4.2",
