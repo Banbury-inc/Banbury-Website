@@ -27,7 +27,19 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
 
   return (
     <>
-       <Toolbar sx={{ minHeight: 70 }}>
+      <AppBar
+        color='transparent'
+        position='sticky'
+        sx={{
+          border: 0,
+          padding: '10px 0',
+          marginBottom: '5px',
+          top: 'auto',
+          // boxShadow:
+            // '0 4px 18px 0px rgba(0, 0, 0, 0.12), 0 7px 10px -5px rgba(0, 0, 0, 0.15)',
+        }}
+      >
+        <Toolbar sx={{ minHeight: 70 }}>
           <Link href='/' sx={{ textDecoration: 'none' }}>
             <IconButton size='large' disabled>
               {/* <StormIcon */}
@@ -40,13 +52,13 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
               {/*     width: 40, */}
               {/*   }} */}
               {/* /> */}
-              <Box >
+              <Box sx={{ display: { md: 'inline', xs: 'none' } }}>
                 <Typography
                   variant='h6'
                   sx={{
                     flexGrow: 1,
                     color: theme.palette.text.primary,
-                    // fontWeight: 'bold',
+                    fontWeight: 'bold',
                     // textTransform: 'uppercase',
                     textDecoration: 'none',
                     marginLeft: '10px',
@@ -57,25 +69,15 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
               </Box>
             </IconButton>
           </Link>
-
           <Box sx={{ flexGrow: 1 }} />
-         <Box
+          <Box
             sx={{
-              alignItems: 'flex-start',
-              
-              // display: { lg: 'flex', md: 'none', xs: 'none' },
+              alignItems: 'center',
+              display: { lg: 'flex', md: 'none', xs: 'none' },
             }}
           >
-
-            <CustomButton href='/' text='Home' />
             <CustomButton href='/NeuraNet' text='NeuraNet' />
-            <CustomButton href='/Research' text='Research' />
- 
           </Box>
-
-          <Box sx={{ flexGrow: 2 }} />
-          {/* </Box> */}
-
           {/* <Divider */}
           {/*   orientation='vertical' */}
           {/*   sx={{ */}
@@ -86,7 +88,7 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
           {/* /> */}
 
 
-          {/* <Box sx={{ display: 'flex' }}> */}
+          <Box sx={{ display: 'flex' }}>
           {/*   <IconButton */}
           {/*     onClick={colorMode.toggleColorMode} */}
           {/*     aria-label='Theme Mode' */}
@@ -102,35 +104,36 @@ const Header = ({ onSidebarOpen }: Props): JSX.Element => {
           {/*       </Tooltip> */}
           {/*     )} */}
           {/*   </IconButton> */}
-          {/* </Box> */}
+          </Box>
           <Box
             sx={{
               display: { md: 'block', lg: 'none' },
             }}
             alignItems='center'
           >
-          {/*   <Button */}
-          {/*     onClick={() => onSidebarOpen()} */}
-          {/*     aria-label='Menu' */}
-          {/*     variant='outlined' */}
-          {/*     sx={{ */}
-          {/*       borderRadius: 0, */}
-          {/*       minWidth: 'auto', */}
-          {/*       padding: 1, */}
-          {/*       borderColor: alpha(theme.palette.divider, 0.2), */}
-          {/*     }} */}
-          {/*   > */}
-          {/*     <MenuIcon */}
-          {/*       sx={{ */}
-          {/*         color: */}
-          {/*           theme.palette.mode === 'dark' */}
-          {/*             ? theme.palette.primary.main */}
-          {/*             : theme.palette.success.dark, */}
-          {/*       }} */}
-          {/*     /> */}
-          {/*   </Button> */}
+            <Button
+              onClick={() => onSidebarOpen()}
+              aria-label='Menu'
+              variant='outlined'
+              sx={{
+                borderRadius: 0,
+                minWidth: 'auto',
+                padding: 1,
+                borderColor: alpha(theme.palette.divider, 0.2),
+              }}
+            >
+              <MenuIcon
+                sx={{
+                  color:
+                    theme.palette.mode === 'dark'
+                      ? theme.palette.primary.main
+                      : theme.palette.success.dark,
+                }}
+              />
+            </Button>
           </Box>
         </Toolbar>
+      </AppBar>
     </>
   );
 };

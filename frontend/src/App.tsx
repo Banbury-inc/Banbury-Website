@@ -8,6 +8,7 @@ import getTheme from './theme/theme';
 import ColorModeContext from './utils/ColorModeContext';
 import Layout from './layout/Layout';
 import Home from './pages/Home';
+import NeuraNet from './components/NeuraNet';
 
 const App = (): JSX.Element => {
   const [mode, setMode] = useState('dark');
@@ -37,8 +38,8 @@ const App = (): JSX.Element => {
   return (
     <HelmetProvider>
       <Helmet
-        titleTemplate="%s | Bob's Programming Academy"
-        defaultTitle="Bob's Programming Academy"
+        titleTemplate="%s | Banbury"
+        defaultTitle="Banbury"
       />
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={getTheme(mode)}>
@@ -47,6 +48,7 @@ const App = (): JSX.Element => {
             <Layout>
               <Routes>
                 <Route path='/' element={<Home />} />
+                <Route path='/neuranet' element={<NeuraNet />} />
               </Routes>
             </Layout>
           </BrowserRouter>

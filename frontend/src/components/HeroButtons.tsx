@@ -39,7 +39,7 @@ const HeroButtons = (): JSX.Element => {
             padding: '15px 30px',
             marginRight: '15px',
             fontSize: '16px',
-            textTransform: 'uppercase',
+            // textTransform: 'uppercase',
             border: '2px solid',
             borderColor:
               theme.palette.mode === 'dark'

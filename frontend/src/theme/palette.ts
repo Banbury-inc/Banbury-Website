@@ -21,26 +21,35 @@ export const light = {
     default: 'rgb(255, 255, 255)',
   },
   divider: 'rgba(0, 0, 0, 0.12)',
+
 };
 
 export const dark = {
   mode: 'dark' as PaletteMode,
   primary: {
-    main: 'rgb(129, 187, 89)',
+    main: '#FFFFFF', // Updated to match Material UI's primary blue color
+    light: '#FFFFFF', // Updated to match Material UI's primary blue color
+    dark: '#FFFFFF', // Updated to match Material UI's primary blue color
     contrastText: 'rgb(100, 101, 98)',
   },
+    secondary: {
+      main: '#000000', // Updated to match Material UI's secondary pink color
+      light: '#000000', // Updated to match Material UI's secondary pink color
+      dark: '#000000', // Updated to match Material UI's secondary pink color
+    },
   warning: {
     main: 'rgb(242, 175, 87)',
     light: 'rgb(245, 205, 130)',
     dark: orange[600],
   },
   text: {
-    primary: 'rgb(255, 255, 255)',
-    secondary: 'rgb(207, 207, 207)',
+      primary: '#FFFFFF',
+      secondary: '#B3B3B3', //ray for less important text, adjust as needed
   },
   background: {
-    default: 'rgb(0, 0, 0)',
-    paper: 'rgb(15, 15, 15)',
+      default: '#212121', // Slightly lighter for elements considered "paper"
+      paper: '#171717', // Very dark gray, almost black, as the main background
+ 
   },
-  divider: 'rgba(145, 158, 171, 0.24)',
+  divider: '#424242',
 };
