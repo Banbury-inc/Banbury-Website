@@ -75,7 +75,7 @@ const News = (): JSX.Element => {
               color: theme.palette.text.primary,
             }}
           >
-           News 
+            News
           </Typography>
           <Typography
             variant='subtitle1'
@@ -87,49 +87,128 @@ const News = (): JSX.Element => {
           </Typography>
 
           <Container>
-        <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
-         <Typography
-            variant='h5'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{color: theme.palette.text.primary,}}>
-           April 11, 2024 - v1.0.1 Desktop Application Released
-          </Typography>
- 
-           <Typography
-            variant='body1'
-            align='left'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            >
-            After using the app in production for a little bit, and playing around with how the app
-                worked in different devices, a lot of problems came to my attention. First of all, I 
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                August 20, 2024 - Rust Code Refactor, v2.0.0 Released, UI Improvements
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                All I have to say is wow. What a summer. I have definitely been busy at work.
+                Unfortunately, I have not been able to devote as much time as I would like to
+                this project, as I have had a number of other things going on. However, I've
+                still been able to get a bunch of things accomplished.
+              </Typography>
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                First of all, as this project has grown in size, I have decided to split the
+                project into two separate repositories. The first repository is the desktop
+                application, which is now called Banbury Cloud. The second repository is the
+                relay server, which is called NeuraNet. Beginning with Banbury Cloud, I did
+                a lot of work on the UI. It is much more elegant looking, with much less
+                wasted space. I have implemented a lot of new features, like
+                folders, sorting in the table, being able to have a file open when you click
+                on the file name, file tree navigation on the left hand side, and many other
+                features. As far as NeuraNet, I did a complete code refactor, so it is now
+                written in Rust. The difference in speed is noticeable. On top of that,
+                I feel like both repositories have definitely grown in size, so I spent a
+                significant amount of time just organizing the code, ensuring separation of
+                concerns, etc.
+              </Typography>
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                I have a lot of plans for the future. I have just finished a bunch of other
+                obligations and projects, so I will have the ability to work on this much
+                more consistently in the future. Right now, users are only able to view files
+                in one directory, and I would like to change that. One of the next features
+                that I am planning on implementing is a sync feature. I want this app to scan
+                the user's entire computer as opposed to just one directory. Additionally, I
+                am going to begin working on wake-on-lan as well. Of course, there are a good
+                amount of bugs and edge cases, such as viewing/opening a file that is not on
+                your local computer. Also, things like confirming that the file has actually
+                been deleted, or that a file as successfully been uploaded. Finally, I am
+                starting to think it is about time to throw together an iphone app... Anyway,
+                thanks for reading and I can't wait to see what the future holds.
+              </Typography>
+
+
+
+            </Box>
+          </Container>
+
+
+
+
+          <Container>
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                April 11, 2024 - v1.0.1 Desktop Application Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                After using the app in production for a little bit, and playing around with how the app
+                worked in different devices, a lot of problems came to my attention. First of all, I
                 realized how difficult it is to run python code natively in a seamless manner. Basically there
                 had to be some fancy way to ensure that a certain python interpreter was on the user's device.
                 We could have used a venv, but there are complications with that as well, and I finally decided
                 that it would be best to do a complete code refactor, changing all of the python code to typescript.
-                This turned out to be a huge success! I am now able to download the app on any device and not have 
+                This turned out to be a huge success! I am now able to download the app on any device and not have
                 to worry about any particular dependencies. Great.
-            </Typography>
-           <Typography
-            variant='body1'
-            align='left'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            >
+              </Typography>
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
                 I also did some testing of the app on different networks. I realized that port 8000 is not an open
-                port on all networks. I did some research and realized that it would be best to switch to port 443. 
+                port on all networks. I did some research and realized that it would be best to switch to port 443.
                 This is a standard HTTP port that is open on most networks. This solved my problem when testing the app
-                on a completely secure wifi network at a University. 
-            </Typography>
-            <Typography variant='body1' align='left' marginTop={theme.spacing(1)} gutterBottom sx={{color: theme.palette.text.primary,}}>
+                on a completely secure wifi network at a University.
+              </Typography>
+              <Typography variant='body1' align='left' marginTop={theme.spacing(1)} gutterBottom sx={{ color: theme.palette.text.primary, }}>
                 I am definitely at a crossroads when thinking about what I want to do in the future. I think turning this
                 app into a full fledged cloud computing platform could be really beneficial to people. For that reason,
                 I think I am going to create some more features that will make cloud storage better. Things like implementing
@@ -138,106 +217,106 @@ const News = (): JSX.Element => {
                 AI agents work on all of your online devices at the same time, and have them work together to help solve
                 our problems. I think the best way to describe it would be to just implement it. Thanks for reading, stay tuned
                 for more updates.
-            </Typography>
- 
+              </Typography>
+
             </Box>
           </Container>
 
 
 
           <Container>
-        <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
-         <Typography
-            variant='h5'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{color: theme.palette.text.primary,}}>
-           April 11, 2024 - v1.0.0 Beta Desktop Application Released
-          </Typography>
- 
-           <Typography
-            variant='body1'
-            align='left'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            >
-            Recently, I have been working hard to release a desktop application, that will serve
-            as a prototype to the overall idea. So far everything has been going smoothly, despite a few bugs. 
-            A lot of work has gone into the actual user interface, playing around with styling. Additionally,
-            there was a lot of work just setting up the app, like configuring everything for deployment. Figuring
-            out an app icon. Lots of stuff turned out to work in dev but not a production environment, which took
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                April 11, 2024 - v1.0.0 Beta Desktop Application Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                Recently, I have been working hard to release a desktop application, that will serve
+                as a prototype to the overall idea. So far everything has been going smoothly, despite a few bugs.
+                A lot of work has gone into the actual user interface, playing around with styling. Additionally,
+                there was a lot of work just setting up the app, like configuring everything for deployment. Figuring
+                out an app icon. Lots of stuff turned out to work in dev but not a production environment, which took
                 several days to fix. Hope you like it.
-            </Typography>
+              </Typography>
             </Box>
           </Container>
 
           <Container>
-        <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
-         <Typography
-            variant='h5'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{color: theme.palette.text.primary,}}>
-           February 3, 2024 - Banbury Cloud Beta CLI 1.0.1 Released
-          </Typography>
- 
-           <Typography
-            variant='body1'
-            align='left'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            >
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                February 3, 2024 - Banbury Cloud Beta CLI 1.0.1 Released
+              </Typography>
 
-Recently, we have made a slight change in what we have been doing in terms of the file sharing. 
-Initially, we had an idea that IPFS would really be the backbone of the decentralized file sharing. 
-We came across a lot of complications, especially when it came to port forwarding.
-In other words, it was really easy to upload files from IPFS and download them again, but only within your own network.
-Ultimately, we decided to drop the idea of IPFS, for now. Instead, we have decided to implement something called a relay server. 
-In other words, this provides a way for us to access files on another device, even if that device is on another network.
-This is a really exciting new direction for us. 
-            </Typography>
-           <Typography variant='body1' align='left' marginTop={theme.spacing(1)} gutterBottom sx={{color: theme.palette.text.primary,}}>
-In recent developments, we have been working on a desktop application that would be running all of the logic necessary
-in order to bring the device online. This can't really happen with a web app, and we apps are not able to access things 
-like the files on your computer, especially in the way that we want. Our next announcement will hopefully be the release 
-of the desktop app. We are also working hard to make the desktop app open source.
-            </Typography>
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+
+                Recently, we have made a slight change in what we have been doing in terms of the file sharing.
+                Initially, we had an idea that IPFS would really be the backbone of the decentralized file sharing.
+                We came across a lot of complications, especially when it came to port forwarding.
+                In other words, it was really easy to upload files from IPFS and download them again, but only within your own network.
+                Ultimately, we decided to drop the idea of IPFS, for now. Instead, we have decided to implement something called a relay server.
+                In other words, this provides a way for us to access files on another device, even if that device is on another network.
+                This is a really exciting new direction for us.
+              </Typography>
+              <Typography variant='body1' align='left' marginTop={theme.spacing(1)} gutterBottom sx={{ color: theme.palette.text.primary, }}>
+                In recent developments, we have been working on a desktop application that would be running all of the logic necessary
+                in order to bring the device online. This can't really happen with a web app, and we apps are not able to access things
+                like the files on your computer, especially in the way that we want. Our next announcement will hopefully be the release
+                of the desktop app. We are also working hard to make the desktop app open source.
+              </Typography>
             </Box>
           </Container>
 
           <Container>
-        <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
-         <Typography
-            variant='h5'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{color: theme.palette.text.primary,}}>
-           February 3, 2024 - Banbury Cloud Beta CLI Tool Released
-          </Typography>
- 
-           <Typography
-            variant='body1'
-            align='left'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-            }}
-            >
-            There are some exciting new advancements in the realm of Banbury!
-            We have recently released the very first Beta version of 
-            bcloud. bcloud is a CLI tool for Banbury Cloud. 
-            This acts as a prototype for what will eventually be Banbury Cloud.
-            </Typography>
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                February 3, 2024 - Banbury Cloud Beta CLI Tool Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                There are some exciting new advancements in the realm of Banbury!
+                We have recently released the very first Beta version of
+                bcloud. bcloud is a CLI tool for Banbury Cloud.
+                This acts as a prototype for what will eventually be Banbury Cloud.
+              </Typography>
             </Box>
           </Container>
 
