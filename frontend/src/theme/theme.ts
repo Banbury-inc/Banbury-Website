@@ -6,19 +6,50 @@ const getTheme = (mode: string): Theme =>
   responsiveFontSizes(
     createTheme({
       palette: mode === 'light' ? light : dark,
-    typography: {
-      fontFamily: '"Söhne", sans-serif', // Ensuring the fontFamily is set correctly
-    },
-    components: {
-      MuiButton: {
-        styleOverrides: {
-          root: {
-            fontWeight: 400,
-            letterSpacing: '0.0362px',
-            borderRadius: 0,
-            paddingTop: 10,
-            paddingBottom: 10,
-            textTransform: 'none',           },
+      typography: {
+        fontFamily: '"Söhne", sans-serif', // Söhne as the base font
+        h1: {
+          fontSize: '3.052rem',
+          fontWeight: 700, // Bold weight
+          lineHeight: 1.167,
+          letterSpacing: '-0.01562em',
+        },
+        h2: {
+          fontSize: '2.441rem',
+          fontWeight: 700, // Bold weight
+          lineHeight: 1.2,
+          letterSpacing: '-0.00833em',
+        },
+        h3: {
+          fontSize: '1.953rem',
+          fontWeight: 700, // Bold weight
+          lineHeight: 1.167,
+          letterSpacing: '0em',
+        },
+        h4: {
+          fontSize: '1.563rem',
+          fontWeight: 700, // Bold weight
+          lineHeight: 1.235,
+          letterSpacing: '0.00735em',
+        },
+        body1: {
+          fontFamily: '"Söhne", sans-serif',
+          fontSize: '1rem',
+          fontWeight: 400, // Regular weight for body text
+          lineHeight: 1.5,
+          letterSpacing: '0em',
+        },
+      }, components: {
+        MuiButton: {
+          styleOverrides: {
+            root: {
+              fontWeight: 400,
+              letterSpacing: '0.0362px',
+              borderRadius: 0,
+              paddingTop: 10,
+              paddingBottom: 10,
+              textTransform: 'none',
+            },
           } as ComponentsOverrides['MuiButton'],
         },
         MuiInputBase: {

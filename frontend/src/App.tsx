@@ -11,6 +11,7 @@ import Home from './pages/Home';
 import NeuraNet from './components/NeuraNet';
 import News from './components/News';
 import Footer from './components/Footer';
+import Terms_of_use from './components/Terms_of_use';
 
 const SitemapRedirect = () => {
   const navigate = useNavigate();
@@ -64,11 +65,11 @@ const App = (): JSX.Element => {
                 <Route path='/' element={<Home />} />
                 <Route path='/neuranet' element={<NeuraNet />} />
                 <Route path='/news' element={<News />} />
+                <Route path='/terms_of_use' element={<Terms_of_use />} />
                 <Route path='/sitemap' element={<SitemapRedirect />} />
               </Routes>
             </Layout>
           </BrowserRouter>
-          <Footer />
         </ThemeProvider>
       </ColorModeContext.Provider>
     </HelmetProvider>
