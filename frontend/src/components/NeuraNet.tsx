@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Box, Button, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
@@ -15,10 +14,13 @@ const NeuraNet = (): JSX.Element => {
   const [products, setProducts] = useState<ProductsProps[]>([]);
   const [downloadText, setDownloadText] = useState<string>('Download');
   const [downloadUrl, setDownloadUrl] = useState<string>('');
+  const [totalDataProcessed, setTotalDataProcessed] = useState<number | null>(null);
+  const [totalNumberOfRequests, setTotalNumberOfRequests] = useState<number | null>(null);
 
   useEffect(() => {
     fetchProducts();
     determineOS();
+    fetchTotalDataProcessed();
   }, []);
 
   const fetchProducts = () => {
@@ -35,19 +37,42 @@ const NeuraNet = (): JSX.Element => {
     const userAgent = navigator.userAgent;
     if (userAgent.includes("Win")) {
       setDownloadText("Download for Windows");
-      setDownloadUrl("https://github.com/Banbury-inc/NeuraNet/releases/download/v1.0.1/NeuraNet.1.0.1.msi"); // Set the URL or path to your Windows-specific file
+      setDownloadUrl("https://github.com/Banbury-inc/NeuraNet/releases/download/v1.0.1/NeuraNet.1.0.1.msi");
     } else if (userAgent.includes("Mac")) {
       setDownloadText("Download for macOS");
-      setDownloadUrl("https://github.com/Banbury-inc/NeuraNet/releases/download/v1.0.1/NeuraNet-1.0.1-arm64.dmg"); // Set the URL or path to your macOS-specific file
+      setDownloadUrl("https://github.com/Banbury-inc/NeuraNet/releases/download/v1.0.1/NeuraNet-1.0.1-arm64.dmg");
     } else if (userAgent.includes("Linux")) {
       setDownloadText("Download for Linux");
-      setDownloadUrl("NeuraNet_1.0.1_amd64.deb"); // Set the URL or path to your Linux-specific file
+      setDownloadUrl("NeuraNet_1.0.1_amd64.deb");
     } else {
       setDownloadText("Download");
-      setDownloadUrl("/path_to_generic_file"); // Generic file if OS is not detected
+      setDownloadUrl("/path_to_generic_file");
     }
   };
 
+  const fetchTotalDataProcessed = async () => {
+    try {
+      const response = await fetch('https://website2-v3xlkt54dq-ue.a.run.app/get_neuranet_info/', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+
+      const data = await response.json();
+
+      if (data) {
+        setTotalDataProcessed(data.total_data_processed);
+        setTotalNumberOfRequests(data.total_number_of_requests);
+      }
+    } catch (error) {
+      console.error('Error fetching data:', error);
+    }
+  };
 
   return (
     <div id='neuranet'>
@@ -83,6 +108,35 @@ const NeuraNet = (): JSX.Element => {
           </Typography>
         </Box>
 
+        {/* Centered Data Display */}
+        <Box
+          display="flex"
+          flexDirection="column"
+          alignItems="center"
+          justifyContent="center"
+          sx={{
+            marginTop: theme.spacing(10),
+            marginBottom: theme.spacing(10),
+          }}
+        >
+          <Typography
+            variant='h4'
+            align='center'
+            gutterBottom
+            color={theme.palette.text.secondary}
+          >
+            {totalDataProcessed !== null ? `Total Data Processed: ${totalDataProcessed} bytes` : ''}
+          </Typography>
+          <Typography
+            variant='h4'
+            align='center'
+            gutterBottom
+            color={theme.palette.text.secondary}
+          >
+            {totalNumberOfRequests !== null ? `Total Number of Requests: ${totalNumberOfRequests}` : ''}
+          </Typography>
+        </Box>
+
         <Container>
           <Grid container spacing={4}>
             {products.map((item, i) => (
@@ -112,6 +166,7 @@ const NeuraNet = (): JSX.Element => {
                     >
                       {item.name}
                     </Typography>
+
                     <Typography color='inherit'>{item.description}</Typography>
                   </Box>
                   <Box display='block' width={1} height={1}>
@@ -141,3 +196,4 @@ const NeuraNet = (): JSX.Element => {
 };
 
 export default NeuraNet;
+
