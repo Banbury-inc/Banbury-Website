@@ -3,6 +3,9 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Box, Button, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import mockup1 from '../assets/images/mockup1.png';
+import mockup2 from '../assets/images/mockup2.png';
+import mockup3 from '../assets/images/mockup3.png';
 
 interface ProductsProps {
   name: string;
@@ -10,7 +13,7 @@ interface ProductsProps {
   image: string;
 }
 
-const NeuraNet = (): JSX.Element => {
+const Cloud = (): JSX.Element => {
   const theme = useTheme();
   const [products, setProducts] = useState<ProductsProps[]>([]);
   const [downloadText, setDownloadText] = useState<string>('Download');
@@ -48,6 +51,9 @@ const NeuraNet = (): JSX.Element => {
     }
   };
 
+  const handleDownload = () => {
+    window.open(downloadUrl, '_blank');
+  };
 
   return (
     <div id='neuranet'>
@@ -60,7 +66,9 @@ const NeuraNet = (): JSX.Element => {
           textAlign: 'center'
         }}
       >
-        <Box marginBottom={4}>
+        <Box
+          marginBottom={4}
+        >
           <Typography
             variant='h2'
             align='center'
@@ -70,7 +78,7 @@ const NeuraNet = (): JSX.Element => {
               color: theme.palette.text.primary,
             }}
           >
-            Welcome to NeuraNet: Decentralizing AI, One Device at a Time
+            Banbury Cloud on your desktop
           </Typography>
           <Typography
             variant='subtitle1'
@@ -79,8 +87,36 @@ const NeuraNet = (): JSX.Element => {
             gutterBottom
             color={theme.palette.text.secondary}
           >
-            NeuraNet isn't just a tool; it's a movement towards democratizing artificial intelligence.
+            Seamlessly access your devices from anywhere in the world
           </Typography>
+        </Box>
+
+        <Button variant="contained" onClick={handleDownload}
+          sx={{
+
+            borderRadius: '20px',
+          }}
+        >
+          {downloadText}
+        </Button>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            margin: '0 auto',
+            marginTop: 4,
+            alignItems: 'center',
+            height: '45vh',
+            width: '80%',
+            backgroundImage: `url(${mockup1})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            textAlign: 'center',
+            color: theme.palette.text.primary,
+            borderRadius: '20px',
+            overflow: 'hidden',
+          }}
+        >
         </Box>
 
         <Container>
@@ -140,4 +176,4 @@ const NeuraNet = (): JSX.Element => {
   );
 };
 
-export default NeuraNet;
+export default Cloud;

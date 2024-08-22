@@ -9,6 +9,7 @@ import ColorModeContext from './utils/ColorModeContext';
 import Layout from './layout/Layout';
 import Home from './pages/Home';
 import NeuraNet from './components/NeuraNet';
+import Cloud from './components/Cloud';
 import News from './components/News';
 import Footer from './components/Footer';
 import Terms_of_use from './components/Terms_of_use';
@@ -64,6 +65,7 @@ const App = (): JSX.Element => {
               <Routes>
                 <Route path='/' element={<Home />} />
                 <Route path='/neuranet' element={<NeuraNet />} />
+                <Route path='/cloud' element={<Cloud />} />
                 <Route path='/news' element={<News />} />
                 <Route path='/terms_of_use' element={<Terms_of_use />} />
                 <Route path='/sitemap' element={<SitemapRedirect />} />

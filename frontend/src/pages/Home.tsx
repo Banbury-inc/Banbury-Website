@@ -1,55 +1,73 @@
-import Hero from '../components/Hero';
-import Products from '../components/Products';
-import Services from '../components/Services';
-import Pricing from '../components/Pricing';
-import About from '../components/About';
-import Contact from '../components/Contact';
-import { Typography } from '@mui/material';
-import Box from '@mui/material/Box';
+import React from 'react';
+import { Box, Typography, Button } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import Footer from '../components/Footer';
-
+import backgroundImage from '../assets/images/abstract.png';
 
 const Home = (): JSX.Element => {
   const theme = useTheme();
+
   return (
-    <div id='home'>
+    <div
+      id="home"
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '50vh', // Full viewport height to center vertically
+        width: '100vw',  // Full viewport width to center horizontally
+      }}
+    >
       <Box
         sx={{
-          paddingTop: 5,
-          paddingBottom: 10,
-          paddingX: 2,
-          backgroundColor: theme.palette.background.default,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '45vh',
+          width: '80%',
+          backgroundImage: `url(${backgroundImage})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          textAlign: 'center',
+          color: theme.palette.text.primary,
+          borderRadius: '20px',
+          overflow: 'hidden',
         }}
       >
-        <Box marginBottom={4}>
+        <Box>
           <Typography
-            variant='h1'
-            align='center'
-            // fontWeight={400}
-            marginTop={theme.spacing(1)}
-            gutterBottom
+            variant='h2'
             sx={{
-              color: theme.palette.text.primary,
-              // textTransform: 'uppercase',
+              fontWeight: 400,
+              marginBottom: theme.spacing(2),
+              color: '#171717',
             }}
           >
-            Building a better tomorrow
+            Banbury Cloud on your desktop
           </Typography>
           <Typography
-            variant='subtitle1'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            color={theme.palette.text.secondary}
+            variant='h6'
+            sx={{
+              marginBottom: theme.spacing(4),
+              // color: '#212121',
+              color: '#171717',
+            }}
           >
-            We build tools that put the power in your hands, not ours.
+            Seamlessly access your devices from anywhere in the world
           </Typography>
+          <Button variant='contained' color='inherit'
+            sx={{
+
+              borderRadius: '20px',
+            }}
+
+          >
+            Learn more
+          </Button>
         </Box>
       </Box>
-
     </div>
   );
 };
 
 export default Home;
+
