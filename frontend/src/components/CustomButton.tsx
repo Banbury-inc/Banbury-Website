@@ -19,6 +19,7 @@ const CustomButton = ({ href, text }: Props): JSX.Element => {
         color: theme.palette.text.primary,
         textTransform: 'none',
         marginX: 1.5,
+        borderRadius: '20px',
         marginLeft: '15px',
         '&:active': {
           color:
