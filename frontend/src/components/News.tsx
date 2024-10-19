@@ -86,6 +86,44 @@ const News = (): JSX.Element => {
           >
           </Typography>
 
+
+          <Container>
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                October 19, 2024 - v3.0.0 Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                This is a major update to the Banbury Cloud desktop application. In this version, stability and performance was a big focus point. 
+                We decided that we were trying to build too many features at once, which meant that there were a lot of bugs and issues. We took 
+                the time to minimize the amount of bugs and make the app much more stable. One way in which we did this was by once again refactoring
+                the backend. What was once written in Rust, we now transitioned back to python. We did this mainly because we wanted to combine the
+                backend and relay server into the same container. By keeping everything in django and python, it made everything much easier to keep servers
+                running. We took the time to make sure that the app is compatile with all platforms. We understoof that a lot of macos users were having issues
+                with the previous version, due to the fact that the app wasn't properly signed. We fixed it this version, so users will no longer have issues
+                with the app not running on macos devices. In future versions, I think it will be time to build out features again. We are going to add a device
+                dashboard, where users can view all of their connected devices and manage them. We now have a really solid foundation to build on top of, and
+                are really excited to see what the future holds.
+              </Typography>
+
+            </Box>
+          </Container>
+
+
+
           <Container>
             <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
               <Typography
