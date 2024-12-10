@@ -1,34 +1,24 @@
-# Use a Debian-based Python image
-FROM python:3.11-slim-bullseye
-
-# Install Redis and build tools
-RUN apt-get update && apt-get install -y \
-    redis-server \
-    build-essential \
-    libssl-dev \
-    libffi-dev \
-    python3-dev \
-    && apt-get clean
+# Use an official Node.js image
+FROM node:16-bullseye
 
 # Set the working directory to /app
 WORKDIR /app
 
-# Upgrade pip
-RUN pip install --upgrade pip
+# Copy only the frontend folder into the container
+COPY frontend ./frontend
 
-# Copy only the backend directory's requirements file
-COPY backend/requirements.txt ./requirements.txt
+# Navigate to the frontend directory
+WORKDIR /app/frontend
 
-# Install Python dependencies
-RUN pip install --trusted-host pypi.python.org -r requirements.txt
+# Install dependencies
+RUN npm install
 
-# Copy the rest of the backend directory
-COPY backend/ .
-
-# Expose the ports for the application
+# Expose port 80
 EXPOSE 80
 
-# Start Redis and both servers
-CMD redis-server --daemonize yes && \
-    python3 manage.py runserver 0.0.0.0:80 --noreload
+# Set environment variable for the port
+ENV PORT=80
+
+# Start the frontend application
+CMD ["npm", "start"]
 
