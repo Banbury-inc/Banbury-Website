@@ -26,9 +26,9 @@ RUN pip install --trusted-host pypi.python.org -r requirements.txt
 COPY backend/ .
 
 # Expose the ports for the application
-EXPOSE 8080 8082
+EXPOSE 80
 
 # Start Redis and both servers
 CMD redis-server --daemonize yes && \
-    python3 manage.py runserver 0.0.0.0:8080 --noreload
+    python3 manage.py runserver 0.0.0.0:80 --noreload
 
