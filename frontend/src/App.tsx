@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
@@ -13,6 +13,7 @@ import Cloud from './components/Cloud';
 import News from './components/News';
 import Footer from './components/Footer';
 import Terms_of_use from './components/Terms_of_use';
+import { trackPageView } from './services/trackingService';
 
 const SitemapRedirect = () => {
   const navigate = useNavigate();
@@ -24,7 +25,15 @@ const SitemapRedirect = () => {
   return null; // Return null because this component doesn't render anything
 };
 
+const PageTracker = () => {
+  const location = useLocation();
 
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location]);
+
+  return null;
+};
 
 const App = (): JSX.Element => {
   const [mode, setMode] = useState('dark');
@@ -61,6 +70,7 @@ const App = (): JSX.Element => {
         <ThemeProvider theme={getTheme(mode)}>
           <CssBaseline />
           <BrowserRouter>
+            <PageTracker />
             <Layout>
               <Routes>
                 <Route path='/' element={<Home />} />
