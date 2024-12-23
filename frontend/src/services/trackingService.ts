@@ -9,7 +9,7 @@ export const trackPageView = async (path: string) => {
         console.log(ip_address);
 
         // Then send both the path and IP to your endpoint
-        await axios.post('http://localhost:8080/authentication/add_site_visitor_info/', {
+        await axios.post('http://www.api.dev.banbury.io/authentication/add_site_visitor_info/', {
             path,
             timestamp: new Date().toISOString(),
             ip_address
