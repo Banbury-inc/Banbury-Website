@@ -38,13 +38,13 @@ const Cloud = (): JSX.Element => {
     const userAgent = navigator.userAgent;
     if (userAgent.includes("Win")) {
       setDownloadText("Download for Windows");
-      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.0/Banbury.Cloud.Setup.3.2.0.exe"); // Set the URL or path to your macOS-specific file
+      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.1/Banbury.Cloud.Setup.3.2.1.exe"); // Set the URL or path to your macOS-specific file
     } else if (userAgent.includes("Mac")) {
       setDownloadText("Download for macOS");
-      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.0/Banbury.Cloud-3.2.0-arm64.dmg"); // Set the URL or path to your macOS-specific file
+      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.1/Banbury.Cloud-3.2.1-arm64.dmg"); // Set the URL or path to your macOS-specific file
     } else if (userAgent.includes("Linux")) {
       setDownloadText("Download for Linux");
-      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.0/BanburyCloud_3.2.0_amd64.deb"); // Set the URL or path to your Linux-specific file
+      setDownloadUrl("https://github.com/Banbury-inc/banbury-cloud-frontend/releases/download/v3.2.1/BanburyCloud_3.2.1_amd64.deb"); // Set the URL or path to your Linux-specific file
     } else {
       setDownloadText("Download");
       setDownloadUrl("/path_to_generic_file"); // Generic file if OS is not detected
