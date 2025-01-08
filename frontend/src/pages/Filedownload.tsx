@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { CheckIcon } from '@heroicons/react/20/solid';
+import { DocumentIcon } from '@heroicons/react/24/outline';
 
 const steps = [
   { name: 'Initiating', description: 'Starting the download process', status: 'idle' },
@@ -48,6 +49,20 @@ export default function FileDownload() {
     <div className="flex min-h-screen items-center justify-center bg-black p-4">
       <div className="w-full max-w-4xl rounded-2xl border border-zinc-800 bg-zinc-900 shadow-2xl">
         <div className="flex flex-col items-center gap-8 p-8">
+          <div className="flex flex-col items-center">
+            <div className="mb-4">
+              <DocumentIcon className="h-16 w-16 text-zinc-400" />
+            </div>
+            <h2 className="text-xl font-semibold text-white">
+              example-document.pdf
+            </h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              24.5 MB
+            </p>
+          </div>
+
+          <div className="w-full border-t border-zinc-800" />
+          
           <nav aria-label="Progress" className="w-full">
             <ol role="list" className="flex items-center">
               {steps.map((step, stepIdx) => (
