@@ -3,6 +3,7 @@ import { CONFIG } from "../config/config";
 class WebSocketService {
   private socket: WebSocket | null = null;
   private readonly url: string;
+  private messageHandlers: ((event: MessageEvent) => void)[] = [];
 
   constructor(url: string) {
     this.url = url;
@@ -12,6 +13,7 @@ class WebSocketService {
     return new Promise((resolve, reject) => {
       if (!this.socket || this.socket.readyState === WebSocket.CLOSED) {
         this.socket = new WebSocket(this.url);
+        this.socket.binaryType = 'arraybuffer';
 
         this.socket.onopen = () => {
           console.log('WebSocket Connected');
@@ -19,8 +21,7 @@ class WebSocketService {
         };
 
         this.socket.onmessage = (event) => {
-          const data = JSON.parse(event.data);
-          console.log('Received:', data);
+          this.messageHandlers.forEach(handler => handler(event));
         };
 
         this.socket.onerror = (error) => {
@@ -32,7 +33,6 @@ class WebSocketService {
           console.log('WebSocket Disconnected');
         };
       } else if (this.socket.readyState === WebSocket.OPEN) {
-        // If already connected, resolve immediately
         resolve();
       } else {
         reject(new Error('WebSocket connection failed'));
@@ -58,11 +58,24 @@ class WebSocketService {
   isConnected(): boolean {
     return this.socket !== null && this.socket.readyState === WebSocket.OPEN;
   }
+
+  addEventListener(type: 'message', handler: (event: MessageEvent) => void): void {
+    if (type === 'message') {
+      this.messageHandlers.push(handler);
+    }
+  }
+
+  removeEventListener(type: 'message', handler: (event: MessageEvent) => void): void {
+    if (type === 'message') {
+      const index = this.messageHandlers.indexOf(handler);
+      if (index !== -1) {
+        this.messageHandlers.splice(index, 1);
+      }
+    }
+  }
 }
 
-// Create and export a singleton instance
 export const webSocketService = new WebSocketService(CONFIG.url_ws);
 
-// Export the class if you need to create multiple instances
 export default WebSocketService;
 
