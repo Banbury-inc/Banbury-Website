@@ -63,10 +63,9 @@ export default function FileDownload() {
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       setCurrentStep(5);
-      await new Promise(resolve => setTimeout(resolve, 1500));
 
       // Step 6: File ready
-      setCurrentStep(6);
+      setCurrentStep(5);
       setDownloadStatus('ready');
       await new Promise(resolve => setTimeout(resolve, 1500));
 
@@ -165,7 +164,7 @@ export default function FileDownload() {
             type="button"
             onClick={handleDownload}
             disabled={downloadStatus === 'preparing'}
-            className="rounded-lg bg-white px-6 py-2.5 text-sm font-semibold text-black shadow-lg transition-all hover:bg-zinc-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white disabled:bg-zinc-800 disabled:text-zinc-400"
+            className={`btn-download ${downloadStatus === 'preparing' ? 'btn-download-disabled' : ''}`}
           >
             {downloadStatus === 'preparing' ? 'Preparing...' : 'Download File'}
           </button>

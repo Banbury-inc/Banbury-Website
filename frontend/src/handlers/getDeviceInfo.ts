@@ -9,9 +9,8 @@ export async function getDeviceInfo(username: string, device_id: string): Promis
   try {
     const response = await axios.get(`http://localhost:8080/devices/get_single_device_info/${username}/${device_id}`);
 
-    if (!response.data) {
-      return null;
-    }
+    console.log(response)
+
 
     const deviceInfo = response.data.device_info;
     return deviceInfo;
