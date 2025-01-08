@@ -2,11 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { CheckIcon } from '@heroicons/react/20/solid';
 import { DocumentIcon } from '@heroicons/react/24/outline';
 import { getFileInfo } from '../handlers/getFileInfo';
+import { downloadFile } from '../handlers/downloadFile';
 
 const steps = [
-  { name: 'Initiating', description: 'Starting the download process', status: 'idle' },
-  { name: 'Preparing File', description: 'Getting your file ready', status: 'idle' },
-  { name: 'Ready for Download', description: 'Your file is ready to download', status: 'idle' },
+  { name: 'Initiating', description: '', status: 'idle' },
+  { name: 'Getting device info', description: '', status: 'idle' },
+  { name: 'Looking to see if device is online', description: '', status: 'idle' },
+  { name: 'Sending download request', description: '', status: 'idle' },
+  { name: 'Preparing file', description: '', status: 'idle' },
+  { name: 'File ready', description: '', status: 'idle' },
 ] as const;
 
 function classNames(...classes: string[]) {
@@ -26,6 +30,7 @@ export default function FileDownload() {
       if (fileInfo) {
         setFileInfo(fileInfo);
         console.log(fileInfo);
+        downloadFile(username, fileInfo);
       }
     };
     fetchFileInfo();
@@ -42,11 +47,30 @@ export default function FileDownload() {
       // Step 2: Preparing File
       setCurrentStep(1);
       await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Step 3: Ready for Download
+
+
+      // Step 3: Looking to see if device is online
       setCurrentStep(2);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+
+      // Step 4: Sending download request
+      setCurrentStep(3);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Step 5: File ready
+      setCurrentStep(4);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      setCurrentStep(5);
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Step 6: File ready
+      setCurrentStep(6);
       setDownloadStatus('ready');
-      
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+
     } catch (error) {
       setDownloadStatus('error');
       console.error('Download failed:', error);
@@ -79,13 +103,13 @@ export default function FileDownload() {
           <div className="w-full border-t border-zinc-800" />
           
           <nav aria-label="Progress" className="w-full">
-            <ol role="list" className="flex items-center">
+            <ol role="list" className="flex items-start">
               {steps.map((step, stepIdx) => (
                 <li key={step.name} className={classNames(
-                  stepIdx !== steps.length - 1 ? 'pr-8 sm:pr-20' : '',
+                  stepIdx !== steps.length - 1 ? 'pr-6 sm:pr-12' : '',
                   'relative flex-1'
                 )}>
-                  <div className="flex flex-col items-center">
+                  <div className="flex flex-col items-center pt-2">
                     <div className="flex items-center justify-center">
                       {getStepStatus(stepIdx) === 'complete' ? (
                         <span className="relative z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white">
@@ -102,7 +126,18 @@ export default function FileDownload() {
                       )}
                     </div>
 
-                    <div className="mt-4 flex flex-col items-center text-center">
+                    <div className="absolute top-6 -right-12 w-[calc(100%+1rem)]">
+                      {stepIdx !== steps.length - 1 && (
+                        <div
+                          className={classNames(
+                            'h-0.5 w-full',
+                            getStepStatus(stepIdx) === 'complete' ? 'bg-white' : 'bg-zinc-700'
+                          )}
+                        />
+                      )}
+                    </div>
+
+                    <div className="mt-4 flex flex-col items-center text-center min-h-[4rem]">
                       <span className={classNames(
                         'text-sm font-medium',
                         getStepStatus(stepIdx) === 'current' ? 'text-white' : 'text-zinc-200'
@@ -114,16 +149,6 @@ export default function FileDownload() {
                       </span>
                     </div>
                   </div>
-
-                  {stepIdx !== steps.length - 1 && (
-                    <div
-                      className={classNames(
-                        'absolute left-0 top-4 h-0.5 w-full',
-                        getStepStatus(stepIdx) === 'complete' ? 'bg-white' : 'bg-zinc-700'
-                      )}
-                      style={{ transform: 'translateX(8rem)' }}
-                    />
-                  )}
                 </li>
               ))}
             </ol>
