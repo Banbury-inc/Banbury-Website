@@ -86,6 +86,37 @@ const News = (): JSX.Element => {
           >
           </Typography>
 
+
+          <Container>
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                January 12, 2025 - v3.3.5 Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+                We were able to have another quick release. We realized that before we got into a lot of the notification features, we needed to make some major improvements with the way
+                that the servers were communicating with the app. You will notice that things like your devices showing as online or offline are now much more accurate. Also, we have added
+                the ability to determine whether a user is online or offline. Additionally, things like sending a friend request to someone will occur in real time, without having to refresh 
+                the page. This is a big step towards being able to send notifications to users.
+              </Typography>
+
+            </Box>
+          </Container>
+
+
           <Container>
             <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
               <Typography
