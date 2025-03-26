@@ -86,6 +86,67 @@ const News = (): JSX.Element => {
           >
           </Typography>
 
+          <Container>
+            <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
+              <Typography
+                variant='h5'
+                align='center'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{ color: theme.palette.text.primary, }}>
+                March 20, 2025 - v3.4.23 Released
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+              It's been a while since we have had a release. This is mostly due to the fact
+                that I have had to move to a new city... again... Anyway, Even though I have
+              been busy moving, I have a lot of great features that I have been working on.
+                One of which is tabs. Users can now open multiple tabs in the app and manage
+              multiple different sessions at once. I am hoping people will like this for
+                workflow management purposes.
+              </Typography>
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+              Also, we have been working on a new feature related to large language models.
+                You will notice that there is a new tab called "AI". This is where you can
+              download and use large language models locally. You will see a lot of
+              improvements with this in the future.
+              </Typography>
+              
+
+              <Typography
+                variant='body1'
+                align='left'
+                marginTop={theme.spacing(1)}
+                gutterBottom
+                sx={{
+                  color: theme.palette.text.primary,
+                }}
+              >
+              Next up, not only will you see improvements with the AI page, 
+              but we are also getting ready to release an API as well as a CLI tool. We
+              want to slowly get to a point where you can use LLM's downloaded on
+              other computers and devices. Stay tuned!
+              </Typography>
+
+            </Box>
+          </Container>
 
           <Container>
             <Box component="span" sx={{ display: 'inline-block', transform: 'scale(0.8)' }}>
