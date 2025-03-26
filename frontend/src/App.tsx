@@ -80,6 +80,7 @@ const App = (): JSX.Element => {
                 <Route path='/cloud' element={<Cloud />} />
                 <Route path='/filedownload/:username/:file_id' element={<FileDownload />} />
                 <Route path='/news' element={<News />} />
+                <Route path='/news/:postId' element={<News />} />
                 <Route path='/terms_of_use' element={<Terms_of_use />} />
                 <Route path='/sitemap' element={<SitemapRedirect />} />
               </Routes>
