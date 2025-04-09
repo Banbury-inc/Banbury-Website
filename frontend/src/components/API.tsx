@@ -234,7 +234,7 @@ const About = (): JSX.Element => {
               gutterBottom
               sx={{ marginBottom: 1 }}
             >
-              {apiData.info.title} API
+              {apiData.info.title}
             </Typography>
             <Typography
               variant='body2' // Smaller description text (was body1)
