@@ -34,16 +34,12 @@ on:
     branches: [main]
 
 env:
-  AWS_REGION: us-east-1                   # set this to your preferred AWS region, e.g. us-west-1
-  ECR_REPOSITORY: ${{ github.ref == 'refs/heads/main' && 'banbury-website-prod' || 'banbury-website-dev' }}
-  ECS_SERVICE: ${{ github.ref == 'refs/heads/main' && 'banbury-website-prod' || 'banbury-website-dev' }}
-  ECS_CLUSTER: ${{ github.ref == 'refs/heads/main' && 'banbury' || 'banbury' }}
-# set this to your Amazon ECS cluster name
-  ECS_TASK_DEFINITION: ${{ github.ref == 'refs/heads/main' && '.aws/deploy-prod.json' || '.aws/deploy-dev.json' }} 
-  #.aws/task-definition.json 
-  # set this to the path to your Amazon ECS task definition
-                                               # file, e.g. .aws/task-definition.json
-  CONTAINER_NAME: ${{ github.ref == 'refs/heads/main' && 'banbury-website-prod' || 'banbury-website-dev' }} 
+  AWS_REGION: us-east-1
+  ECR_REPOSITORY: banbury-website-prod
+  ECS_SERVICE: banbury-website-prod
+  ECS_CLUSTER: banbury
+  ECS_TASK_DEFINITION: .aws/deploy-prod.json
+  CONTAINER_NAME: banbury-website-prod
 
 permissions:
   contents: read
