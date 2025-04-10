@@ -53,7 +53,9 @@ jobs:
           npm install
 
       - name: Run Tests
-        run: npm test
+        run: |
+          cd frontend
+          npm test
 
   build:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -96,8 +98,9 @@ jobs:
           npm install
 
       - name: Build all packages
-        run: npm run build
-
+        run: |
+          cd frontend
+          npm run build
       # Get version for macOS builds
       - name: Get version from package.json
         if: runner.os == 'macOS'
