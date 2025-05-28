@@ -27,7 +27,7 @@ describe('Home page', () => {
       await screen.findByText(/Any Device, Anywhere/i)
     ).toBeInTheDocument();
     expect(
-      await screen.findByText(/Tap in to your devices unused resources/i)
+      await screen.findByText(/Tap into your devices' unused resources/i)
     ).toBeVisible();
     expect(
       await screen.findByText(/Cloud Sync/i)
