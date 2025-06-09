@@ -13,6 +13,15 @@ interface ProductsProps {
 
 const NEWS_POSTS: NewsPostType[] = [
   {
+    id: 'v3-5-2',
+    date: 'June 9, 2025',
+    title: 'v3.5.2 Released',
+    content: [
+      "We are excited to v3.5.2. We have done a lot of work with various AI features. We have added a new mcp server that AI models can connect to. We have only added a few tools, but we plan on significantly expanding this in the future.",
+      "Next up, we are going to be working on integrations. We find an incredibly value in mcp servers, and we want to be able to connect to as many of them as possible. You will find many integrations with google products like Gmail, Google Drive, etc. Like always, Thanks for reading!"
+    ]
+  },
+  {
     id: 'v3-5-0',
     date: 'April 21, 2025',
     title: 'v3.5.0 Released',
