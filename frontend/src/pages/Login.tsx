@@ -186,7 +186,7 @@ const Login = (): JSX.Element => {
               fullWidth
               variant="contained"
               size="large"
-              disabled={loading}
+              disabled={loading || apiStatus === 'offline'}
               sx={{
                 py: 1.5,
                 fontSize: '1.1rem',
@@ -201,7 +201,7 @@ const Login = (): JSX.Element => {
                 }
               }}
             >
-              {loading ? <CircularProgress size={24} /> : 'Sign In'}
+              {loading ? <CircularProgress size={24} /> : apiStatus === 'offline' ? 'Service Offline' : 'Sign In'}
             </Button>
           </Box>
 
@@ -216,6 +216,7 @@ const Login = (): JSX.Element => {
             variant="outlined"
             size="large"
             onClick={handleGoogleLogin}
+            disabled={apiStatus === 'offline'}
             startIcon={<GoogleIcon />}
             sx={{
               py: 1.5,
@@ -226,6 +227,10 @@ const Login = (): JSX.Element => {
               '&:hover': {
                 borderColor: theme.palette.mode === 'dark' ? '#e0e0e0' : '#333333',
                 backgroundColor: 'transparent',
+              },
+              '&:disabled': {
+                borderColor: theme.palette.mode === 'dark' ? '#666666' : '#cccccc',
+                color: theme.palette.mode === 'dark' ? '#666666' : '#cccccc',
               },
               mb: 2
             }}
