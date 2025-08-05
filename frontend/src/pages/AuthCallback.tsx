@@ -28,8 +28,10 @@ const AuthCallback = (): JSX.Element => {
           navigate('/dashboard');
         }
       } catch (err) {
+
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
         setError(errorMessage);
+
         setTimeout(() => navigate('/login'), 3000);
       }
     };
