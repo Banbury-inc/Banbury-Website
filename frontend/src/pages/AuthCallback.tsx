@@ -40,7 +40,8 @@ const AuthCallback = (): JSX.Element => {
           setTimeout(() => navigate('/login'), 3000);
         }
       } catch (err) {
-        setError('Failed to complete authentication');
+        setError(`Failed to complete authentication: ${err instanceof Error ? err.message : 'Unknown error'}`);
+
         setTimeout(() => navigate('/login'), 3000);
       }
     };
