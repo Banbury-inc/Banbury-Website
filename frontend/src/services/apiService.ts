@@ -279,6 +279,39 @@ export class ApiService {
   }
 
   /**
+   * Download S3 file content
+   */
+  static async downloadS3File(fileId: string, fileName: string) {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      const response = await axios({
+        method: 'get',
+        url: `${this.baseURL}/files/download_s3_file/${encodeURIComponent(fileId)}/`,
+        responseType: 'blob', // Important for file downloads
+        headers: {
+          'Authorization': axios.defaults.headers.common['Authorization']
+        }
+      });
+
+      // Create blob URL for the file
+      const blob = new Blob([response.data]);
+      const url = window.URL.createObjectURL(blob);
+      
+      return {
+        success: true,
+        blob,
+        url,
+        fileName
+      };
+    } catch (error) {
+      console.error('downloadS3File error:', error);
+      throw this.enhanceError(error, 'Failed to download file');
+    }
+  }
+
+  /**
    * Enhanced error handling
    */
   private static enhanceError(error: unknown, context: string): Error {

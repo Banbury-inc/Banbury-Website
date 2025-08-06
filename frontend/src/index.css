@@ -3,6 +3,21 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Allotment custom styles for dark theme */
+.allotment > .allotment-separator {
+  background-color: #1f2937 !important; /* Gray-800 */
+  border: none !important;
+  opacity: 1 !important;
+}
+
+.allotment > .allotment-separator:hover {
+  background-color: #374151 !important; /* Gray-700 */
+}
+
+.allotment > .allotment-separator > .allotment-separator-grip {
+  background-color: #6b7280 !important; /* Gray-500 */
+}
+
 :root {
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);

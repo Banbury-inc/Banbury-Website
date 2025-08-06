@@ -2,6 +2,7 @@ import { Home, FolderOpen } from "lucide-react"
 import { useNavigate, useLocation } from "react-router-dom"
 import { Button } from "./ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
+import BanburyLogo from "../assets/images/Banbury_Cloud_Logo.png"
 
 export function NavSidebar() {
   const navigate = useNavigate()
@@ -28,8 +29,12 @@ export function NavSidebar() {
     <div className="fixed left-0 top-0 z-40 flex h-full w-16 flex-col bg-black border-r border-sidebar-border">
       <div className="flex flex-1 flex-col items-center gap-4 py-4">
         {/* Logo/Brand */}
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-black">
-          <span className="text-sm font-bold text-white">B</span>
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white p-1">
+          <img 
+            src={BanburyLogo} 
+            alt="Banbury Logo" 
+            className="h-full w-full object-contain"
+          />
         </div>
         
         {/* Navigation Items */}

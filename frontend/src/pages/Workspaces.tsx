@@ -7,12 +7,17 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/apiService';
-import { AssistantSidebar } from '../components/assistant-sidebar';
-import { SidebarProvider, SidebarTrigger } from "../components/ui/sidebar";
+
 import { AppSidebar } from "../components/app-sidebar";
 import { NavSidebar } from "../components/nav-sidebar";
 import { TooltipProvider } from "../components/ui/tooltip";
 import { AssistantRuntimeProvider, useLocalRuntime } from '@assistant-ui/react';
+import { ImageViewer } from '../components/ImageViewer';
+import { PDFViewer } from '../components/PDFViewer';
+import { FileSystemItem } from '../utils/fileTreeUtils';
+import { Allotment } from 'allotment';
+import 'allotment/dist/style.css';
+import { Thread } from '../components/thread';
 
 
 
@@ -33,6 +38,28 @@ const Workspaces = (): JSX.Element => {
   const navigate = useNavigate();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedFile, setSelectedFile] = useState<FileSystemItem | null>(null);
+
+  // Helper functions to check file types
+  const isImageFile = (fileName: string): boolean => {
+    const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg']
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+    return imageExtensions.includes(extension)
+  };
+
+  const isPdfFile = (fileName: string): boolean => {
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+    return extension === '.pdf'
+  };
+
+  const isViewableFile = (fileName: string): boolean => {
+    return isImageFile(fileName) || isPdfFile(fileName)
+  };
+
+  // Handle file selection from sidebar
+  const handleFileSelect = (file: FileSystemItem) => {
+    setSelectedFile(file);
+  };
 
   const runtime = useLocalRuntime({
     async run({ messages }) {
@@ -141,36 +168,61 @@ const Workspaces = (): JSX.Element => {
 
   return (
     <TooltipProvider>
-      <div className="flex h-screen">
-        {/* Navigation Sidebar */}
-        <NavSidebar />
-        
-        {/* Main Content Area with App Sidebar */}
-        <div className="flex flex-1 ml-8 with-nav-sidebar bg-black">
-          <SidebarProvider>
-            <AppSidebar 
-              currentView="workspaces"
-              onLogout={handleLogout}
-              userInfo={userInfo}
-            />
-            <AssistantRuntimeProvider runtime={runtime}>
-              <AssistantSidebar>
-                <main className="flex-1 h-full flex items-center justify-center">
-                  <div className="text-center max-w-md">
-                    <h1 className="text-4xl font-bold text-white mb-4">Welcome to Workspaces</h1>
-                    <p className="text-gray-300 text-lg mb-6">
-                      Your collaborative workspace environment is ready. Create, organize, and manage your projects with ease.
-                    </p>
-                    <p className="text-gray-400 text-sm">
-                      The AI assistant is available in the right panel to help you with your work.
-                    </p>
-                  </div>
+      <AssistantRuntimeProvider runtime={runtime}>
+        <div className="flex h-screen bg-black">
+          {/* Navigation Sidebar - Fixed */}
+          <NavSidebar />
+          
+          {/* Main Content Area with Resizable Panels */}
+          <div className="flex flex-1 ml-16">
+            <Allotment>
+              {/* File Sidebar Panel */}
+              <Allotment.Pane minSize={200} preferredSize={280} maxSize={400}>
+                <AppSidebar 
+                  currentView="workspaces"
+                  onLogout={handleLogout}
+                  userInfo={userInfo}
+                  onFileSelect={handleFileSelect}
+                  selectedFile={selectedFile}
+                />
+              </Allotment.Pane>
+              
+              {/* Main Content Panel */}
+              <Allotment.Pane minSize={300}>
+                <main className="h-full bg-black">
+                  {selectedFile && isImageFile(selectedFile.name) ? (
+                    <ImageViewer file={selectedFile} userInfo={userInfo} />
+                  ) : selectedFile && isPdfFile(selectedFile.name) ? (
+                    <PDFViewer file={selectedFile} userInfo={userInfo} />
+                  ) : (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center max-w-md">
+                          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Workspaces</h1>
+                          <p className="text-gray-300 text-lg mb-6">
+                            Your collaborative workspace environment is ready. Create, organize, and manage your projects with ease.
+                          </p>
+                          <p className="text-gray-400 text-sm">
+                            {selectedFile && !isViewableFile(selectedFile.name) 
+                              ? `Selected: ${selectedFile.name} (Preview not available for this file type)`
+                              : 'Select an image or PDF file from the sidebar to view it here. The AI assistant is available in the right panel to help you with your work.'
+                            }
+                          </p>
+                        </div>
+                      </div>
+                  )}
                 </main>
-              </AssistantSidebar>
-            </AssistantRuntimeProvider>
-          </SidebarProvider>
+              </Allotment.Pane>
+              
+              {/* Assistant Panel */}
+              <Allotment.Pane minSize={250} preferredSize={350} maxSize={500}>
+                <div className="h-full bg-black border-l border-gray-800">
+                  <Thread />
+                </div>
+              </Allotment.Pane>
+            </Allotment>
+          </div>
         </div>
-      </div>
+      </AssistantRuntimeProvider>
     </TooltipProvider>
   );
 };

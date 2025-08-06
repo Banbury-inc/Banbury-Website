@@ -8,6 +8,8 @@ export interface FileSystemItem {
   size?: number
   modified?: Date
   children?: FileSystemItem[]
+  s3_url?: string
+  file_id?: string
 }
 
 export interface ApiFileInfo {
@@ -58,12 +60,20 @@ export function convertS3ToApiFile(s3File: S3FileInfo): ApiFileInfo {
  * Converts flat file list from API into hierarchical tree structure
  */
 export function buildFileTree(files: ApiFileInfo[] | S3FileInfo[]): FileSystemItem[] {
+  // Keep original files to access S3 URLs
+  const originalFilesMap: Map<string, ApiFileInfo | S3FileInfo> = new Map()
+  
   // Convert S3 files to ApiFileInfo format if needed
   const apiFiles: ApiFileInfo[] = files.map(file => {
+    let apiFile: ApiFileInfo
     if ('s3_url' in file) {
-      return convertS3ToApiFile(file as S3FileInfo)
+      apiFile = convertS3ToApiFile(file as S3FileInfo)
+    } else {
+      apiFile = file as ApiFileInfo
     }
-    return file as ApiFileInfo
+    // Store original file by path for later reference
+    originalFilesMap.set(apiFile.file_path, file)
+    return apiFile
   })
   const tree: Map<string, FileSystemItem> = new Map()
   const rootItems: FileSystemItem[] = []
@@ -89,6 +99,15 @@ export function buildFileTree(files: ApiFileInfo[] | S3FileInfo[]): FileSystemIt
         if (isFile) {
           item.size = file.file_size
           item.modified = new Date(file.date_modified)
+          if (file.file_id) {
+            item.file_id = file.file_id
+          }
+          
+          // Add S3 URL if available (for S3 files)
+          const originalFile = originalFilesMap.get(file.file_path)
+          if (originalFile && 's3_url' in originalFile && originalFile.s3_url) {
+            item.s3_url = originalFile.s3_url
+          }
         }
 
         tree.set(currentPath, item)

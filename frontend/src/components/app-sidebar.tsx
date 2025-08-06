@@ -1,18 +1,6 @@
 import { Home, FolderOpen, LogOut, ChevronDown, ChevronRight, File, Folder, RefreshCw } from "lucide-react"
 import { useNavigate } from 'react-router-dom'
 import { useState, useEffect, useCallback } from 'react'
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarHeader,
-} from "./ui/sidebar"
 import { Button } from "./ui/button"
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
@@ -24,6 +12,8 @@ interface AppSidebarProps {
     username: string
     email?: string
   } | null
+  onFileSelect?: (file: FileSystemItem) => void
+  selectedFile?: FileSystemItem | null
 }
 
 // File tree item component
@@ -32,45 +22,64 @@ interface FileTreeItemProps {
   level: number
   expandedItems: Set<string>
   toggleExpanded: (id: string) => void
+  onFileSelect?: (file: FileSystemItem) => void
+  selectedFile?: FileSystemItem | null
 }
 
-function FileTreeItem({ item, level, expandedItems, toggleExpanded }: FileTreeItemProps) {
+// Helper functions to check file types
+const isImageFile = (fileName: string): boolean => {
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg']
+  const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+  return imageExtensions.includes(extension)
+}
+
+const isPdfFile = (fileName: string): boolean => {
+  const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+  return extension === '.pdf'
+}
+
+const isViewableFile = (fileName: string): boolean => {
+  return isImageFile(fileName) || isPdfFile(fileName)
+}
+
+function FileTreeItem({ item, level, expandedItems, toggleExpanded, onFileSelect, selectedFile }: FileTreeItemProps) {
   const isExpanded = expandedItems.has(item.id)
   const hasChildren = item.children && item.children.length > 0
+  const isSelected = selectedFile?.id === item.id
   
   const handleClick = () => {
     if (hasChildren) {
       toggleExpanded(item.id)
+    } else if (item.type === 'file' && onFileSelect) {
+      // For files, trigger the selection callback
+      onFileSelect(item)
     }
   }
   
   return (
     <>
-      <SidebarMenuItem>
-        <SidebarMenuButton 
-          asChild
-          className={`cursor-pointer hover:bg-black hover:text-white`}
+      <div className="w-full">
+        <button
+          onClick={handleClick}
+          className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-gray-800 hover:text-white transition-colors ${
+            isSelected ? 'bg-gray-800 text-white' : 'text-gray-300'
+          }`}
           style={{ paddingLeft: `${(level * 12) + 12}px` }}
         >
-          <button
-            onClick={handleClick}
-            className="w-full flex items-center gap-2 text-left"
-          >
-            {hasChildren && (
-              isExpanded ? 
-                <ChevronDown className="h-3 w-3" /> : 
-                <ChevronRight className="h-3 w-3" />
-            )}
-            {!hasChildren && <div className="w-3" />}
-            {item.type === 'folder' ? (
-              <Folder className="h-4 w-4" />
-            ) : (
-              <File className="h-4 w-4" />
-            )}
-            <span className="text-sm">{item.name}</span>
-          </button>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
+          {hasChildren && (
+            isExpanded ? 
+              <ChevronDown className="h-3 w-3" /> : 
+              <ChevronRight className="h-3 w-3" />
+          )}
+          {!hasChildren && <div className="w-3" />}
+          {item.type === 'folder' ? (
+            <Folder className="h-4 w-4" />
+          ) : (
+            <File className="h-4 w-4" />
+          )}
+          <span className="text-sm truncate">{item.name}</span>
+        </button>
+      </div>
       
       {hasChildren && isExpanded && item.children?.map((child) => (
         <FileTreeItem
@@ -79,13 +88,15 @@ function FileTreeItem({ item, level, expandedItems, toggleExpanded }: FileTreeIt
           level={level + 1}
           expandedItems={expandedItems}
           toggleExpanded={toggleExpanded}
+          onFileSelect={onFileSelect}
+          selectedFile={selectedFile}
         />
       ))}
     </>
   )
 }
 
-export function AppSidebar({ currentView, onLogout, userInfo }: AppSidebarProps) {
+export function AppSidebar({ currentView, onLogout, userInfo, onFileSelect, selectedFile }: AppSidebarProps) {
   const navigate = useNavigate()
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
@@ -129,66 +140,60 @@ export function AppSidebar({ currentView, onLogout, userInfo }: AppSidebarProps)
   }, [fetchUserFiles])
   
   return (
-    <Sidebar className="bg-black border-l border-white">
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel className="flex items-center gap-2">
-            Files
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-4 w-4 p-0"
-              onClick={fetchUserFiles}
-              disabled={loading}
-            >
-              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {loading && !fileSystem.length && (
-                <SidebarMenuItem>
-                  <div className="flex items-center gap-2 px-3 py-2 text-sm text-sidebar-foreground/70">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Loading files...
-                  </div>
-                </SidebarMenuItem>
-              )}
-              
-              {error && (
-                <SidebarMenuItem>
-                  <div className="px-3 py-2 text-sm text-red-500">
-                    {error}
-                  </div>
-                </SidebarMenuItem>
-              )}
-              
-              {!loading && !error && fileSystem.length === 0 && (
-                <SidebarMenuItem>
-                  <div className="px-3 py-2 text-sm text-sidebar-foreground/70">
-                    No files found
-                  </div>
-                </SidebarMenuItem>
-              )}
-              
-              {fileSystem.map((item) => (
-                <FileTreeItem
-                  key={item.id}
-                  item={item}
-                  level={0}
-                  expandedItems={expandedItems}
-                  toggleExpanded={toggleExpanded}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
+    <div className="h-full w-full bg-black border-r border-gray-800 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
+        <h2 className="text-white text-sm font-medium">Files</h2>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-6 w-6 p-0 text-gray-400 hover:text-white"
+          onClick={fetchUserFiles}
+          disabled={loading}
+        >
+          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+        </Button>
+      </div>
+
+      {/* File Tree Content */}
+      <div className="flex-1 overflow-y-auto">
+        {loading && !fileSystem.length && (
+          <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            Loading files...
+          </div>
+        )}
+        
+        {error && (
+          <div className="px-3 py-2 text-sm text-red-500">
+            {error}
+          </div>
+        )}
+        
+        {!loading && !error && fileSystem.length === 0 && (
+          <div className="px-3 py-2 text-sm text-gray-400">
+            No files found
+          </div>
+        )}
+        
+        {fileSystem.map((item) => (
+          <FileTreeItem
+            key={item.id}
+            item={item}
+            level={0}
+            expandedItems={expandedItems}
+            toggleExpanded={toggleExpanded}
+            onFileSelect={onFileSelect}
+            selectedFile={selectedFile}
+          />
+        ))}
+      </div>
       
-      <SidebarFooter className="p-4">
+      {/* Footer */}
+      <div className="border-t border-gray-800 p-4">
         <div className="space-y-2">
           {userInfo && (
-            <div className="text-xs text-white truncate">
+            <div className="text-xs text-gray-400 truncate">
               {userInfo.email || userInfo.username}
             </div>
           )}
@@ -196,13 +201,13 @@ export function AppSidebar({ currentView, onLogout, userInfo }: AppSidebarProps)
             variant="ghost"
             size="sm"
             onClick={onLogout}
-            className="w-full justify-start gap-2 text-white hover:bg-black hover:text-white"
+            className="w-full justify-start gap-2 text-gray-300 hover:bg-gray-800 hover:text-white"
           >
             <LogOut className="h-4 w-4" />
             Logout
           </Button>
         </div>
-      </SidebarFooter>
-    </Sidebar>
+      </div>
+    </div>
   )
 }
