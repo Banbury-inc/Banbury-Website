@@ -196,6 +196,72 @@ export class ApiService {
   }
 
   /**
+   * Get user's cloud files
+   */
+  static async getUserFiles(username: string) {
+    try {
+      const response = await this.get<{
+        files: Array<{
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          file_path: string;
+          date_uploaded: string;
+          date_modified: string;
+          date_accessed: string;
+          kind: string;
+          device_name: string;
+          file_id?: string;
+        }>;
+      }>(`/files/getfileinfo/${encodeURIComponent(username)}/`);
+
+      if (response.files) {
+      
+        return {
+          success: true,
+          files: response.files || []
+        };
+      } else {
+        throw new Error('Failed to fetch user files');
+      }
+    } catch (error) {
+      throw this.enhanceError(error, 'Failed to fetch user files');
+    }
+  }
+
+  /**
+   * Get partial file info for a specific folder path
+   */
+  static async getPartialFileInfo(username: string, folderPath: string, maxDepth: number = 4) {
+    try {
+      const response = await this.post<{
+        files: Array<{
+          file_name: string;
+          file_size: number;
+          file_type: string;
+          file_path: string;
+          date_uploaded: string;
+          date_modified: string;
+          date_accessed: string;
+          kind: string;
+          device_name: string;
+          file_id?: string;
+        }>;
+      }>(`/files/getpartialfileinfo/${encodeURIComponent(username)}/`, {
+        folder_path: folderPath,
+        max_depth: maxDepth
+      });
+      
+      return {
+        success: true,
+        files: response.files || []
+      };
+    } catch (error) {
+      throw this.enhanceError(error, 'Failed to fetch partial file info');
+    }
+  }
+
+  /**
    * Enhanced error handling
    */
   private static enhanceError(error: unknown, context: string): Error {

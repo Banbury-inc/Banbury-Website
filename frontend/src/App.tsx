@@ -10,6 +10,7 @@ import Layout from './layout/Layout';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Workspaces from './pages/Workspaces';
 import AuthCallback from './pages/AuthCallback';
 import Features from './components/Features';
 import News from './components/News';
@@ -74,25 +75,24 @@ const App = (): JSX.Element => {
       <ColorModeContext.Provider value={colorMode}>
         <ThemeProvider theme={getTheme(mode)}>
           <CssBaseline />
-          <BrowserRouter>
-            <PageTracker />
-            <Layout>
+            <BrowserRouter>
+              <PageTracker />
               <Routes>
-                <Route path='/' element={<Home />} />
-                <Route path='/login' element={<Login />} />
                 <Route path='/dashboard' element={<Dashboard />} />
-                <Route path='/auth/callback' element={<AuthCallback />} />
-                <Route path='/features' element={<Features />} />
-                <Route path='/filedownload/:username/:file_id' element={<FileDownload />} />
-                <Route path='/api' element={<API />} />
-                <Route path='/news' element={<News />} />
-                <Route path='/news/:postId' element={<News />} />
-                <Route path='/terms_of_use' element={<Terms_of_use />} />
-                <Route path='/privacy_policy' element={<Privacy_Policy />} />
-                <Route path='/sitemap' element={<SitemapRedirect />} />
+                <Route path='/workspaces' element={<Workspaces />} />
+                <Route path='/' element={<Layout><Home /></Layout>} />
+                <Route path='/login' element={<Layout><Login /></Layout>} />
+                <Route path='/auth/callback' element={<Layout><AuthCallback /></Layout>} />
+                <Route path='/features' element={<Layout><Features /></Layout>} />
+                <Route path='/filedownload/:username/:file_id' element={<Layout><FileDownload /></Layout>} />
+                <Route path='/api' element={<Layout><API /></Layout>} />
+                <Route path='/news' element={<Layout><News /></Layout>} />
+                <Route path='/news/:postId' element={<Layout><News /></Layout>} />
+                <Route path='/terms_of_use' element={<Layout><Terms_of_use /></Layout>} />
+                <Route path='/privacy_policy' element={<Layout><Privacy_Policy /></Layout>} />
+                <Route path='/sitemap' element={<Layout><SitemapRedirect /></Layout>} />
               </Routes>
-            </Layout>
-          </BrowserRouter>
+            </BrowserRouter>
         </ThemeProvider>
       </ColorModeContext.Provider>
     </HelmetProvider>
