@@ -196,35 +196,52 @@ export class ApiService {
   }
 
   /**
-   * Get user's cloud files
+   * Get user's S3 cloud files
    */
   static async getUserFiles(username: string) {
     try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      // The backend extracts username from token, so we don't need to pass it in URL
       const response = await this.get<{
-        files: Array<{
+        result?: string;
+        files?: Array<{
+          file_id: string;
           file_name: string;
-          file_size: number;
-          file_type: string;
           file_path: string;
+          file_type: string;
+          file_size: number;
           date_uploaded: string;
           date_modified: string;
-          date_accessed: string;
-          kind: string;
+          s3_url: string;
           device_name: string;
-          file_id?: string;
         }>;
-      }>(`/files/getfileinfo/${encodeURIComponent(username)}/`);
+        error?: string;
+        status_code?: number;
+      }>(`/files/get_s3_files/`);
 
-      if (response.files) {
-      
+      console.log('S3 Files API Response:', response);
+
+      // Handle both possible response formats from the backend
+      if (response.result === 'success' && response.files) {
         return {
           success: true,
-          files: response.files || []
+          files: response.files
         };
+      } else if (response.files && Array.isArray(response.files)) {
+        return {
+          success: true,
+          files: response.files
+        };
+      } else if (response.error) {
+        throw new Error(response.error);
       } else {
-        throw new Error('Failed to fetch user files');
+        console.error('Unexpected API response format:', response);
+        throw new Error('Failed to fetch user files - unexpected response format');
       }
     } catch (error) {
+      console.error('getUserFiles error:', error);
       throw this.enhanceError(error, 'Failed to fetch user files');
     }
   }

@@ -188,7 +188,7 @@ const ComposerAction: FC = () => {
       <TooltipIconButton
         tooltip="Attach file"
         variant="ghost"
-        className="hover:bg-foreground/15 dark:hover:bg-background/50 scale-115 p-3.5"
+        className="hover:bg-black hover:text-white bg-gray-500 dark:hover:bg-background/50 scale-75 p-3.5 text-white"
         onClick={() => {
           console.log("Attachment clicked - not implemented");
         }}

@@ -17,21 +17,59 @@ export interface ApiFileInfo {
   file_path: string
   date_uploaded: string
   date_modified: string
-  date_accessed: string
-  kind: string
+  date_accessed?: string
+  kind?: string
   device_name: string
   file_id?: string
+}
+
+export interface S3FileInfo {
+  file_id: string
+  file_name: string
+  file_path: string
+  file_type: string
+  file_size: number
+  date_uploaded: string
+  date_modified: string
+  s3_url: string
+  device_name: string
+}
+
+/**
+ * Converts S3 file info to ApiFileInfo format
+ */
+export function convertS3ToApiFile(s3File: S3FileInfo): ApiFileInfo {
+  return {
+    file_name: s3File.file_name,
+    file_size: s3File.file_size,
+    file_type: s3File.file_type,
+    file_path: s3File.file_path,
+    date_uploaded: s3File.date_uploaded,
+    date_modified: s3File.date_modified,
+    device_name: s3File.device_name,
+    file_id: s3File.file_id,
+    // Optional fields for S3 files
+    date_accessed: s3File.date_modified, // Use modified date as fallback
+    kind: 'file' // S3 files are always files
+  }
 }
 
 /**
  * Converts flat file list from API into hierarchical tree structure
  */
-export function buildFileTree(files: ApiFileInfo[]): FileSystemItem[] {
+export function buildFileTree(files: ApiFileInfo[] | S3FileInfo[]): FileSystemItem[] {
+  // Convert S3 files to ApiFileInfo format if needed
+  const apiFiles: ApiFileInfo[] = files.map(file => {
+    if ('s3_url' in file) {
+      return convertS3ToApiFile(file as S3FileInfo)
+    }
+    return file as ApiFileInfo
+  })
   const tree: Map<string, FileSystemItem> = new Map()
   const rootItems: FileSystemItem[] = []
 
   // First pass: create all items
-  files.forEach((file) => {
+  apiFiles.forEach((file) => {
     const pathParts = file.file_path.split('/').filter(part => part.length > 0)
     let currentPath = ''
 

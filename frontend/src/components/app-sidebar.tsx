@@ -15,7 +15,7 @@ import {
 } from "./ui/sidebar"
 import { Button } from "./ui/button"
 import { ApiService } from "../services/apiService"
-import { buildFileTree, FileSystemItem } from "../utils/fileTreeUtils"
+import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
