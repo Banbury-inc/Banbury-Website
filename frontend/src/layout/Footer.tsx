@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Link, Grid, IconButton } from '@mui/material';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
-import XIcon from '@mui/icons-material/X';
+import TwitterIcon from '@mui/icons-material/Twitter';
 
 import { useTheme } from '@mui/material/styles';
 
@@ -79,7 +79,7 @@ const Footer: React.FC = () => {
             rel="noopener"
             color="inherit"
           >
-            <XIcon />
+            <TwitterIcon />
           </IconButton>
           <IconButton
             component="a"
