@@ -6,6 +6,7 @@ import {
 import type { FC, PropsWithChildren } from "react";
 
 import { Thread } from "./thread";
+import { ClaudeRuntimeProvider } from "../assistant/ClaudeRuntimeProvider";
 
 export const AssistantSidebar: FC<PropsWithChildren> = ({ children }) => {
   return (
@@ -15,7 +16,9 @@ export const AssistantSidebar: FC<PropsWithChildren> = ({ children }) => {
       </ResizablePanel>
       <ResizableHandle />
       <ResizablePanel defaultSize={25} minSize={20} maxSize={40}>
-        <Thread />
+        <ClaudeRuntimeProvider>
+          <Thread />
+        </ClaudeRuntimeProvider>
       </ResizablePanel>
     </ResizablePanelGroup>
   );

@@ -9,7 +9,6 @@ import {
 import type { FC } from "react";
 import {
   ArrowDownIcon,
-  ArrowUpIcon,
   PlusIcon,
   CopyIcon,
   CheckIcon,
@@ -18,7 +17,6 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   Square,
-  SendIcon,
 } from "lucide-react";
 
 import { TooltipIconButton } from "./tooltip-icon-button";
@@ -188,9 +186,7 @@ const ComposerAction: FC = () => {
         tooltip="Attach file"
         variant="default"
         className="hover:bg-black hover:text-white dark:hover:bg-background/50 scale-75 p-3.5 text-white border border-zinc-300 dark:border-zinc-600"
-        onClick={() => {
-          console.log("Attachment clicked - not implemented");
-        }}
+        onClick={() => {}}
       >
         <PlusIcon />
       </TooltipIconButton>

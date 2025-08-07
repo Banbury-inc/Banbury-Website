@@ -19,7 +19,8 @@ import { Button } from '../components/ui/button';
 import { AppSidebar } from "../components/app-sidebar";
 import { NavSidebar } from "../components/nav-sidebar";
 import { TooltipProvider } from "../components/ui/tooltip";
-import { AssistantRuntimeProvider, useLocalRuntime } from '@assistant-ui/react';
+ 
+import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
 import { ImageViewer } from '../components/ImageViewer';
 import { PDFViewer } from '../components/PDFViewer';
 import { DocumentViewer } from '../components/DocumentViewer';
@@ -344,23 +345,7 @@ Created on: ${new Date().toLocaleDateString()}`;
     triggerSidebarRefresh();
   };
 
-  const runtime = useLocalRuntime({
-    async run({ messages }) {
-      const lastMessage = messages[messages.length - 1];
-      const userContent = lastMessage?.content?.[0]?.type === 'text' 
-        ? lastMessage.content[0].text 
-        : 'Hello';
-      
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `You said: "${userContent}". This is a local runtime response!`,
-          },
-        ],
-      };
-    },
-  });
+  
 
 
 
@@ -451,7 +436,7 @@ Created on: ${new Date().toLocaleDateString()}`;
 
   return (
     <TooltipProvider>
-      <AssistantRuntimeProvider runtime={runtime}>
+      <ClaudeRuntimeProvider>
         <div className="flex h-screen bg-black">
 
           {/* Navigation Sidebar - Fixed */}
@@ -557,9 +542,9 @@ Created on: ${new Date().toLocaleDateString()}`;
                 
                 {/* Assistant Panel */}
                 <Allotment.Pane minSize={250} preferredSize={350} maxSize={500}>
-                  <div className="h-full bg-black border-l border-gray-800">
-                    <Thread />
-                  </div>
+                      <div className="h-full bg-black border-l border-gray-800">
+                        <Thread />
+                      </div>
                 </Allotment.Pane>
               </Allotment>
             </div>
@@ -581,7 +566,7 @@ Created on: ${new Date().toLocaleDateString()}`;
             </Alert>
           </Snackbar>
         </div>
-      </AssistantRuntimeProvider>
+      </ClaudeRuntimeProvider>
     </TooltipProvider>
   );
 };

@@ -9,7 +9,7 @@ import { ApiService } from '../services/apiService';
 import { Thread } from '../components/thread';
 import { NavSidebar } from "../components/nav-sidebar";
 import { TooltipProvider } from "../components/ui/tooltip";
-import { AssistantRuntimeProvider, useLocalRuntime } from '@assistant-ui/react';
+ 
 
 
 
@@ -31,23 +31,7 @@ const Dashboard = (): JSX.Element => {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const runtime = useLocalRuntime({
-    async run({ messages }) {
-      const lastMessage = messages[messages.length - 1];
-      const userContent = lastMessage?.content?.[0]?.type === 'text' 
-        ? lastMessage.content[0].text 
-        : 'Hello';
-      
-      return {
-        content: [
-          {
-            type: "text" as const,
-            text: `You said: "${userContent}". This is a local runtime response!`,
-          },
-        ],
-      };
-    },
-  });
+  
 
 
 
@@ -79,7 +63,7 @@ const Dashboard = (): JSX.Element => {
         };
         setUserInfo(basicUserInfo);
       } catch (err) {
-        console.error('Auth check error:', err);
+        
         // Still try to show basic info if we have some stored data
         const username = localStorage.getItem('authUsername') || localStorage.getItem('username');
         if (username) {
@@ -145,9 +129,7 @@ const Dashboard = (): JSX.Element => {
         {/* Main Content Area */}
         <div className="flex flex-1 ml-16 with-nav-sidebar bg-black">
           <main className="flex-1">
-            <AssistantRuntimeProvider runtime={runtime}>
-              <Thread />
-            </AssistantRuntimeProvider>
+            <Thread />
           </main>
         </div>
       </div>
