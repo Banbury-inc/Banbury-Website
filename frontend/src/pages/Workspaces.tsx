@@ -549,12 +549,6 @@ Created on: ${new Date().toLocaleDateString()}`;
                             <p className="text-gray-300 text-lg mb-6">
                               Your collaborative workspace environment is ready. Create, organize, and manage your projects with ease.
                             </p>
-                            <p className="text-gray-400 text-sm">
-                              {selectedFile && !isViewableFile(selectedFile.name) 
-                                ? `Selected: ${selectedFile.name} (Preview not available for this file type)`
-                                : 'Select an image, PDF, or Word document from the sidebar to view it here. Use the toolbar above to upload files or create new documents. The AI assistant is available in the right panel to help you with your work.'
-                              }
-                            </p>
                           </div>
                         </div>
                     )}
