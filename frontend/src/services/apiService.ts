@@ -72,6 +72,19 @@ export class ApiService {
   }
 
   /**
+   * Generic DELETE request
+   */
+  static async delete<T>(endpoint: string): Promise<T> {
+    try {
+      const response = await axios.delete<T>(`${this.baseURL}${endpoint}`);
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `DELETE ${endpoint}`);
+      throw error;
+    }
+  }
+
+  /**
    * Authentication specific requests
    */
   static async login(username: string, password: string) {
@@ -343,6 +356,80 @@ export class ApiService {
       };
     } catch (error) {
       console.error('uploadFile error:', error);
+      throw this.enhanceError(error, 'Failed to upload file');
+    }
+  }
+
+  /**
+   * Delete S3 file
+   */
+  static async deleteS3File(fileId: string) {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      const response = await axios({
+        method: 'delete',
+        url: `${this.baseURL}/files/delete_s3_file/${encodeURIComponent(fileId)}/`,
+        headers: {
+          'Authorization': axios.defaults.headers.common['Authorization']
+        }
+      });
+
+      if (response.data.result === 'success') {
+        return {
+          success: true,
+          message: response.data.message || 'File deleted successfully'
+        };
+      } else if (response.data.error) {
+        throw new Error(response.data.error);
+      } else {
+        throw new Error('Failed to delete file');
+      }
+    } catch (error) {
+      console.error('deleteS3File error:', error);
+      throw this.enhanceError(error, 'Failed to delete file');
+    }
+  }
+
+  /**
+   * Upload file to S3 (replacing existing file)
+   */
+  static async uploadToS3(file: File | Blob, fileName: string, deviceName: string = 'web-editor', filePath: string = '', fileParent: string = '') {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      const formData = new FormData();
+      formData.append('file', file, fileName);
+      formData.append('device_name', deviceName);
+      formData.append('file_path', filePath);
+      formData.append('file_parent', fileParent);
+
+      const response = await axios({
+        method: 'post',
+        url: `${this.baseURL}/files/upload_to_s3/`,
+        data: formData,
+        headers: {
+          'Authorization': axios.defaults.headers.common['Authorization'],
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      if (response.data.result === 'success') {
+        return {
+          success: true,
+          file_url: response.data.file_url,
+          file_info: response.data.file_info,
+          message: 'File uploaded successfully'
+        };
+      } else if (response.data.error) {
+        throw new Error(response.data.error);
+      } else {
+        throw new Error('Failed to upload file');
+      }
+    } catch (error) {
+      console.error('uploadToS3 error:', error);
       throw this.enhanceError(error, 'Failed to upload file');
     }
   }

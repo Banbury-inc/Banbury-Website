@@ -42,17 +42,75 @@ const WordViewer: React.FC<WordViewerProps> = ({
         }
         
         // Fetch the document content
-        let result;
+        let htmlContent;
         if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
           const response = await fetch(filePath);
           const blob = await response.blob();
-          const arrayBuffer = await blob.arrayBuffer();
-          result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+          
+          // Check the content type and file extension to determine how to parse
+          const contentType = blob.type;
+          const fileExtension = fileName?.toLowerCase().split('.').pop() || '';
+          
+          // Check if this is our custom edited DOCX format
+          const isEditedDocx = contentType === 'application/vnd.banbury.docx-html';
+          
+          if (contentType.includes('text/html') || contentType.includes('html') || fileExtension === 'html' || isEditedDocx) {
+            // It's an HTML file (including edited DOCX) - read it directly
+            const text = await blob.text();
+            
+            // Check if it has our special meta tags indicating it's an edited DOCX
+            const hasOriginalFormatMeta = text.includes('meta name="original-format" content="docx"');
+            const hasEditorMeta = text.includes('meta name="editor" content="banbury-editor"');
+            
+            if (hasOriginalFormatMeta && hasEditorMeta) {
+              // This is our edited DOCX format - extract the body content
+              const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              htmlContent = bodyMatch ? bodyMatch[1] : text;
+            } else {
+              // Regular HTML file
+              const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              htmlContent = bodyMatch ? bodyMatch[1] : text;
+            }
+          } else if (fileExtension === 'docx') {
+            // Original DOCX file - use mammoth to convert
+            try {
+              const arrayBuffer = await blob.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+              htmlContent = result.value;
+            } catch (mammothError) {
+              // If mammoth fails on a .docx file, it might be our edited format
+              const text = await blob.text();
+              if (text.includes('<') && text.includes('>')) {
+                const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                htmlContent = bodyMatch ? bodyMatch[1] : text;
+              } else {
+                throw mammothError; // Re-throw the original error
+              }
+            }
+          } else {
+            // Try to parse as DOCX first, if it fails, treat as HTML/text
+            try {
+              const arrayBuffer = await blob.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+              htmlContent = result.value;
+            } catch (mammothError) {
+              // If mammoth fails, try reading as text/HTML
+              const text = await blob.text();
+              // Check if it looks like HTML content
+              if (text.includes('<') && text.includes('>')) {
+                const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                htmlContent = bodyMatch ? bodyMatch[1] : text;
+              } else {
+                // If it's plain text, wrap it in a paragraph
+                htmlContent = `<p>${text}</p>`;
+              }
+            }
+          }
         } else {
           throw new Error('Local file access not supported in web environment');
         }
         
-        setContent(result.value || '<p>Start editing this document...</p>');
+        setContent(htmlContent || '<p>Start editing this document...</p>');
         onLoad?.();
         
       } catch (err) {
@@ -78,7 +136,7 @@ const WordViewer: React.FC<WordViewerProps> = ({
     };
 
     loadDocxContent();
-  }, [src, fileName, onError, onLoad]);
+  }, [src, fileName]);
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);

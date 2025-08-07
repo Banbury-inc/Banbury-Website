@@ -1,7 +1,7 @@
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { ApiService } from '../services/apiService';
 import { useState, useEffect } from 'react';
-import { AlertCircle, Download, FileText, ExternalLink } from 'lucide-react';
+import { AlertCircle, Download, FileText, ExternalLink, Save } from 'lucide-react';
 import { Button } from './ui/button';
 import WordViewer from './workspaces/WordViewer';
 
@@ -17,6 +17,8 @@ export function DocumentViewer({ file, userInfo }: DocumentViewerProps) {
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentContent, setCurrentContent] = useState<string>('');
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     let currentUrl: string | null = null;
@@ -55,7 +57,7 @@ export function DocumentViewer({ file, userInfo }: DocumentViewerProps) {
         window.URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [file.file_id, file.name, file.size, file.modified]);
+  }, [file.file_id, file.name]);
 
   const handleDownload = async () => {
     if (!file.file_id) return;
@@ -80,6 +82,87 @@ export function DocumentViewer({ file, userInfo }: DocumentViewerProps) {
   const handleOpenInNewTab = () => {
     if (documentUrl) {
       window.open(documentUrl, '_blank');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!file.file_id || !userInfo?.username || !currentContent) return;
+    
+    setSaving(true);
+    try {
+      // First delete the existing file from S3
+      await ApiService.deleteS3File(file.file_id);
+      
+      // Determine the file extension and content format
+      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
+      const isDocxFile = fileExtension === 'docx';
+      
+      let blob;
+      let contentType;
+      
+      if (isDocxFile) {
+        // For DOCX files, we'll save the HTML content but mark it as a custom format
+        // that our system can recognize as edited DOCX content
+        const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${file.name}</title>
+    <meta name="original-format" content="docx">
+    <meta name="editor" content="banbury-editor">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    ${currentContent}
+</body>
+</html>`;
+        // Use a custom content type that indicates this is edited DOCX content
+        blob = new Blob([htmlContent], { type: 'application/vnd.banbury.docx-html' });
+        contentType = 'application/vnd.banbury.docx-html';
+      } else if (fileExtension === 'html' || fileExtension === 'htm') {
+        // For HTML files, save with proper HTML structure
+        const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>${file.name}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    ${currentContent}
+</body>
+</html>`;
+        blob = new Blob([htmlContent], { type: 'text/html' });
+        contentType = 'text/html';
+      } else {
+        // For other files, save just the content with appropriate type
+        blob = new Blob([currentContent], { type: 'text/html' });
+        contentType = 'text/html';
+      }
+      
+      // Extract parent path from file path
+      const parentPath = file.path ? file.path.split('/').slice(0, -1).join('/') : '';
+      
+      // Upload the new file to S3 with original filename
+      await ApiService.uploadToS3(
+        blob,
+        file.name,  // Always use original filename
+        'web-editor',
+        file.path || '',
+        parentPath
+      );
+      
+      // Optionally reload the document to show the saved version
+      // We could trigger a refresh here if needed
+      
+    } catch (err) {
+      setError('Failed to save document');
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -122,6 +205,16 @@ export function DocumentViewer({ file, userInfo }: DocumentViewerProps) {
           <Button
             variant="default"
             size="icon"
+            onClick={handleSave}
+            disabled={saving || !currentContent}
+            className="h-9 w-9 bg-green-600 hover:bg-green-700"
+            title="Save document"
+          >
+            <Save className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="default"
+            size="icon"
             onClick={handleOpenInNewTab}
             className="h-9 w-9 bg-primary hover:bg-primary/80"
             title="Open in new tab"
@@ -149,8 +242,7 @@ export function DocumentViewer({ file, userInfo }: DocumentViewerProps) {
             onError={() => setError('Failed to load document in editor')}
             onLoad={() => setError(null)}
             onSave={(content) => {
-              // Handle save - could integrate with your save API here
-              // Document saved successfully
+              setCurrentContent(content);
             }}
           />
         ) : (

@@ -189,7 +189,7 @@ You can edit this document directly in the browser with formatting support. The 
 Created on: ${new Date().toLocaleDateString()}`;
 
       // Generate filename
-      const fileName = `New Test Document ${new Date().toISOString().split('T')[0]}.docx`;
+      const fileName = `Another New Test Document ${new Date().toISOString().split('T')[0]}.docx`;
 
       // Create .docx using docx library
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
