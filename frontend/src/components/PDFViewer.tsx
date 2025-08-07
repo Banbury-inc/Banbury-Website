@@ -3,9 +3,12 @@ import { ApiService } from '../services/apiService';
 import { useState, useEffect } from 'react';
 import { AlertCircle, Download, FileText, ExternalLink, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Document, Page, pdfjs } from 'react-pdf';
+import { Button } from './ui/button';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
 
-// Disable worker to avoid CDN issues - PDF.js will run synchronously
-pdfjs.GlobalWorkerOptions.workerSrc = '';
+// Configure worker from cdnjs to avoid CORS issues
+pdfjs.GlobalWorkerOptions.workerSrc = `/pdf.worker.js`;
 
 interface PDFViewerProps {
   file: FileSystemItem;
@@ -46,7 +49,6 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
           setError('Failed to load PDF content');
         }
       } catch (err) {
-        console.error('Failed to load PDF:', err);
         setError('Failed to load PDF content');
       } finally {
         setLoading(false);
@@ -79,7 +81,7 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
         setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
       }
     } catch (err) {
-      console.error('Failed to download PDF:', err);
+      // Failed to download PDF
     }
   };
 
@@ -95,7 +97,6 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
   };
 
   const onDocumentLoadError = (error: Error) => {
-    console.error('Failed to load PDF document:', error);
     setError(`Failed to load PDF document: ${error.message}`);
     setLoading(false);
   };
@@ -170,8 +171,8 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-          <p className="text-gray-300">Loading PDF...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading PDF...</p>
         </div>
       </div>
     );
@@ -181,10 +182,10 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4 text-center">
-          <AlertCircle className="h-12 w-12 text-red-400" />
+          <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
-            <h3 className="text-lg font-semibold text-white mb-2">Failed to load PDF</h3>
-            <p className="text-gray-300">{error}</p>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load PDF</h3>
+            <p className="text-muted-foreground">{error}</p>
           </div>
         </div>
       </div>
@@ -192,96 +193,107 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-black">
+    <div className="h-full flex flex-col bg-background">
       {/* Header with file info and actions */}
-      <div className="flex items-center justify-between p-4 border-b border-gray-800">
+      <div className="flex items-center justify-between p-3 border-b border-border bg-card">
         <div className="flex items-center gap-3">
-          <FileText className="h-5 w-5 text-red-400" />
           <div>
-            <h2 className="text-lg font-semibold text-white">{file.name}</h2>
-            <p className="text-sm text-gray-400">
-              {file.size ? `${(file.size / 1024).toFixed(1)} KB` : 'Unknown size'}
-              {file.modified && ` • Modified ${file.modified.toLocaleDateString()}`}
-              {numPages > 0 && ` • ${numPages} pages`}
-            </p>
-            {pdfUrl && !loading && !error && (
-              <p className="text-xs text-gray-500 mt-1">
-                Use arrow keys to navigate • Ctrl/Cmd + (plus/minus) to zoom • Ctrl/Cmd + 0 to reset zoom
-              </p>
-            )}
+            <h3 className="text-sm font-semibold text-card-foreground">{file.name}</h3>
           </div>
         </div>
         
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="default"
+            size="icon"
             onClick={handleOpenInNewTab}
-            className="flex items-center gap-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-md transition-colors"
+            className="h-9 w-9 bg-primary hover:bg-primary/80"
+            title="Open in new tab"
           >
             <ExternalLink className="h-4 w-4" />
-            Open in New Tab
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="default"
+            size="icon"
             onClick={handleDownload}
-            className="flex items-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors"
+            className="h-9 w-9 bg-primary hover:bg-primary/80"
+            title="Download PDF"
           >
             <Download className="h-4 w-4" />
-            Download
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* PDF Controls */}
       {pdfUrl && !loading && !error && (
-        <div className="flex items-center justify-between p-3 border-b border-gray-800 bg-gray-900">
-          <div className="flex items-center gap-2">
-            <button
+        <div className="flex items-center justify-between p-3 bg-card border-b border-border">
+          <div className="flex items-center gap-3">
+            <Button
+              variant="default"
+              size="sm"
               onClick={goToPrevPage}
               disabled={pageNumber <= 1}
-              className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded transition-colors"
+              className="h-8 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground"
+              title="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
-              Previous
-            </button>
-            <span className="text-white px-3">
-              Page {pageNumber} of {numPages}
-            </span>
-            <button
+            </Button>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground text-sm font-medium">
+                Page
+              </span>
+              <span className="text-muted-foreground text-sm font-medium min-w-[60px] text-center">
+                {pageNumber} of {numPages}
+              </span>
+            </div>
+            <Button
+              variant="default"
+              size="sm"
               onClick={goToNextPage}
               disabled={pageNumber >= numPages}
-              className="flex items-center gap-1 px-3 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded transition-colors"
+              className="h-8 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground"
+              title="Next page"
             >
-              Next
               <ChevronRight className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           
           <div className="flex items-center gap-2">
-            <button
+            <Button
+              variant="default"
+              size="icon"
               onClick={zoomOut}
               disabled={scale <= 0.5}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded transition-colors"
+              className="h-8 w-8 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground"
+              title="Zoom out"
             >
               <ZoomOut className="h-4 w-4" />
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={resetZoom}
-              className="px-2 py-1 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors text-sm"
+              className="h-8 min-w-[60px] text-sm font-medium border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+              title="Reset zoom to 100%"
             >
               {Math.round(scale * 100)}%
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="default"
+              size="icon"
               onClick={zoomIn}
               disabled={scale >= 3.0}
-              className="flex items-center gap-1 px-2 py-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-500 text-white rounded transition-colors"
+              className="h-8 w-8 bg-primary hover:bg-primary/80 disabled:bg-muted disabled:text-muted-foreground"
+              title="Zoom in"
             >
               <ZoomIn className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
       {/* PDF display area */}
-      <div className="flex-1 flex justify-center overflow-auto bg-gray-800 p-4">
+      <div className="flex-1 flex justify-center overflow-auto bg-muted p-6">
         {pdfUrl ? (
           <div className="flex flex-col items-center">
             <Document
@@ -290,14 +302,14 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
               onLoadError={onDocumentLoadError}
               loading={
                 <div className="flex items-center justify-center p-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                 </div>
               }
               error={
                 <div className="flex items-center justify-center p-8">
                   <div className="text-center">
-                    <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
-                    <p className="text-white">Failed to load PDF</p>
+                    <AlertCircle className="h-12 w-12 text-destructive mx-auto mb-4" />
+                    <p className="text-foreground">Failed to load PDF</p>
                   </div>
                 </div>
               }
@@ -306,15 +318,15 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
                 pageNumber={pageNumber}
                 scale={scale}
                 loading={
-                  <div className="flex items-center justify-center p-8 bg-white border border-gray-300">
-                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-gray-600"></div>
+                  <div className="flex items-center justify-center p-8 bg-background border border-border rounded-lg">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                   </div>
                 }
                 error={
-                  <div className="flex items-center justify-center p-8 bg-white border border-gray-300">
+                  <div className="flex items-center justify-center p-8 bg-background border border-border rounded-lg">
                     <div className="text-center">
-                      <AlertCircle className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                      <p className="text-gray-600">Failed to load page</p>
+                      <AlertCircle className="h-8 w-8 text-destructive mx-auto mb-2" />
+                      <p className="text-muted-foreground">Failed to load page</p>
                     </div>
                   </div>
                 }
@@ -325,8 +337,8 @@ export function PDFViewer({ file, userInfo }: PDFViewerProps) {
         ) : (
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
-              <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-300">PDF URL not available</p>
+              <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground">PDF URL not available</p>
             </div>
           </div>
         )}
