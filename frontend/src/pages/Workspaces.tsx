@@ -13,6 +13,7 @@ import { Add as AddIcon, Description as DocumentIcon } from '@mui/icons-material
 import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { ApiService } from '../services/apiService';
+import { CONFIG } from '../config/config';
 import { Button } from '../components/ui/button';
 
 import { AppSidebar } from "../components/app-sidebar";
@@ -21,6 +22,7 @@ import { TooltipProvider } from "../components/ui/tooltip";
 import { AssistantRuntimeProvider, useLocalRuntime } from '@assistant-ui/react';
 import { ImageViewer } from '../components/ImageViewer';
 import { PDFViewer } from '../components/PDFViewer';
+import { DocumentViewer } from '../components/DocumentViewer';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
@@ -67,12 +69,25 @@ const Workspaces = (): JSX.Element => {
     return extension === '.pdf'
   };
 
+  const isDocumentFile = (fileName: string): boolean => {
+    const documentExtensions = ['.docx', '.doc']
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+    return documentExtensions.includes(extension)
+  };
+
   const isViewableFile = (fileName: string): boolean => {
-    return isImageFile(fileName) || isPdfFile(fileName)
+    return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName)
   };
 
   // Handle file selection from sidebar
   const handleFileSelect = (file: FileSystemItem) => {
+    console.log('File selected in Workspaces:', file.name, file);
+    console.log('File type checks:', {
+      isImage: isImageFile(file.name),
+      isPdf: isPdfFile(file.name),
+      isDocument: isDocumentFile(file.name),
+      isViewable: isViewableFile(file.name)
+    });
     setSelectedFile(file);
   };
 
@@ -89,24 +104,23 @@ const Workspaces = (): JSX.Element => {
       setUploadStatus({ open: true, message: 'Uploading file...', severity: 'info' });
 
       try {
-        // Upload file using the ApiService
-        await ApiService.uploadFile(
-          userInfo.username,
+        // Upload file using the uploadToS3 function
+        await uploadToS3(
           file,
-          file.name,
+          userInfo.username,
           `uploads/${file.name}`,
-          file.type || 'application/octet-stream'
+          'uploads'
         );
         
         setUploadStatus({ 
           open: true, 
-          message: 'File uploaded successfully!', 
+          message: 'File uploaded to S3 successfully!', 
           severity: 'success' 
         });
       } catch (error) {
         setUploadStatus({ 
           open: true, 
-          message: 'Failed to upload file. Please try again.', 
+          message: `Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`, 
           severity: 'error' 
         });
       } finally {
@@ -114,6 +128,43 @@ const Workspaces = (): JSX.Element => {
       }
     };
     input.click();
+  };
+
+  // Web-compatible version of uploadToS3 function
+  const uploadToS3 = async (
+    file: File | Blob,
+    deviceName: string,
+    filePath: string = '',
+    fileParent: string = ''
+  ): Promise<any> => {
+    // Load authentication credentials from localStorage (web version)
+    const token = localStorage.getItem('authToken');
+    const apiKey = localStorage.getItem('apiKey'); // If you use API keys
+    
+    if (!token) {
+      throw new Error('Authentication token not found. Please login first.');
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('device_name', deviceName);
+    formData.append('file_path', filePath);
+    formData.append('file_parent', fileParent);
+
+    const response = await fetch(`${CONFIG.url}/files/upload_to_s3/`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        ...(apiKey && { 'X-API-Key': apiKey })
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
+    }
+
+    return await response.json();
   };
 
   // Handle Word document creation
@@ -124,10 +175,25 @@ const Workspaces = (): JSX.Element => {
     setUploadStatus({ open: true, message: 'Creating Word document...', severity: 'info' });
 
     try {
-      // Dynamic import of docx library
+      // Create simple document content
+      const content = `New Document
+
+Welcome to your new Word document! This document was created from the Banbury workspace.
+
+You can edit this document directly in the browser with formatting support. The document includes:
+• Rich text formatting 
+• Multiple paragraphs
+• Professional document structure
+• Real-time editing capabilities
+
+Created on: ${new Date().toLocaleDateString()}`;
+
+      // Generate filename
+      const fileName = `New Test Document ${new Date().toISOString().split('T')[0]}.docx`;
+
+      // Create .docx using docx library
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
       
-      // Create a new document with content
       const doc = new Document({
         sections: [{
           properties: {},
@@ -136,86 +202,42 @@ const Workspaces = (): JSX.Element => {
               text: "New Document",
               heading: HeadingLevel.HEADING_1,
             }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Welcome to your new Word document! This document was created from the Banbury workspace.",
-                  break: 1,
-                }),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "You can edit this document and save your changes. The document supports:",
-                  break: 1,
-                }),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun("• Rich text formatting"),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun("• Multiple paragraphs"),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun("• Professional document structure"),
-              ],
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Created on: ${new Date().toLocaleDateString()}`,
-                  break: 2,
-                  italics: true,
-                }),
-              ],
-            }),
+            ...content.split('\n').slice(2).map(line => 
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: line,
+                    break: 1,
+                  }),
+                ],
+              })
+            )
           ],
         }],
       });
 
-      // Generate the document as a buffer
-      const buffer = await Packer.toBuffer(doc);
-      const blob = new Blob([buffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
-      });
-      
-      const fileName = `New Document ${new Date().toISOString().split('T')[0]}.docx`;
+      // Generate the document as a blob
+      const blob = await Packer.toBlob(doc);
 
-      // Upload document using the ApiService
-      await ApiService.uploadFile(
-        userInfo.username,
-        blob,
-        fileName,
-        `documents/${fileName}`,
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-      );
+      // Upload document using the uploadToS3 function
+      setUploadStatus({ open: true, message: 'Uploading document to S3...', severity: 'info' });
       
-      // Trigger download of the created document
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
+      await uploadToS3(
+        blob,
+        userInfo.username,
+        `documents/${fileName}`,
+        'documents'
+      );
       
       setUploadStatus({ 
         open: true, 
-        message: 'Word document created and downloaded successfully!', 
+        message: 'Word document created and uploaded successfully!', 
         severity: 'success' 
       });
     } catch (error) {
       setUploadStatus({ 
         open: true, 
-        message: 'Failed to create Word document. Please try again.', 
+        message: `Failed to create Word document: ${error instanceof Error ? error.message : 'Unknown error'}`, 
         severity: 'error' 
       });
     } finally {
@@ -410,6 +432,8 @@ const Workspaces = (): JSX.Element => {
                       <ImageViewer file={selectedFile} userInfo={userInfo} />
                     ) : selectedFile && isPdfFile(selectedFile.name) ? (
                       <PDFViewer file={selectedFile} userInfo={userInfo} />
+                    ) : selectedFile && isDocumentFile(selectedFile.name) ? (
+                      <DocumentViewer file={selectedFile} userInfo={userInfo} />
                     ) : (
                         <div className="h-full flex items-center justify-center">
                           <div className="text-center max-w-md">
@@ -420,7 +444,7 @@ const Workspaces = (): JSX.Element => {
                             <p className="text-gray-400 text-sm">
                               {selectedFile && !isViewableFile(selectedFile.name) 
                                 ? `Selected: ${selectedFile.name} (Preview not available for this file type)`
-                                : 'Select an image or PDF file from the sidebar to view it here. Use the toolbar above to upload files or create new documents. The AI assistant is available in the right panel to help you with your work.'
+                                : 'Select an image, PDF, or Word document from the sidebar to view it here. Use the toolbar above to upload files or create new documents. The AI assistant is available in the right panel to help you with your work.'
                               }
                             </p>
                           </div>

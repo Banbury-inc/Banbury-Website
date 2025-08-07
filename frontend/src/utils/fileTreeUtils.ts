@@ -84,7 +84,11 @@ export function buildFileTree(files: ApiFileInfo[] | S3FileInfo[]): FileSystemIt
     let currentPath = ''
 
     pathParts.forEach((part, index) => {
-      const isFile = index === pathParts.length - 1 && file.file_name === part
+      const isLastPart = index === pathParts.length - 1
+      // A part is a file if it's the last part and matches the filename
+      // OR if it's the last part and contains a file extension
+      const hasFileExtension = part.includes('.') && part.lastIndexOf('.') > 0
+      const isFile = isLastPart && (file.file_name === part || hasFileExtension)
       currentPath = currentPath ? `${currentPath}/${part}` : part
       
       if (!tree.has(currentPath)) {

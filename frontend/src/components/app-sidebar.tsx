@@ -36,8 +36,14 @@ const isPdfFile = (fileName: string): boolean => {
   return extension === '.pdf'
 }
 
+const isDocumentFile = (fileName: string): boolean => {
+  const documentExtensions = ['.docx', '.doc']
+  const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+  return documentExtensions.includes(extension)
+}
+
 const isViewableFile = (fileName: string): boolean => {
-  return isImageFile(fileName) || isPdfFile(fileName)
+  return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName)
 }
 
 function FileTreeItem({ item, level, expandedItems, toggleExpanded, onFileSelect, selectedFile }: FileTreeItemProps) {
@@ -45,12 +51,30 @@ function FileTreeItem({ item, level, expandedItems, toggleExpanded, onFileSelect
   const hasChildren = item.children && item.children.length > 0
   const isSelected = selectedFile?.id === item.id
   
+  // Debug logging
+  console.log('FileTreeItem rendered:', {
+    name: item.name,
+    type: item.type,
+    hasChildren,
+    onFileSelect: !!onFileSelect,
+    item
+  });
+  
   const handleClick = () => {
+    console.log('Click detected on:', item.name, 'type:', item.type, 'hasChildren:', hasChildren);
+    
     if (hasChildren) {
+      console.log('Expanding/collapsing folder:', item.name);
       toggleExpanded(item.id)
     } else if (item.type === 'file' && onFileSelect) {
       // For files, trigger the selection callback
+      console.log('File clicked:', item.name, item);
       onFileSelect(item)
+    } else {
+      console.log('Click conditions not met:', {
+        type: item.type,
+        hasOnFileSelect: !!onFileSelect
+      });
     }
   }
   
@@ -95,6 +119,8 @@ function FileTreeItem({ item, level, expandedItems, toggleExpanded, onFileSelect
 }
 
 export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile }: AppSidebarProps) {
+  console.log('AppSidebar props:', { currentView, userInfo, hasOnFileSelect: !!onFileSelect, selectedFile });
+  
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -119,12 +145,17 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile }
     setError(null)
     
     try {
+      console.log('Fetching files for user:', userInfo.username);
       const result = await ApiService.getUserFiles(userInfo.username)
+      console.log('Files fetch result:', result);
+      
       if (result.success) {
         const tree = buildFileTree(result.files)
+        console.log('Built file tree:', tree);
         setFileSystem(tree)
       }
     } catch (err) {
+      console.error('Error fetching files:', err);
       setError('Failed to fetch files')
     } finally {
       setLoading(false)
