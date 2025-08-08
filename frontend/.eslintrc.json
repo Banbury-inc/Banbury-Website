@@ -2,10 +2,6 @@
   "root": true,
   "extends": [
     "next/core-web-vitals",
-    "plugin:@typescript-eslint/recommended",
-    "plugin:import/recommended",
-    "plugin:import/typescript",
-    "plugin:promise/recommended",
     "prettier"
   ],
   "parser": "@typescript-eslint/parser",
@@ -30,14 +26,14 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
-    "no-console": "off",
-    "no-unused-vars": "off",
+    "no-console": "warn",
+    "no-unused-vars": "warn",
     "@typescript-eslint/no-unused-vars": [
-      "off",
+      "warn",
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "ignoreRestSiblings": true }
     ],
     "import/order": [
-      "off",
+      "warn",
       {
         "groups": [
           ["builtin", "external"],
@@ -47,6 +43,8 @@
         "newlines-between": "always",
         "alphabetize": { "order": "asc", "caseInsensitive": true }
       }
-    ]
+    ],
+    "import/namespace": "warn",
+    "import/no-unresolved": "warn"
   }
 }
