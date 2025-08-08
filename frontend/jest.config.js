@@ -19,6 +19,11 @@ module.exports = {
     'react-leaflet': '<rootDir>/src/tests/mocks/fileMock.ts',
   },
   transform: {
-    '^.+\\.(ts|tsx|js|jsx)$': ['ts-jest', { isolatedModules: true }],
+    '^.+\\.(ts|tsx|js|jsx)$': ['ts-jest', { 
+      isolatedModules: true,
+      tsconfig: {
+        jsx: 'react-jsx'
+      }
+    }],
   },
 };
