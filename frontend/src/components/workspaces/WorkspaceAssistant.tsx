@@ -1,4 +1,8 @@
-import React, { useState } from 'react';
+import {
+  Send as SendIcon,
+  SmartToy as BotIcon,
+  Person as PersonIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -11,12 +15,8 @@ import {
   Chip,
   Stack,
 } from '@mui/material';
-import {
-  Send as SendIcon,
-  SmartToy as BotIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import React, { useState } from 'react';
 
 interface Message {
   id: string;

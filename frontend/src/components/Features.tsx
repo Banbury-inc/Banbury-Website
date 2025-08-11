@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Box, Button, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
+
 import Recording from '../assets/images/Recording.mp4';
 import Recording3 from '../assets/images/Recording3.mp4';
 import { determineOS } from '../handlers/determineOS';

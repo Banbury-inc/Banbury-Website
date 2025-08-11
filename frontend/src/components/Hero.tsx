@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import Box from '@mui/material/Box';
-import Typography from '@mui/material/Typography';
 import Container from '@mui/material/Container';
 import { useTheme } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
 
 import HeroButtons from './HeroButtons';
 import Spacer from './Spacer';

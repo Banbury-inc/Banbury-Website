@@ -1,16 +1,15 @@
-import React from 'react';
-import { EditorContent, useEditor } from '@tiptap/react';
 import { Level } from '@tiptap/extension-heading';
-import { StarterKit } from '@tiptap/starter-kit';
-import { Image } from '@tiptap/extension-image';
-import { TextAlign } from '@tiptap/extension-text-align';
-import { Typography } from '@tiptap/extension-typography';
 import { Highlight } from '@tiptap/extension-highlight';
-import { Subscript } from '@tiptap/extension-subscript';
-import { Superscript } from '@tiptap/extension-superscript';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
+import { Image } from '@tiptap/extension-image';
 import { TaskList } from '@tiptap/extension-list';
 import { TaskItem } from '@tiptap/extension-list';
+import { Subscript } from '@tiptap/extension-subscript';
+import { Superscript } from '@tiptap/extension-superscript';
+import { TextAlign } from '@tiptap/extension-text-align';
+import { Typography } from '@tiptap/extension-typography';
+import { EditorContent, useEditor } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
 import { 
   Bold, 
   Italic, 
@@ -34,6 +33,8 @@ import {
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon
 } from 'lucide-react';
+import React from 'react';
+
 // Importing as module to satisfy Next.js CSS rules
 import styles from './SimpleTiptapEditor.module.css';
 

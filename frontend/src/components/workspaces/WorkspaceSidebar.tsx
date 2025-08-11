@@ -1,4 +1,11 @@
-import React, { useState } from 'react';
+import {
+  Folder as FolderIcon,
+  ExpandLess,
+  ExpandMore,
+  InsertDriveFile as FileIcon,
+  Cloud as CloudIcon,
+  Computer as ComputerIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -10,15 +17,8 @@ import {
   Collapse,
   Divider,
 } from '@mui/material';
-import {
-  Folder as FolderIcon,
-  ExpandLess,
-  ExpandMore,
-  InsertDriveFile as FileIcon,
-  Cloud as CloudIcon,
-  Computer as ComputerIcon,
-} from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import React, { useState } from 'react';
 
 interface FileData {
   id: string;

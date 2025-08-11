@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from 'react';
+import { Add as AddIcon, Description as DocumentIcon, Folder as FolderIcon } from '@mui/icons-material';
 import {
   Box,
   CircularProgress,
@@ -9,27 +10,27 @@ import {
   Snackbar,
   Alert,
 } from '@mui/material';
-import { Add as AddIcon, Description as DocumentIcon, Folder as FolderIcon } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
-import { useRouter } from 'next/router';
-import { ApiService } from '../services/apiService';
-import { CONFIG } from '../config/config';
-import { Button } from '../components/ui/button';
 
-import { AppSidebar } from "../components/app-sidebar";
-import { NavSidebar } from "../components/nav-sidebar";
-import { TooltipProvider } from "../components/ui/tooltip";
+
  
-import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
-import { ImageViewer } from '../components/ImageViewer';
-import { PDFViewer } from '../components/PDFViewer';
 import { DocumentViewer } from '../components/DocumentViewer';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { Thread } from '../components/thread';
 import { UploadIcon } from 'lucide-react';
+import { useRouter } from 'next/router';
+import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
+import { AppSidebar } from "../components/app-sidebar";
+import { ImageViewer } from '../components/ImageViewer';
+import { NavSidebar } from "../components/nav-sidebar";
+import { PDFViewer } from '../components/PDFViewer';
+import { Button } from '../components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+import { TooltipProvider } from "../components/ui/tooltip";
+import { CONFIG } from '../config/config';
+import { ApiService } from '../services/apiService';
 
 
 

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import {
   Box,
   CircularProgress,
@@ -6,10 +5,12 @@ import {
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useRouter } from 'next/router';
-import { ApiService } from '../services/apiService';
-import { Thread } from '../components/thread';
+import { useState, useEffect } from 'react';
+
 import { NavSidebar } from "../components/nav-sidebar";
+import { Thread } from '../components/thread';
 import { TooltipProvider } from "../components/ui/tooltip";
+import { ApiService } from '../services/apiService';
  
 
 

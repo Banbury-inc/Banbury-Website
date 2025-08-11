@@ -1,7 +1,7 @@
 
 // src/layout/Footer.tsx
-import React from 'react';
 import { Box, Typography } from '@mui/material';
+import React from 'react';
 
 const Footer: React.FC = () => {
   return (

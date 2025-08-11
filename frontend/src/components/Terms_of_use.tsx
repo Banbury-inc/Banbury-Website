@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Box, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
 
 
 interface ProductsProps {

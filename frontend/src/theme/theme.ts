@@ -1,5 +1,6 @@
 import { Theme, responsiveFontSizes } from '@mui/material';
 import { createTheme, ComponentsOverrides } from '@mui/material/styles';
+
 import { light, dark } from './palette';
 
 const getTheme = (mode: string): Theme =>

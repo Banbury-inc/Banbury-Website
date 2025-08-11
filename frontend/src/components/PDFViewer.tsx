@@ -1,9 +1,10 @@
-import { FileSystemItem } from '../utils/fileTreeUtils';
-import { ApiService } from '../services/apiService';
-import { useState, useEffect } from 'react';
 import { AlertCircle, Download, FileText, ExternalLink, ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
+
 import { Button } from './ui/button';
+import { ApiService } from '../services/apiService';
+import { FileSystemItem } from '../utils/fileTreeUtils';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 

@@ -1,9 +1,10 @@
-import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Box, Card, CardMedia, Container, Grid, Typography, Paper } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import axios from 'axios';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
+
 import NewsPost, { NewsPost as NewsPostType } from './NewsPost';
 
 interface ProductsProps {

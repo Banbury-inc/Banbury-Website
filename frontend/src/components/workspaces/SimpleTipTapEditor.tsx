@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import { Box, TextField, Paper } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import React, { useEffect, useState } from 'react';
 
 interface SimpleTipTapEditorProps {
   content: string;

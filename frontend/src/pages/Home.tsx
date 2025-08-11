@@ -1,12 +1,13 @@
-import { Box, Typography, Button, Container, Grid, Paper } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import NextLink from 'next/link';
-import Image from 'next/image';
 import CloudIcon from '@mui/icons-material/Cloud';
 import DevicesIcon from '@mui/icons-material/Devices';
 import SecurityIcon from '@mui/icons-material/Security';
-import Screenshot1 from '../assets/images/Screenshot1.png';
+import { Box, Typography, Button, Container, Grid, Paper } from '@mui/material';
+import { useTheme } from '@mui/material/styles';
+import Image from 'next/image';
+import NextLink from 'next/link';
 import { useState, useEffect } from 'react';
+
+import Screenshot1 from '../assets/images/Screenshot1.png';
 import { determineOS } from '../handlers/determineOS';
 
 const Home = (): JSX.Element => {

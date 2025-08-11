@@ -1,6 +1,6 @@
-import React from 'react';
 import { Box, Typography, Card, CardMedia } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import React from 'react';
 
 // Image Viewer Component
 interface ImageViewerProps {

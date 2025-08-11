@@ -1,5 +1,6 @@
 import throttle from "lodash.throttle"
 import * as React from "react"
+
 import { useUnmount } from "./use-unmount"
 
 interface ThrottleSettings {

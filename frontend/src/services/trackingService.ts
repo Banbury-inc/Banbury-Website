@@ -1,4 +1,5 @@
 import axios from 'axios';
+
 import { ApiService } from './apiService';
 
 export const trackPageView = async (path: string) => {

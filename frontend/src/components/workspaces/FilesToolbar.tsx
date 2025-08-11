@@ -1,4 +1,11 @@
-import React from 'react';
+import {
+  ArrowBack as ArrowBackIcon,
+  ArrowForward as ArrowForwardIcon,
+  Refresh as RefreshIcon,
+  CreateNewFolder as CreateFolderIcon,
+  NoteAdd as CreateFileIcon,
+  Share as ShareIcon,
+} from '@mui/icons-material';
 import {
   Box,
   Typography,
@@ -8,15 +15,8 @@ import {
   Link,
   Divider,
 } from '@mui/material';
-import {
-  ArrowBack as ArrowBackIcon,
-  ArrowForward as ArrowForwardIcon,
-  Refresh as RefreshIcon,
-  CreateNewFolder as CreateFolderIcon,
-  NoteAdd as CreateFileIcon,
-  Share as ShareIcon,
-} from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import React from 'react';
 
 interface FilesToolbarProps {
   filePath?: string;

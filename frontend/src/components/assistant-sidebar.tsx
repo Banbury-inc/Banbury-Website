@@ -1,12 +1,13 @@
+import { Thread } from "./thread";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "./ui/resizable";
+import { ClaudeRuntimeProvider } from "../assistant/ClaudeRuntimeProvider";
+
 import type { FC, PropsWithChildren } from "react";
 
-import { Thread } from "./thread";
-import { ClaudeRuntimeProvider } from "../assistant/ClaudeRuntimeProvider";
 
 export const AssistantSidebar: FC<PropsWithChildren> = ({ children }) => {
   return (

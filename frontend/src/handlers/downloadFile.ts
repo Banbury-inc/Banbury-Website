@@ -1,6 +1,6 @@
 import { getDeviceInfo } from "./getDeviceInfo";
-import { webSocketService } from "../websockets";
 import { CONFIG } from "../config/config";
+import { webSocketService } from "../websockets";
 
 // Function to get total requests processed
 export async function downloadFile(username: string | undefined, fileInfo: any, onProgress?: (step: number, error?: string) => void): Promise<Blob | null> {

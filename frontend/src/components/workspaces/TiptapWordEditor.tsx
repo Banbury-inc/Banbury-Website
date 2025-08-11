@@ -1,4 +1,5 @@
 import React from 'react';
+
 import { SimpleTiptapEditor } from '../SimpleTiptapEditor';
 
 interface TiptapWordEditorProps {

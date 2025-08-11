@@ -6,7 +6,7 @@ import {
   BranchPickerPrimitive,
   ErrorPrimitive,
 } from "@assistant-ui/react";
-import type { FC } from "react";
+import { motion } from "framer-motion";
 import {
   ArrowDownIcon,
   PlusIcon,
@@ -19,12 +19,14 @@ import {
   Square,
 } from "lucide-react";
 
-import { TooltipIconButton } from "./tooltip-icon-button";
-import { motion } from "framer-motion";
-import { Button } from "./ui/button";
-import { cn } from "../utils";
 import { MarkdownText } from "./markdown-text";
 import { ToolFallback } from "./tool-fallback";
+import { TooltipIconButton } from "./tooltip-icon-button";
+import { Button } from "./ui/button";
+import { WebSearchTool } from "./web-search-result";
+import { cn } from "../utils";
+
+import type { FC } from "react";
 
 export const Thread: FC = () => {
   return (
@@ -248,7 +250,12 @@ const AssistantMessage: FC = () => {
           <MessagePrimitive.Content
             components={{
               Text: MarkdownText,
-              tools: { Fallback: ToolFallback },
+              tools: { 
+                by_name: {
+                  web_search: WebSearchTool,
+                },
+                Fallback: ToolFallback 
+              },
             }}
           />
           <MessageError />

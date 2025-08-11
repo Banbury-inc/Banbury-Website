@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
 import { Typography, TextField, Box } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import React, { useState, useEffect, useRef } from 'react';
 
 interface RenameableTitleProps {
   title: string;

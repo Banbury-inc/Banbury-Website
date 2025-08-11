@@ -1,8 +1,9 @@
 import { Home, FolderOpen, LogOut } from "lucide-react"
+import Image from 'next/image'
 import { useRouter } from "next/router"
+
 import { Button } from "./ui/button"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
-import Image from 'next/image'
 import BanburyLogo from "../assets/images/Logo.png"
 
 interface NavSidebarProps {

@@ -1,25 +1,27 @@
-import { useState, useEffect, useMemo } from 'react';
-import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-import { HelmetProvider, Helmet } from 'react-helmet-async';
-import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
+import { ThemeProvider } from '@mui/material/styles';
+import { useState, useEffect, useMemo } from 'react';
+import { HelmetProvider, Helmet } from 'react-helmet-async';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { useNavigate } from 'react-router-dom';
-import getTheme from './theme/theme';
-import ColorModeContext from './utils/ColorModeContext';
-import Layout from './layout/Layout';
-import Home from './pages/Home';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Workspaces from './pages/Workspaces';
-import AuthCallback from './pages/AuthCallback';
+
+import API from './components/API';
 import Features from './components/Features';
 import News from './components/News';
 import Terms_of_use from './components/Terms_of_use';
+import AuthCallback from './pages/AuthCallback';
+import Dashboard from './pages/Dashboard';
+import Home from './pages/Home';
+import Login from './pages/Login';
+
+import Workspaces from './pages/Workspaces';
 import Privacy_Policy from './components/Privacy_Policy';
+import Layout from './layout/Layout';
 import FileDownload from './pages/Filedownload';
 import { trackPageView } from './services/trackingService';
+import getTheme from './theme/theme';
+import ColorModeContext from './utils/ColorModeContext';
 import './index.css';
-import API from './components/API';
 
 const SitemapRedirect = () => {
   const navigate = useNavigate();

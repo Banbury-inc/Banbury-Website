@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
 import { Box, Typography, Alert, CircularProgress } from '@mui/material';
-import TiptapWordEditor from './TiptapWordEditor';
 import mammoth from 'mammoth';
+import React, { useState, useEffect } from 'react';
+
+import TiptapWordEditor from './TiptapWordEditor';
+
 
 interface WordViewerProps {
   src: string;

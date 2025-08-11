@@ -1,9 +1,10 @@
+import * as ContextMenu from "@radix-ui/react-context-menu"
 import { ChevronDown, ChevronRight, File, Folder, RefreshCw, Edit2, Trash2 } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from 'react'
+
 import { Button } from "./ui/button"
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
-import * as ContextMenu from "@radix-ui/react-context-menu"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'

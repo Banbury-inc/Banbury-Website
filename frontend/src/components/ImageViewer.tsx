@@ -1,7 +1,8 @@
-import { FileSystemItem } from '../utils/fileTreeUtils';
-import { ApiService } from '../services/apiService';
-import { useState, useEffect } from 'react';
 import { AlertCircle, Download, Eye } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
+import { ApiService } from '../services/apiService';
+import { FileSystemItem } from '../utils/fileTreeUtils';
 
 interface ImageViewerProps {
   file: FileSystemItem;

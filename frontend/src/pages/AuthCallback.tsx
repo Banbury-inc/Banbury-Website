@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/router';
 import { Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import { useRouter } from 'next/router';
+import { useEffect, useState } from 'react';
+
 import { ApiService } from '../services/apiService';
 
 const AuthCallback = (): JSX.Element => {

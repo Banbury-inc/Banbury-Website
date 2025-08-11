@@ -1,26 +1,24 @@
-import { useState, useEffect } from 'react';
+import GoogleIcon from '@mui/icons-material/Google';
 import {
   Box,
-  Button,
   Container,
-  TextField,
   Typography,
-  Paper,
-  Divider,
   Alert,
   CircularProgress
 } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
-import GoogleIcon from '@mui/icons-material/Google';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
+import { useState, useEffect } from 'react';
+
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
 import { AUTH_CONFIG } from '../services/authConfig';
 import { DebugService } from '../services/debugService';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 
 const Login = (): JSX.Element => {
-  const theme = useTheme();
   const router = useRouter();
   
   const [formData, setFormData] = useState({
@@ -29,6 +27,7 @@ const Login = (): JSX.Element => {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [apiStatus, setApiStatus] = useState<'checking' | 'online' | 'offline'>('checking');
 
   // Check API connectivity on component mount
@@ -50,6 +49,13 @@ const Login = (): JSX.Element => {
 
     checkApiHealth();
   }, []);
+
+  // Check for registration success message
+  useEffect(() => {
+    if (router.query.registered === 'true') {
+      setSuccess('Account created successfully! Please sign in with your credentials.');
+    }
+  }, [router.query.registered]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -101,173 +107,118 @@ const Login = (): JSX.Element => {
   };
 
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        py: 4,
-        backgroundColor: theme.palette.mode === 'dark' ? '#0a0a0a' : '#f5f5f5'
-      }}
-    >
-      <Container maxWidth="sm">
-        <Paper
-          elevation={3}
-          sx={{
-            p: 4,
-            backgroundColor: theme.palette.mode === 'dark' ? '#1a1a1a' : '#ffffff',
-            borderRadius: 2
-          }}
-        >
-          <Box sx={{ textAlign: 'center', mb: 4 }}>
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 600,
-                color: theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
-                mb: 1
-              }}
-            >
-              Welcome Back
-            </Typography>
-            <Typography
-              variant="body1"
-              sx={{
-                color: theme.palette.mode === 'dark' ? '#a0a0a0' : '#666666'
-              }}
-            >
-              Sign in to your Banbury account
-            </Typography>
-          </Box>
+    <div className="min-h-screen flex items-center justify-center bg-black p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-zinc-900/90 backdrop-blur-sm rounded-xl border border-zinc-700 p-8 shadow-2xl">
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-white mb-2">Sign in</h1>
+          </div>
 
           {apiStatus === 'offline' && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              ⚠️ API Server appears to be offline. Please check your connection or try again later.
-              <br />
-              <small>Attempting to connect to: {CONFIG.url}</small>
-            </Alert>
+            <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+              <p className="text-amber-400 text-sm">
+                ⚠️ API Server appears to be offline. Please check your connection or try again later.
+              </p>
+              <p className="text-amber-400/70 text-xs mt-1">
+                Attempting to connect to: {CONFIG.url}
+              </p>
+            </div>
+          )}
+          
+          {success && (
+            <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+              <p className="text-green-400 text-sm">{success}</p>
+            </div>
           )}
           
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
+            <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <p className="text-red-400 text-sm">{error}</p>
               {apiStatus === 'offline' && (
-                <><br /><small>Note: This may be due to server connectivity issues.</small></>
+                <p className="text-red-400/70 text-xs mt-1">
+                  Note: This may be due to server connectivity issues.
+                </p>
               )}
-            </Alert>
+            </div>
           )}
 
-          <Box component="form" onSubmit={handleSubmit} sx={{ mb: 3 }}>
-            <TextField
-              fullWidth
-              label="Username"
-              name="username"
-              value={formData.username}
-              onChange={handleInputChange}
-              required
-              sx={{ mb: 2 }}
-              disabled={loading}
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              name="password"
-              type="password"
-              value={formData.password}
-              onChange={handleInputChange}
-              required
-              sx={{ mb: 3 }}
-              disabled={loading}
-            />
-            <Button
-              type="submit"
-              fullWidth
-              variant="contained"
-              size="large"
-              disabled={loading || apiStatus === 'offline'}
-              sx={{
-                py: 1.5,
-                fontSize: '1.1rem',
-                textTransform: 'none',
-                backgroundColor: theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
-                color: theme.palette.mode === 'dark' ? '#171717' : '#ffffff',
-                '&:hover': {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#e0e0e0' : '#333333',
-                },
-                '&:disabled': {
-                  backgroundColor: theme.palette.mode === 'dark' ? '#666666' : '#cccccc',
-                }
-              }}
-            >
-              {loading ? <CircularProgress size={24} /> : apiStatus === 'offline' ? 'Service Offline' : 'Sign In'}
-            </Button>
-          </Box>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="space-y-2">
+              <Label htmlFor="username" className="text-white text-sm font-medium">
+                Username
+              </Label>
+              <Input
+                id="username"
+                name="username"
+                type="text"
+                placeholder="Enter your username"
+                value={formData.username}
+                onChange={handleInputChange}
+                required
+                disabled={loading}
+                className="w-full bg-zinc-800 border-zinc-600 text-white placeholder:text-zinc-400 focus:border-white focus:ring-white/20"
+              />
+            </div>
 
-          <Divider sx={{ my: 3 }}>
-            <Typography variant="body2" color="textSecondary">
-              OR
-            </Typography>
-          </Divider>
+            <div className="space-y-2">
+              <Label htmlFor="password" className="text-white text-sm font-medium">
+                Password
+              </Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={handleInputChange}
+                required
+                disabled={loading}
+                className="w-full bg-zinc-800 border-zinc-600 text-white placeholder:text-zinc-400 focus:border-white focus:ring-white/20"
+              />
+            </div>
 
-          <Button
-            fullWidth
-            variant="outlined"
-            size="large"
-            onClick={handleGoogleLogin}
-            disabled={apiStatus === 'offline'}
-            startIcon={<GoogleIcon />}
-            sx={{
-              py: 1.5,
-              fontSize: '1.1rem',
-              textTransform: 'none',
-              borderColor: theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
-              color: theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
-              '&:hover': {
-                borderColor: theme.palette.mode === 'dark' ? '#e0e0e0' : '#333333',
-                backgroundColor: 'transparent',
-              },
-              '&:disabled': {
-                borderColor: theme.palette.mode === 'dark' ? '#666666' : '#cccccc',
-                color: theme.palette.mode === 'dark' ? '#666666' : '#cccccc',
-              },
-              mb: 2
-            }}
-          >
-            Continue with Google
-          </Button>
+            <div className="flex gap-3">
+              <Button
+                type="button"
+                onClick={() => router.push('/register')}
+                className="flex-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-600 text-white"
+              >
+                Sign up for free
+              </Button>
+              
+              <Button
+                type="submit"
+                disabled={loading || apiStatus === 'offline'}
+                className="flex-1 bg-white hover:bg-zinc-100 text-black"
+              >
+                {loading ? <CircularProgress size={16} className="text-black" /> : 'Sign in'}
+              </Button>
+            </div>
+          </form>
 
-          <Box sx={{ textAlign: 'center', mt: 3 }}>
-            <Typography variant="body2" color="textSecondary">
+          <div className="mt-8 text-center">
+            <p className="text-zinc-400 text-sm">
               Don&apos;t have an account?{' '}
               <Link
                 href="/register"
-                style={{
-                  color: theme.palette.mode === 'dark' ? '#ffffff' : '#171717',
-                  textDecoration: 'none',
-                  fontWeight: 500
-                }}
+                className="text-white hover:text-zinc-300 font-medium"
               >
                 Sign up
               </Link>
-            </Typography>
-          </Box>
+            </p>
+          </div>
 
-          <Box sx={{ textAlign: 'center', mt: 2 }}>
+          <div className="mt-4 text-center">
             <Link
               href="/"
-              style={{
-                color: theme.palette.mode === 'dark' ? '#a0a0a0' : '#666666',
-                textDecoration: 'none',
-                fontSize: '0.9rem'
-              }}
+              className="text-zinc-500 hover:text-zinc-400 text-sm"
             >
               ← Back to Home
             </Link>
-          </Box>
-        </Paper>
-      </Container>
-    </Box>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

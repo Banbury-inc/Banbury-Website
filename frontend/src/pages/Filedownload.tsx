@@ -1,9 +1,10 @@
-import React, { useEffect, useState } from 'react';
 import { CheckIcon, XMarkIcon } from '@heroicons/react/20/solid';
 import { DocumentIcon } from '@heroicons/react/24/outline';
-import { getFileInfo } from '../handlers/getFileInfo';
-import { downloadFile } from '../handlers/downloadFile';
 import { useRouter } from 'next/router';
+import React, { useEffect, useState } from 'react';
+
+import { downloadFile } from '../handlers/downloadFile';
+import { getFileInfo } from '../handlers/getFileInfo';
 
 const steps = [
   { name: 'Initiating', description: '', status: 'idle' },

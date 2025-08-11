@@ -1,10 +1,9 @@
-import React from 'react';
-import { Box, Typography, Link, Grid, IconButton } from '@mui/material';
-import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import GitHubIcon from '@mui/icons-material/GitHub';
+import LinkedInIcon from '@mui/icons-material/LinkedIn';
 import TwitterIcon from '@mui/icons-material/Twitter';
-
+import { Box, Typography, Link, Grid, IconButton } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
+import React from 'react';
 
 const Footer: React.FC = () => {
 

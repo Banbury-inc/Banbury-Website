@@ -1,9 +1,10 @@
-import { FileSystemItem } from '../utils/fileTreeUtils';
-import { ApiService } from '../services/apiService';
-import { useState, useEffect } from 'react';
 import { AlertCircle, Download, FileText, ExternalLink, Save } from 'lucide-react';
+import { useState, useEffect } from 'react';
+
 import { Button } from './ui/button';
 import WordViewer from './workspaces/WordViewer';
+import { ApiService } from '../services/apiService';
+import { FileSystemItem } from '../utils/fileTreeUtils';
 
 interface DocumentViewerProps {
   file: FileSystemItem;

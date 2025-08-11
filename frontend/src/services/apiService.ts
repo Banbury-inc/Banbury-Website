@@ -1,4 +1,5 @@
 import axios, { AxiosError } from 'axios';
+
 import { CONFIG } from '../config/config';
 
 // Configure axios defaults

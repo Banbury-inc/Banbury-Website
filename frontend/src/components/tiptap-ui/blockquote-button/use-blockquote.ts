@@ -1,16 +1,17 @@
 "use client"
 
-import * as React from "react"
-import type { Editor } from "@tiptap/react"
 import { NodeSelection, TextSelection } from "@tiptap/pm/state"
+import * as React from "react"
 import { useHotkeys } from "react-hotkeys-hook"
 
+import type { Editor } from "@tiptap/react"
+
 // --- Hooks ---
-import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
+import { BlockquoteIcon } from "@/components/tiptap-icons/blockquote-icon"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { useTiptapEditor } from "@/hooks/use-tiptap-editor"
 
 // --- Icons ---
-import { BlockquoteIcon } from "@/components/tiptap-icons/blockquote-icon"
 
 // --- UI Utils ---
 import {

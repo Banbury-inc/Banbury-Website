@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react';
+import EmailIcon from '@mui/icons-material/Email';
+import LocationIcon from '@mui/icons-material/LocationOn';
+import PhoneIcon from '@mui/icons-material/Phone';
 import Box from '@mui/material/Box';
-import axios from 'axios';
 import Container from '@mui/material/Container';
 import Grid from '@mui/material/Grid';
 import ListItem from '@mui/material/ListItem';
 import ListItemText from '@mui/material/ListItemText';
-import Typography from '@mui/material/Typography';
-import EmailIcon from '@mui/icons-material/Email';
-import LocationIcon from '@mui/icons-material/LocationOn';
-import PhoneIcon from '@mui/icons-material/Phone';
 import { useTheme } from '@mui/material/styles';
+import Typography from '@mui/material/Typography';
+import axios from 'axios';
+import { useState, useEffect } from 'react';
 
 import Map from './Map';
 
