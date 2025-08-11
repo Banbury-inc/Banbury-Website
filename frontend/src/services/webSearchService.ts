@@ -1,3 +1,6 @@
+import { tool } from "@langchain/core/tools";
+import { z } from "zod";
+
 export interface WebSearchResult {
   title: string;
   url: string;
@@ -11,114 +14,171 @@ export interface WebSearchResponse {
 
 export class WebSearchService {
   /**
-   * Searches the web using multiple strategies:
-   * 1. Try DuckDuckGo instant answers API for specific queries
-   * 2. Fall back to intelligent results that include real search links
+   * Searches the web using DuckDuckGo's instant answers API
    */
   static async searchWeb(query: string): Promise<WebSearchResponse> {
+    console.log('WebSearchService: Searching for query:', query);
+    
     try {
-      // Try DuckDuckGo instant answers first
-      const instantResults = await this.searchDuckDuckGoInstant(query);
+      // Use DuckDuckGo's instant answers API
+      const results = await this.searchDuckDuckGo(query);
+      console.log('WebSearchService: DuckDuckGo results:', results);
       
-      // If we got good results from instant answers, return them
-      if (instantResults.results.length > 1) {
-        return instantResults;
+      if (results.results.length > 0) {
+        return results;
       }
-      
-      // If instant answers didn't return much, enhance with intelligent results
-      const intelligentResults = this.getIntelligentResults(query);
-      
-      // Combine instant answers with intelligent results
-      return {
-        results: [
-          ...instantResults.results,
-          ...intelligentResults.results.slice(0, 4 - instantResults.results.length)
-        ].slice(0, 5),
-        query
-      };
-      
     } catch (error) {
-      console.warn('DuckDuckGo instant answers failed:', error);
-      
-      // Fall back to intelligent results
-      return this.getIntelligentResults(query);
+      console.warn('WebSearchService: DuckDuckGo search failed:', error);
     }
+
+    // Fall back to intelligent results
+    console.log('WebSearchService: Using fallback intelligent results');
+    return this.getIntelligentResults(query);
   }
-
-
 
   /**
-   * Searches using DuckDuckGo instant answers API
+   * Searches using DuckDuckGo's instant answers API
    */
-  private static async searchDuckDuckGoInstant(query: string): Promise<WebSearchResponse> {
-    const response = await fetch(
-      `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`
-    );
-
-    if (!response.ok) {
-      throw new Error(`DuckDuckGo API returned ${response.status}`);
-    }
-
-    const data = await response.json();
-    const results: WebSearchResult[] = [];
+  private static async searchDuckDuckGo(query: string): Promise<WebSearchResponse> {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    console.log('WebSearchService: Fetching from URL:', url);
     
-    // Add abstract if available
-    if (data.Abstract && data.AbstractURL) {
-      results.push({
-        title: data.Heading || data.AbstractSource || 'DuckDuckGo Result',
-        url: data.AbstractURL,
-        snippet: data.Abstract
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
       });
-    }
 
-    // Add instant answer if available
-    if (data.Answer && data.AnswerType) {
-      results.push({
-        title: `Instant Answer: ${data.AnswerType}`,
-        url: data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
-        snippet: data.Answer
-      });
-    }
+      if (!response.ok) {
+        throw new Error(`DuckDuckGo API returned ${response.status}: ${response.statusText}`);
+      }
 
-    // Add official results
-    if (data.Results && Array.isArray(data.Results)) {
-      data.Results.slice(0, 2).forEach((result: any) => {
-        if (result.Text && result.FirstURL) {
-          results.push({
-            title: result.Text,
-            url: result.FirstURL,
-            snippet: result.Text
-          });
-        }
-      });
-    }
+      const data = await response.json();
+      console.log('WebSearchService: Raw DuckDuckGo response:', data);
+      
+      const results: WebSearchResult[] = [];
+      
+      // Add abstract if available
+      if (data.Abstract && data.AbstractURL) {
+        results.push({
+          title: data.Heading || data.AbstractSource || 'DuckDuckGo Result',
+          url: data.AbstractURL,
+          snippet: data.Abstract
+        });
+      }
 
-    // Add related topics
-    if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
-      data.RelatedTopics.slice(0, 2).forEach((topic: any) => {
-        if (topic.Text && topic.FirstURL) {
-          results.push({
-            title: topic.Text.split(' - ')[0] || 'Related Topic',
-            url: topic.FirstURL,
-            snippet: topic.Text
-          });
-        }
-      });
-    }
+      // Add instant answer if available
+      if (data.Answer && data.AnswerType) {
+        results.push({
+          title: `Instant Answer: ${data.AnswerType}`,
+          url: data.AbstractURL || `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+          snippet: data.Answer
+        });
+      }
 
-    if (results.length === 0) {
-      throw new Error('No results from DuckDuckGo instant answers');
-    }
+      // Add official results
+      if (data.Results && Array.isArray(data.Results)) {
+        data.Results.slice(0, 3).forEach((result: any) => {
+          if (result.Text && result.FirstURL) {
+            results.push({
+              title: result.Text,
+              url: result.FirstURL,
+              snippet: result.Text
+            });
+          }
+        });
+      }
 
-    return {
-      results,
-      query
-    };
+      // Add related topics
+      if (data.RelatedTopics && Array.isArray(data.RelatedTopics)) {
+        data.RelatedTopics.slice(0, 2).forEach((topic: any) => {
+          if (topic.Text && topic.FirstURL) {
+            results.push({
+              title: topic.Text.split(' - ')[0] || 'Related Topic',
+              url: topic.FirstURL,
+              snippet: topic.Text
+            });
+          }
+        });
+      }
+
+      // If no results from DuckDuckGo API, create a basic search result
+      if (results.length === 0) {
+        console.log('WebSearchService: No results from DuckDuckGo API, creating fallback');
+        results.push({
+          title: `Search Results for "${query}"`,
+          url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+          snippet: `Click to view search results for "${query}" on DuckDuckGo.`
+        });
+      }
+
+      console.log('WebSearchService: Processed results:', results);
+      return {
+        results: results.slice(0, 5),
+        query
+      };
+    } catch (error) {
+      console.error('WebSearchService: Error fetching from DuckDuckGo:', error);
+      // Return a basic search result even if the API fails
+      return {
+        results: [{
+          title: `Search Results for "${query}"`,
+          url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
+          snippet: `Click to view search results for "${query}" on DuckDuckGo.`
+        }],
+        query
+      };
+    }
   }
 
+  /**
+   * Test method to verify web search is working
+   */
+  static async testSearch(): Promise<void> {
+    console.log('=== Testing Web Search ===');
+    
+    const testQueries = [
+      'weather today',
+      'latest news',
+      'python programming',
+      'react tutorial'
+    ];
+    
+    for (const query of testQueries) {
+      console.log(`\n--- Testing query: "${query}" ---`);
+      try {
+        const result = await this.searchWeb(query);
+        console.log('Result:', result);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+    
+    console.log('=== Test Complete ===');
+  }
 
-
-
+  /**
+   * Creates a LangGraph tool for web search using the proper tool function
+   */
+  static createWebSearchTool() {
+    return tool(
+      async (input: { query: string }) => {
+        console.log('WebSearchTool: Called with input:', input);
+        const result = await this.searchWeb(input.query);
+        console.log('WebSearchTool: Returning result:', result);
+        return JSON.stringify(result);
+      },
+      {
+        name: "web_search",
+        description: "Search the web for real-time information about any topic. Use this tool when you need up-to-date information that might not be available in your training data, or when you need to verify current facts.",
+        schema: z.object({
+          query: z.string().describe("The search term to look up on the web. Be specific and include relevant keywords for better results."),
+        }),
+      }
+    );
+  }
 
   /**
    * Provides intelligent search results based on query analysis
@@ -129,7 +189,7 @@ export class WebSearchService {
 
     // Primary search result - DuckDuckGo
     results.push({
-      title: `"${query}" - Web Search Results`,
+      title: `"${query}" - DuckDuckGo Search`,
       url: `https://duckduckgo.com/?q=${encodeURIComponent(query)}`,
       snippet: `Comprehensive search results for "${query}" on DuckDuckGo. Privacy-focused search engine with no tracking.`
     });
@@ -144,7 +204,7 @@ export class WebSearchService {
 
       results.push({
         title: `${query} - Official Documentation`,
-        url: `https://www.google.com/search?q=${encodeURIComponent(query + ' official documentation site:docs')}`,
+        url: `https://duckduckgo.com/?q=${encodeURIComponent(query + ' official documentation')}`,
         snippet: `Official documentation, API references, and guides for ${query}.`
       });
 
@@ -159,7 +219,7 @@ export class WebSearchService {
     else if (this.isNewsQuery(queryLower)) {
       results.push({
         title: `Breaking News: ${query}`,
-        url: `https://news.google.com/search?q=${encodeURIComponent(query)}&hl=en-US&gl=US&ceid=US:en`,
+        url: `https://duckduckgo.com/?q=${encodeURIComponent(query + ' news')}`,
         snippet: `Latest breaking news, articles, and updates about ${query} from multiple news sources.`
       });
 
@@ -187,7 +247,7 @@ export class WebSearchService {
     else if (this.isShoppingQuery(queryLower)) {
       results.push({
         title: `Shop for ${query}`,
-        url: `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=shop`,
+        url: `https://duckduckgo.com/?q=${encodeURIComponent(query + ' shopping')}`,
         snippet: `Compare prices and find the best deals for ${query} across multiple retailers.`
       });
 
@@ -212,13 +272,6 @@ export class WebSearchService {
         snippet: `Educational videos, tutorials, and content related to ${query} on YouTube.`
       });
     }
-
-    // Always include Google as the final comprehensive option
-    results.push({
-      title: `"${query}" - Google Search`,
-      url: `https://www.google.com/search?q=${encodeURIComponent(query)}`,
-      snippet: `Complete web search results for "${query}" with the most comprehensive coverage available.`
-    });
 
     return {
       results: results.slice(0, 5), // Limit to 5 results for clean display
@@ -270,6 +323,4 @@ export class WebSearchService {
     ];
     return shoppingKeywords.some(keyword => query.includes(keyword));
   }
-
-
 }
