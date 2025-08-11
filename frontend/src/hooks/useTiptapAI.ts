@@ -126,7 +126,7 @@ export const useTiptapAI = (editor: Editor | null): TiptapAIBridge => {
       
       return true;
     } catch (error) {
-      // Error executing Tiptap AI action - silently return false
+      console.error('Error executing Tiptap AI action:', error);
       return false;
     } finally {
       setIsExecuting(false);

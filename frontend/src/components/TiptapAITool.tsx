@@ -33,7 +33,6 @@ interface TiptapAIToolProps {
 }
 
 export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
-  // Debug logging removed for production
 
   // Extract values from either args object or direct props
   const {

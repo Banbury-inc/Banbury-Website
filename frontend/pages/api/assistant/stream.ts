@@ -499,11 +499,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : (body.messages as AssistantUiMessage[]);
 
     // Debug: Log normalized messages to see what we're working with
-    console.log('🔍 Normalized messages:', JSON.stringify(normalizedMessages, null, 2));
+    // console.log('🔍 Normalized messages:', JSON.stringify(normalizedMessages, null, 2));
     
     // Pre-download files from S3 and prepare them as base64 attachments for Anthropic
     const token = req.headers.authorization?.replace('Bearer ', '');
-    console.log('🔑 Auth token present:', !!token);
+    // console.log('🔑 Auth token present:', !!token);
     const messagesWithFileData: AssistantUiMessage[] = await (async () => {
       if (!Array.isArray(normalizedMessages)) return normalizedMessages;
       const out: AssistantUiMessage[] = [];
@@ -515,7 +515,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (p?.fileData) {
               console.log(`✅ File already downloaded on frontend: ${p.fileName} (${p.fileData.length} chars)`);
             } else if (token) {
-              console.log(`🔄 Attempting to download file: ${p.fileName} (ID: ${p.fileId})`);
+              // console.log(`🔄 Attempting to download file: ${p.fileName} (ID: ${p.fileId})`);
               try {
                 // Use the same download endpoint as the frontend file viewers
                 const apiUrl = 'http://www.api.dev.banbury.io';

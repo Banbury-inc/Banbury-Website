@@ -131,12 +131,12 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
         // Add file attachments in Anthropic format
         for (const fa of fileAttachments) {
           if (fa.fileData && fa.mimeType) {
-            console.log(`📎 Processing attachment: ${fa.fileName}, Original MIME: ${fa.mimeType}`);
+            // console.log(`📎 Processing attachment: ${fa.fileName}, Original MIME: ${fa.mimeType}`);
             
             // Normalize MIME type for Anthropic compatibility
             let anthropicMimeType = fa.mimeType;
             const fileExtension = fa.fileName?.split('.').pop()?.toLowerCase();
-            console.log(`🔍 File extension: ${fileExtension}`);
+            // console.log(`🔍 File extension: ${fileExtension}`);
             
             // Handle generic octet-stream based on file extension
             if (fa.mimeType === 'application/octet-stream' && fa.fileName) {
@@ -245,7 +245,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
             ];
             
             if (officeDocumentTypes.includes(anthropicMimeType)) {
-              console.log(`📄 Office document detected: ${anthropicMimeType} → converting to text/plain for Anthropic compatibility`);
+              // console.log(`📄 Office document detected: ${anthropicMimeType} → converting to text/plain for Anthropic compatibility`);
               anthropicMimeType = 'text/plain';
               
               // Convert office document to text representation
@@ -255,12 +255,12 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
                   const binaryData = Buffer.from(fa.fileData, 'base64');
                   const extractedText = extractTextFromDocx(binaryData, fa.fileName);
                   fa.fileData = Buffer.from(extractedText, 'utf8').toString('base64');
-                  console.log(`📝 Extracted text from DOCX: ${extractedText.length} characters`);
+                  // console.log(`📝 Extracted text from DOCX: ${extractedText.length} characters`);
                 } else {
                   // For other office documents, send descriptive message
                   const fileInfo = `This is a ${fa.fileName} file (${fa.mimeType}). The file has been attached as a ${fa.mimeType} document. Please note that text extraction is not available for this format - only PDF and DOCX files can be fully processed. You may ask the user to provide key information from this document.`;
                   fa.fileData = Buffer.from(fileInfo, 'utf8').toString('base64');
-                  console.log(`📝 Converted office document to descriptive text for Anthropic`);
+                  // console.log(`📝 Converted office document to descriptive text for Anthropic`);
                 }
               } catch (error) {
                 console.error(`❌ Error processing office document:`, error);
@@ -280,7 +280,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
               }
             }
             
-            console.log(`🔄 Normalized MIME type: ${anthropicMimeType}`);
+            // console.log(`🔄 Normalized MIME type: ${anthropicMimeType}`);
             
             // Use different content types based on MIME type
             if (anthropicMimeType.startsWith('image/')) {
@@ -293,7 +293,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
                   data: fa.fileData
                 }
               });
-              console.log(`🖼️ Added as image attachment`);
+              // console.log(`🖼️ Added as image attachment`);
             } else if (anthropicMimeType === 'application/pdf') {
               // Only PDFs can use document content type
               anthropicContent.push({
@@ -304,7 +304,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
                   data: fa.fileData
                 }
               });
-              console.log(`📄 Added as PDF document attachment`);
+              // console.log(`📄 Added as PDF document attachment`);
             } else {
               // All other files (including converted DOCX) are sent as text content
               const textContent = Buffer.from(fa.fileData, 'base64').toString('utf8');
@@ -312,7 +312,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
                 type: "text",
                 text: textContent
               });
-              console.log(`📝 Added as text content (${textContent.length} characters)`);
+              // console.log(`📝 Added as text content (${textContent.length} characters)`);
             }
           }
         }
@@ -381,11 +381,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       : (body.messages as AssistantUiMessage[]);
 
         // Debug: Log normalized messages to see what we're working with
-    console.log('🔍 Normalized messages:', JSON.stringify(normalizedMessages, null, 2));
+    // console.log('🔍 Normalized messages:', JSON.stringify(normalizedMessages, null, 2));
     
     // Pre-download files from S3 and prepare them as base64 attachments for Anthropic
     const token = req.headers.authorization?.replace('Bearer ', '');
-    console.log('🔑 Auth token present:', !!token);
+    // console.log('🔑 Auth token present:', !!token);
     const messagesWithFileData: AssistantUiMessage[] = await (async () => {
       if (!Array.isArray(normalizedMessages)) return normalizedMessages;
       const out: AssistantUiMessage[] = [];
@@ -395,14 +395,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           const p: any = parts[i];
           if (p?.type === 'file-attachment' && p?.fileId) {
             if (p?.fileData) {
-              console.log(`✅ File already downloaded on frontend: ${p.fileName} (${p.fileData.length} chars)`);
+              // console.log(`✅ File already downloaded on frontend: ${p.fileName} (${p.fileData.length} chars)`);
             } else if (token) {
-              console.log(`🔄 Attempting to download file: ${p.fileName} (ID: ${p.fileId})`);
+              // console.log(`🔄 Attempting to download file: ${p.fileName} (ID: ${p.fileId})`);
               try {
                 // Use the same download endpoint as the frontend file viewers
                 const apiUrl = 'http://www.api.dev.banbury.io';
                 const downloadUrl = `${apiUrl}/files/download_s3_file/${encodeURIComponent(p.fileId)}/`;
-                console.log(`📡 Download URL: ${downloadUrl}`);
+                // console.log(`📡 Download URL: ${downloadUrl}`);
                 
                 const resp = await fetch(downloadUrl, {
                   method: 'GET',
@@ -411,13 +411,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   },
                 });
                 
-                console.log(`📥 Download response status: ${resp.status} ${resp.statusText}`);
+                // console.log(`📥 Download response status: ${resp.status} ${resp.statusText}`);
                 
                 if (resp.ok) {
                   const arrayBuffer = await resp.arrayBuffer();
                   const contentType = resp.headers.get('content-type') || 'application/octet-stream';
                   
-                  console.log(`✅ File downloaded successfully: ${arrayBuffer.byteLength} bytes, type: ${contentType}`);
+                  // console.log(`✅ File downloaded successfully: ${arrayBuffer.byteLength} bytes, type: ${contentType}`);
 
                   // Convert to base64 for Anthropic attachment
                   const base64Data = Buffer.from(arrayBuffer).toString('base64');
@@ -427,7 +427,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     mimeType: contentType
                   } as any;
                   
-                  console.log(`🔒 File converted to base64: ${base64Data.length} characters`);
+                  // console.log(`🔒 File converted to base64: ${base64Data.length} characters`);
                 } else {
                   console.error(`❌ Failed to download file: ${resp.status} ${resp.statusText}`);
                   const errorText = await resp.text();
