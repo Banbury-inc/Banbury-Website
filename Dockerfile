@@ -13,6 +13,10 @@ WORKDIR /app/frontend
 # Install dependencies
 RUN npm install
 
+# Clean build artifacts and set memory allocation
+RUN npm run clean || true
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Expose port 80
 EXPOSE 80
 

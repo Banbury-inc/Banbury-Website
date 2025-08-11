@@ -15,6 +15,11 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Set memory allocation and clean build artifacts
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+RUN npm run clean || true
+
 # Use the explicit Next build script to avoid CRA build
 RUN npm run next:build
 

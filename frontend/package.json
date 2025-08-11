@@ -8,9 +8,9 @@
   "scripts": {
     "start": "next start",
     "dev": "next dev",
-    "build": "next build",
+    "build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "next:dev": "next dev",
-    "next:build": "next build",
+    "next:build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "next:start": "next start",
     "test": "jest --runInBand",
     "test:coverage": "jest --runInBand --coverage",
@@ -20,7 +20,8 @@
     "prettier": "prettier \"**/*.+(json|ts|tsx)\"",
     "format:check": "npm run prettier -- --check",
     "format:fix": "npm run prettier -- --write",
-    "types:check": "bash -c tsc --noEmit --pretty"
+    "types:check": "bash -c tsc --noEmit --pretty",
+    "clean": "rm -rf .next && rm -rf node_modules/.cache && rm -f tsconfig.tsbuildinfo"
   },
   "lint-staged": {
     "**/*.{js,jsx,ts,tsx}": [
