@@ -3,11 +3,12 @@ import { useState, useEffect, useCallback } from 'react';
 // Using lucide-react icons instead of @mui/icons-material to avoid import issues
  
 import { DocumentViewer } from '../components/DocumentViewer';
+import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { Thread } from '../components/thread';
-import { UploadIcon, X, Plus, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move } from 'lucide-react';
+import { UploadIcon, X, Plus, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
 import OlympusTabs, { Tab as OlympusTab } from '../components/common/Tabs/Tabs';
@@ -134,8 +135,14 @@ const Workspaces = (): JSX.Element => {
     return documentExtensions.includes(extension)
   };
 
+  const isSpreadsheetFile = (fileName: string): boolean => {
+    const spreadsheetExtensions = ['.csv', '.xlsx', '.xls']
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+    return spreadsheetExtensions.includes(extension)
+  };
+
   const isViewableFile = (fileName: string): boolean => {
-    return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName)
+    return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName) || isSpreadsheetFile(fileName)
   };
 
   // Handle file selection from sidebar - now opens in tabs
@@ -588,6 +595,14 @@ const Workspaces = (): JSX.Element => {
                     onSaveComplete={triggerSidebarRefresh}
                   />
                 );
+              } else if (isSpreadsheetFile(file.name)) {
+                return (
+                  <SpreadsheetViewer 
+                    file={file} 
+                    userInfo={userInfo} 
+                    onSaveComplete={triggerSidebarRefresh}
+                  />
+                );
               } else {
                 return (
                   <div className="h-full flex items-center justify-center">
@@ -604,7 +619,7 @@ const Workspaces = (): JSX.Element => {
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-md">
-                <h2 className="text-2xl font-bold text-white mb-4">Empty Panel</h2>
+                <h2 className="text-2xl font-bold text-white mb-4">Welcome to Workspaces</h2>
                 <p className="text-gray-300 mb-4">
                   This panel is ready for files. Select a file from the sidebar to open it here.
                 </p>
@@ -617,7 +632,7 @@ const Workspaces = (): JSX.Element => {
         </div>
       </div>
     );
-  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, dragState]);
+  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, isSpreadsheetFile, dragState]);
   
   // Render panel group (recursive for nested splits)
   const renderPanelGroup = useCallback((group: PanelGroup): React.ReactNode => {
@@ -817,6 +832,56 @@ Created on: ${new Date().toLocaleDateString()}`;
     }
   };
 
+  // Handle spreadsheet creation
+  const handleCreateSpreadsheet = async () => {
+    if (!userInfo?.username) return;
+
+    setUploading(true);
+    setUploadStatus({ open: true, message: 'Creating spreadsheet...', severity: 'info' });
+
+    try {
+      // Create simple CSV content with headers and sample data
+      const csvContent = `Name,Email,Phone,Department
+John Doe,john.doe@example.com,555-0101,Engineering
+Jane Smith,jane.smith@example.com,555-0102,Marketing
+Bob Johnson,bob.johnson@example.com,555-0103,Sales
+Alice Brown,alice.brown@example.com,555-0104,HR`;
+
+      // Generate filename
+      const fileName = `New Spreadsheet ${new Date().toISOString().split('T')[0]}.csv`;
+
+      // Create CSV blob
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+
+      // Upload spreadsheet using the uploadToS3 function
+      setUploadStatus({ open: true, message: 'Uploading spreadsheet to S3...', severity: 'info' });
+      
+      await uploadToS3(
+        blob,
+        userInfo.username,
+        `spreadsheets/${fileName}`,
+        'spreadsheets'
+      );
+      
+      setUploadStatus({ 
+        open: true, 
+        message: 'Spreadsheet created and uploaded successfully!', 
+        severity: 'success' 
+      });
+      
+      // Trigger sidebar refresh after successful spreadsheet creation
+      triggerSidebarRefresh();
+    } catch (error) {
+      setUploadStatus({ 
+        open: true, 
+        message: `Failed to create spreadsheet: ${error instanceof Error ? error.message : 'Unknown error'}`, 
+        severity: 'error' 
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Handle folder creation
   const handleCreateFolder = () => {
     if (!userInfo?.username) return;
@@ -983,6 +1048,66 @@ Created on: ${new Date().toLocaleDateString()}`;
     // Refresh sidebar to show the new folder
     triggerSidebarRefresh();
   }, []);
+
+  const handleFolderRenamed = useCallback((oldPath: string, newPath: string) => {
+    const oldFolderName = oldPath.split('/').pop() || oldPath;
+    const newFolderName = newPath.split('/').pop() || newPath;
+    
+    setUploadStatus({ 
+      open: true, 
+      message: `Folder "${oldFolderName}" renamed to "${newFolderName}" successfully!`, 
+      severity: 'success' 
+    });
+    
+    // Update tabs for files in the renamed folder
+    setPanelLayout(prev => {
+      const updateInAllPanels = (layout: PanelGroup): PanelGroup => {
+        if (layout.type === 'panel' && layout.panel) {
+          const updatedTabs = layout.panel.tabs.map(tab => {
+            if (tab.filePath.startsWith(oldPath + '/')) {
+              const newFilePath = tab.filePath.replace(oldPath, newPath);
+              const newFileName = newFilePath.split('/').pop() || newFilePath;
+              const updatedFile = { ...tab.file, path: newFilePath, name: newFileName };
+              return {
+                ...tab,
+                filePath: newFilePath,
+                fileName: newFileName,
+                file: updatedFile
+              };
+            }
+            return tab;
+          });
+          
+          return {
+            ...layout,
+            panel: {
+              ...layout.panel,
+              tabs: updatedTabs
+            }
+          };
+        }
+        if (layout.type === 'group' && layout.children) {
+          return {
+            ...layout,
+            children: layout.children.map(child => updateInAllPanels(child))
+          };
+        }
+        return layout;
+      };
+      
+      return updateInAllPanels(prev);
+    });
+    
+    // If the selected file was in the renamed folder, update its path
+    if (selectedFile && selectedFile.path.startsWith(oldPath + '/')) {
+      const newFilePath = selectedFile.path.replace(oldPath, newPath);
+      const newFileName = newFilePath.split('/').pop() || newFilePath;
+      setSelectedFile({ ...selectedFile, path: newFilePath, name: newFileName });
+    }
+    
+    // Refresh the sidebar to update the file list
+    triggerSidebarRefresh();
+  }, [selectedFile]);
 
 
   useEffect(() => {
@@ -1185,7 +1310,7 @@ Created on: ${new Date().toLocaleDateString()}`;
           {/* Main Content Area with Resizable Panels */}
           <div className="flex flex-1 ml-16 flex-col">
             {/* Toolbar */}
-            <div className="bg-black border-b border-gray-700 min-h-12 px-4 flex items-center justify-start">
+            <div className="bg-black border-b border-zinc-700 min-h-12 px-4 flex items-center justify-start">
               {/* Add Dropdown Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -1205,6 +1330,12 @@ Created on: ${new Date().toLocaleDateString()}`;
                   >
                     <FileText size={20} className="mr-2" />
                     Document
+                  </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onSelect={handleCreateSpreadsheet}
+                  >
+                    <FileSpreadsheet size={20} className="mr-2" />
+                    Spreadsheet
                   </DropdownMenuItem>
                   <DropdownMenuItem 
                     onSelect={handleCreateFolder}
@@ -1240,6 +1371,7 @@ Created on: ${new Date().toLocaleDateString()}`;
                     onFileRenamed={handleFileRenamed}
                     onFileMoved={handleFileMoved}
                     onFolderCreated={handleFolderCreated}
+                    onFolderRenamed={handleFolderRenamed}
                     triggerRootFolderCreation={folderCreationTrigger}
                   />
                 </Allotment.Pane>

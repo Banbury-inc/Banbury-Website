@@ -516,6 +516,61 @@ export class ApiService {
   }
 
   /**
+   * Rename a folder by moving all files within it to a new folder path
+   */
+  static async renameFolder(oldFolderPath: string, newFolderName: string, username: string) {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      // Get all files for the user to find files in the old folder
+      const userFilesResult = await this.getUserFiles(username);
+      if (!userFilesResult.success) {
+        throw new Error('Failed to fetch user files');
+      }
+      
+      // Find all files that are in the old folder path
+      const filesToMove = userFilesResult.files.filter(file => {
+        const filePath = file.file_path;
+        return filePath.startsWith(oldFolderPath + '/') || filePath === oldFolderPath;
+      });
+      
+      if (filesToMove.length === 0) {
+        throw new Error('No files found in the specified folder');
+      }
+      
+      // Calculate the new folder path
+      const parentPath = oldFolderPath.split('/').slice(0, -1).join('/');
+      const newFolderPath = parentPath ? `${parentPath}/${newFolderName}` : newFolderName;
+      
+      // Move each file to the new folder path
+      const movedFiles = [];
+      for (const file of filesToMove) {
+        if (!file.file_id) continue;
+        
+        // Calculate new file path
+        const relativePath = file.file_path.substring(oldFolderPath.length);
+        const newFilePath = newFolderPath + relativePath;
+        
+        // Move the file
+        const moveResult = await this.moveS3File(file.file_id, newFilePath, file.file_name);
+        movedFiles.push(moveResult);
+      }
+      
+      return {
+        success: true,
+        message: `Folder renamed successfully. Moved ${movedFiles.length} files.`,
+        movedFiles,
+        oldPath: oldFolderPath,
+        newPath: newFolderPath
+      };
+    } catch (error) {
+      console.error('renameFolder error:', error);
+      throw this.enhanceError(error, 'Failed to rename folder');
+    }
+  }
+
+  /**
    * Upload file to S3 (replacing existing file)
    */
   static async uploadToS3(file: File | Blob, fileName: string, deviceName: string = 'web-editor', filePath: string = '', fileParent: string = '') {

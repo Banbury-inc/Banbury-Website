@@ -20,6 +20,7 @@ interface AppSidebarProps {
   onFileRenamed?: (oldPath: string, newPath: string) => void
   onFileMoved?: (fileId: string, oldPath: string, newPath: string) => void
   onFolderCreated?: (folderPath: string) => void
+  onFolderRenamed?: (oldPath: string, newPath: string) => void
   triggerRootFolderCreation?: boolean
 }
 
@@ -41,6 +42,11 @@ interface FileTreeItemProps {
   onFileDeleted?: (fileId: string) => void
   onFileRenamed?: (oldPath: string, newPath: string) => void
   onFolderCreated?: (folderPath: string) => void
+  onFolderRenamed?: (oldPath: string, newPath: string) => void
+  userInfo?: {
+    username: string
+    email?: string
+  } | null
   dragState: DragState
   onDragStart: (item: FileSystemItem) => void
   onDragEnd: () => void
@@ -129,6 +135,8 @@ function FileTreeItem({
   onFileDeleted, 
   onFileRenamed, 
   onFolderCreated, 
+  onFolderRenamed, 
+  userInfo, 
   dragState, 
   onDragStart, 
   onDragEnd, 
@@ -229,17 +237,30 @@ function FileTreeItem({
   }
 
   const handleRenameSubmit = async () => {
-    if (!item.file_id || newName.trim() === '' || newName === item.name) {
+    if (newName.trim() === '' || newName === item.name) {
       setIsRenaming(false)
       return
     }
     
     try {
-      await ApiService.renameS3File(item.file_id, newName.trim(), item.path)
-      onFileRenamed?.(item.path, newName.trim())
+      if (item.type === 'file' && item.file_id) {
+        // Handle file renaming
+        await ApiService.renameS3File(item.file_id, newName.trim(), item.path)
+        onFileRenamed?.(item.path, newName.trim())
+      } else if (item.type === 'folder') {
+        // Handle folder renaming
+        if (!userInfo?.username) {
+          throw new Error('User information not available')
+        }
+        
+        const result = await ApiService.renameFolder(item.path, newName.trim(), userInfo.username)
+        if (result.success) {
+          onFolderRenamed?.(result.oldPath, result.newPath)
+        }
+      }
       setIsRenaming(false)
     } catch (error) {
-      alert('Failed to rename file. Please try again.')
+      alert('Failed to rename item. Please try again.')
       setIsRenaming(false)
       setNewName(item.name) // Reset name on error
     }
@@ -402,6 +423,8 @@ function FileTreeItem({
               onFileDeleted={onFileDeleted}
               onFileRenamed={onFileRenamed}
               onFolderCreated={onFolderCreated}
+              onFolderRenamed={onFolderRenamed}
+              userInfo={userInfo}
               dragState={dragState}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
@@ -416,7 +439,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, triggerRootFolderCreation }: AppSidebarProps) {
+export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -505,6 +528,13 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
     fetchUserFiles()
     // Call the parent callback if provided
     onFolderCreated?.(folderPath)
+  }
+
+  const handleFolderRenamed = (oldPath: string, newPath: string) => {
+    // Refresh the file tree when a folder is renamed
+    fetchUserFiles()
+    // Call the parent callback if provided
+    onFolderRenamed?.(oldPath, newPath)
   }
 
   const fetchUserFiles = useCallback(async () => {
@@ -657,6 +687,8 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
             onFileDeleted={onFileDeleted}
             onFileRenamed={onFileRenamed}
             onFolderCreated={handleFolderCreated}
+            onFolderRenamed={handleFolderRenamed}
+            userInfo={userInfo}
             dragState={dragState}
             onDragStart={handleDragStart}
             onDragEnd={handleDragEnd}

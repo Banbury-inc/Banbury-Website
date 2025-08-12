@@ -7,6 +7,7 @@ import getTheme from '@/theme/theme';
 import ColorModeContext from '@/utils/ColorModeContext';
 import { useEffect, useMemo, useState } from 'react';
 import { ClaudeRuntimeProvider } from '@/assistant/ClaudeRuntimeProvider';
+import { Toaster } from '@/components/ui/toaster';
 import '@/index.css';
 
 function AppInner({ Component, pageProps }: AppProps) {
@@ -55,6 +56,7 @@ function AppInner({ Component, pageProps }: AppProps) {
           <ClaudeRuntimeProvider>
             <Component {...pageProps} />
           </ClaudeRuntimeProvider>
+          <Toaster />
         </ThemeProvider>
       </ColorModeContext.Provider>
     </HelmetProvider>

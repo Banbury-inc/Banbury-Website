@@ -1,13 +1,12 @@
-import { AlertCircle, Download, FileText, Save } from 'lucide-react';
-import { useState, useEffect } from 'react';
-
+import { AlertCircle, Download, Save, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
-import WordViewer from './workspaces/WordViewer';
 import { ApiService } from '../services/apiService';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { useToast } from './ui/use-toast';
+import CSVEditor from './workspaces/CSVEditor';
 
-interface DocumentViewerProps {
+interface SpreadsheetViewerProps {
   file: FileSystemItem;
   userInfo?: {
     username: string;
@@ -16,7 +15,7 @@ interface DocumentViewerProps {
   onSaveComplete?: () => void;
 }
 
-export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewerProps) {
+export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: SpreadsheetViewerProps) {
   const [documentUrl, setDocumentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,14 +23,12 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
 
-
-
   useEffect(() => {
     let currentUrl: string | null = null;
     
     const loadDocument = async () => {
       if (!file.file_id) {
-        setError('No file ID available for this document');
+        setError('No file ID available for this spreadsheet');
         setLoading(false);
         return;
       }
@@ -40,16 +37,16 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       setError(null);
 
       try {
-        // Download the document file content
+        // Download the spreadsheet file content
         const result = await ApiService.downloadS3File(file.file_id, file.name);
         if (result.success && result.url) {
           currentUrl = result.url;
           setDocumentUrl(result.url);
         } else {
-          setError('Failed to load document content');
+          setError('Failed to load spreadsheet content');
         }
       } catch (err) {
-        setError('Failed to load document content');
+        setError('Failed to load spreadsheet content');
       } finally {
         setLoading(false);
       }
@@ -81,19 +78,9 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
       }
     } catch (err) {
-      // console.error('Failed to download document:', err);
+      // Handle download error silently
     }
   };
-
-  const testToast = () => {
-    toast({
-      title: "🎉 TEST TOAST SUCCESS!",
-      description: "If you can see this, the toast system is working perfectly! Click the X to dismiss.",
-      variant: "success",
-    });
-  };
-
-
 
   const handleSave = async () => {
     if (!file.file_id || !userInfo?.username || !currentContent) return;
@@ -103,64 +90,16 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       // First delete the existing file from S3
       await ApiService.deleteS3File(file.file_id);
       
-      // Determine the file extension and content format
-      const fileExtension = file.name.toLowerCase().split('.').pop() || '';
-      const isDocxFile = fileExtension === 'docx';
-      
-      let blob;
-      let contentType;
-      
-      if (isDocxFile) {
-        // For DOCX files, we'll save the HTML content but mark it as a custom format
-        // that our system can recognize as edited DOCX content
-        const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>${file.name}</title>
-    <meta name="original-format" content="docx">
-    <meta name="editor" content="banbury-editor">
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    ${currentContent}
-</body>
-</html>`;
-        // Use a custom content type that indicates this is edited DOCX content
-        blob = new Blob([htmlContent], { type: 'application/vnd.banbury.docx-html' });
-        contentType = 'application/vnd.banbury.docx-html';
-      } else if (fileExtension === 'html' || fileExtension === 'htm') {
-        // For HTML files, save with proper HTML structure
-        const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>${file.name}</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
-    </style>
-</head>
-<body>
-    ${currentContent}
-</body>
-</html>`;
-        blob = new Blob([htmlContent], { type: 'text/html' });
-        contentType = 'text/html';
-      } else {
-        // For other files, save just the content with appropriate type
-        blob = new Blob([currentContent], { type: 'text/html' });
-        contentType = 'text/html';
-      }
+      // Create CSV blob
+      const blob = new Blob([currentContent], { type: 'text/csv' });
       
       // Extract parent path from file path
       const parentPath = file.path ? file.path.split('/').slice(0, -1).join('/') : '';
       
-      // Upload the new file to S3 with original filename
+      // Upload the new file to S3
       await ApiService.uploadToS3(
         blob,
-        file.name,  // Always use original filename
+        file.name,
         'web-editor',
         file.path || '',
         parentPath
@@ -169,21 +108,19 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       // Call the save complete callback
       onSaveComplete?.();
       
-      // Show success toast
+      // Show success toast notification
       toast({
-        title: "Document saved successfully",
+        title: "Spreadsheet saved successfully",
         description: `${file.name} has been saved.`,
-        variant: "success",
       });
       
     } catch (err) {
-      setError('Failed to save document');
-      
-      // Show error toast
+      setError('Failed to save spreadsheet');
+      // Show error toast notification
       toast({
-        title: "Failed to save document",
-        description: "There was an error saving your document. Please try again.",
-        variant: "error",
+        title: "Failed to save spreadsheet",
+        description: "There was an error saving your spreadsheet. Please try again.",
+        variant: "destructive",
       });
     } finally {
       setSaving(false);
@@ -195,7 +132,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="text-muted-foreground">Loading document...</p>
+          <p className="text-muted-foreground">Loading spreadsheet...</p>
         </div>
       </div>
     );
@@ -207,7 +144,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         <div className="flex flex-col items-center gap-4 text-center">
           <AlertCircle className="h-12 w-12 text-destructive" />
           <div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load document</h3>
+            <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load spreadsheet</h3>
             <p className="text-muted-foreground">{error}</p>
           </div>
         </div>
@@ -220,6 +157,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       {/* Header with file info and actions */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-card">
         <div className="flex items-center gap-3">
+          <FileSpreadsheet className="h-5 w-5 text-primary" />
           <div>
             <h3 className="text-sm font-semibold text-card-foreground">{file.name}</h3>
           </div>
@@ -229,51 +167,31 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
           <Button
             variant="default"
             size="icon"
-            onClick={handleSave}
-            disabled={saving || !currentContent}
-            className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Save document"
-          >
-            <Save className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="default"
-            size="icon"
             onClick={handleDownload}
             className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Download document"
+            title="Download spreadsheet"
           >
             <Download className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={testToast}
-            className="h-9 px-3 bg-blue-500 text-white hover:bg-blue-600 border-blue-500"
-            title="Test toast - Click to verify toast system is working"
-          >
-            🧪 TEST TOAST
           </Button>
         </div>
       </div>
 
-      {/* Document display area with TiptapWordEditor */}
+      {/* Spreadsheet display area with CSVEditor */}
       <div className="flex-1 overflow-hidden">
         {documentUrl ? (
-          <WordViewer
+          <CSVEditor
             src={documentUrl}
             fileName={file.name}
-            onError={() => setError('Failed to load document in editor')}
+            onError={() => setError('Failed to load spreadsheet in editor')}
             onLoad={() => setError(null)}
             onSave={(content) => {
               setCurrentContent(content);
+              handleSave();
             }}
           />
         ) : (
           <div className="flex items-center justify-center h-full">
-            <div className="text-muted-foreground">No document to display</div>
+            <div className="text-muted-foreground">No spreadsheet to display</div>
           </div>
         )}
       </div>
