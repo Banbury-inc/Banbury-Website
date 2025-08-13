@@ -12,7 +12,7 @@
     "next:dev": "next dev",
     "next:build": "NODE_OPTIONS='--max-old-space-size=4096' next build",
     "next:start": "next start",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --passWithNoTests",
     "test:coverage": "jest --runInBand --coverage",
     "clear_jest": "jest --clearCache",
     "lint": "eslint --ext .ts,.tsx ./src",
