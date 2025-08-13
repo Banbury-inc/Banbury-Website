@@ -127,8 +127,35 @@
   margin: 0.5em 0;
 }
 
+.simple-tiptap-editor ul {
+  list-style-type: disc;
+  list-style-position: outside;
+}
+
+.simple-tiptap-editor ol {
+  list-style-type: decimal;
+  list-style-position: outside;
+}
+
+.simple-tiptap-editor ul ul {
+  list-style-type: circle;
+}
+
+.simple-tiptap-editor ul ul ul {
+  list-style-type: square;
+}
+
+.simple-tiptap-editor ol ol {
+  list-style-type: lower-alpha;
+}
+
+.simple-tiptap-editor ol ol ol {
+  list-style-type: lower-roman;
+}
+
 .simple-tiptap-editor li {
   margin: 0.25em 0;
+  list-style-color: #1e293b;
 }
 
 .simple-tiptap-editor blockquote {

@@ -22,6 +22,8 @@ import { PDFViewer } from '../components/PDFViewer';
 import { Button } from '../components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
 import { TooltipProvider } from "../components/ui/tooltip";
+import { Toaster } from "../components/ui/toaster";
+import { useToast } from "../components/ui/use-toast";
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
 
@@ -66,15 +68,11 @@ interface PanelGroup {
 
 const Workspaces = (): JSX.Element => {
   const router = useRouter();
+  const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedFile, setSelectedFile] = useState<FileSystemItem | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [uploadStatus, setUploadStatus] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info';
-  }>({ open: false, message: '', severity: 'info' });
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [folderCreationTrigger, setFolderCreationTrigger] = useState<boolean>(false);
   
@@ -682,7 +680,6 @@ const Workspaces = (): JSX.Element => {
       if (!file || !userInfo?.username) return;
 
       setUploading(true);
-      setUploadStatus({ open: true, message: 'Uploading file...', severity: 'info' });
 
       try {
         // Upload file using the uploadToS3 function
@@ -693,19 +690,21 @@ const Workspaces = (): JSX.Element => {
           'uploads'
         );
         
-        setUploadStatus({ 
-          open: true, 
-          message: 'File uploaded to S3 successfully!', 
-          severity: 'success' 
+        // Show success toast
+        toast({
+          title: "File uploaded successfully",
+          description: `${file.name} has been uploaded.`,
+          variant: "success",
         });
         
         // Trigger sidebar refresh after successful upload
         triggerSidebarRefresh();
       } catch (error) {
-        setUploadStatus({ 
-          open: true, 
-          message: `Failed to upload file: ${error instanceof Error ? error.message : 'Unknown error'}`, 
-          severity: 'error' 
+        // Show error toast
+        toast({
+          title: "Failed to upload file",
+          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "error",
         });
       } finally {
         setUploading(false);
@@ -756,7 +755,6 @@ const Workspaces = (): JSX.Element => {
     if (!userInfo?.username) return;
 
     setUploading(true);
-    setUploadStatus({ open: true, message: 'Creating Word document...', severity: 'info' });
 
     try {
       // Create simple document content
@@ -804,7 +802,6 @@ Created on: ${new Date().toLocaleDateString()}`;
       const blob = await Packer.toBlob(doc);
 
       // Upload document using the uploadToS3 function
-      setUploadStatus({ open: true, message: 'Uploading document to S3...', severity: 'info' });
       
       await uploadToS3(
         blob,
@@ -813,19 +810,21 @@ Created on: ${new Date().toLocaleDateString()}`;
         'documents'
       );
       
-      setUploadStatus({ 
-        open: true, 
-        message: 'Word document created and uploaded successfully!', 
-        severity: 'success' 
+      // Show success toast
+      toast({
+        title: "Document created successfully",
+        description: `${fileName} has been created and uploaded.`,
+        variant: "success",
       });
       
       // Trigger sidebar refresh after successful document creation
       triggerSidebarRefresh();
     } catch (error) {
-      setUploadStatus({ 
-        open: true, 
-        message: `Failed to create Word document: ${error instanceof Error ? error.message : 'Unknown error'}`, 
-        severity: 'error' 
+      // Show error toast
+      toast({
+        title: "Failed to create document",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "error",
       });
     } finally {
       setUploading(false);
@@ -837,7 +836,6 @@ Created on: ${new Date().toLocaleDateString()}`;
     if (!userInfo?.username) return;
 
     setUploading(true);
-    setUploadStatus({ open: true, message: 'Creating spreadsheet...', severity: 'info' });
 
     try {
       // Create simple CSV content with headers and sample data
@@ -854,7 +852,6 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
       const blob = new Blob([csvContent], { type: 'text/csv' });
 
       // Upload spreadsheet using the uploadToS3 function
-      setUploadStatus({ open: true, message: 'Uploading spreadsheet to S3...', severity: 'info' });
       
       await uploadToS3(
         blob,
@@ -863,19 +860,21 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
         'spreadsheets'
       );
       
-      setUploadStatus({ 
-        open: true, 
-        message: 'Spreadsheet created and uploaded successfully!', 
-        severity: 'success' 
+      // Show success toast
+      toast({
+        title: "Spreadsheet created successfully",
+        description: `${fileName} has been created and uploaded.`,
+        variant: "success",
       });
       
       // Trigger sidebar refresh after successful spreadsheet creation
       triggerSidebarRefresh();
     } catch (error) {
-      setUploadStatus({ 
-        open: true, 
-        message: `Failed to create spreadsheet: ${error instanceof Error ? error.message : 'Unknown error'}`, 
-        severity: 'error' 
+      // Show error toast
+      toast({
+        title: "Failed to create spreadsheet",
+        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        variant: "error",
       });
     } finally {
       setUploading(false);
@@ -892,10 +891,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
     setTimeout(() => setFolderCreationTrigger(false), 100);
   };
 
-  // Handle snackbar close
-  const handleCloseSnackbar = () => {
-    setUploadStatus(prev => ({ ...prev, open: false }));
-  };
+
 
   const handleFileDeleted = useCallback((fileId: string) => {
     // Remove tabs for the deleted file from all panels
@@ -1040,23 +1036,25 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
   }, [selectedFile]);
 
   const handleFolderCreated = useCallback((folderPath: string) => {
-    setUploadStatus({ 
-      open: true, 
-      message: `Folder "${folderPath}" created successfully!`, 
-      severity: 'success' 
+    // Show success toast
+    toast({
+      title: "Folder created successfully",
+      description: `Folder "${folderPath}" has been created.`,
+      variant: "success",
     });
     // Refresh sidebar to show the new folder
     triggerSidebarRefresh();
-  }, []);
+  }, [toast, triggerSidebarRefresh]);
 
   const handleFolderRenamed = useCallback((oldPath: string, newPath: string) => {
     const oldFolderName = oldPath.split('/').pop() || oldPath;
     const newFolderName = newPath.split('/').pop() || newPath;
     
-    setUploadStatus({ 
-      open: true, 
-      message: `Folder "${oldFolderName}" renamed to "${newFolderName}" successfully!`, 
-      severity: 'success' 
+    // Show success toast
+    toast({
+      title: "Folder renamed successfully",
+      description: `Folder "${oldFolderName}" renamed to "${newFolderName}".`,
+      variant: "success",
     });
     
     // Update tabs for files in the renamed folder
@@ -1107,7 +1105,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
     
     // Refresh the sidebar to update the file list
     triggerSidebarRefresh();
-  }, [selectedFile]);
+  }, [selectedFile, toast, triggerSidebarRefresh]);
 
 
   useEffect(() => {
@@ -1425,23 +1423,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
               onClick={closeContextMenu}
             />
           )}
-          
-          {/* Upload Status Notification */}
-          {uploadStatus.open && (
-            <div className="fixed bottom-4 right-4 z-50">
-              <div className={`px-4 py-2 rounded shadow-lg text-white flex items-center gap-2 ${
-                uploadStatus.severity === 'success' ? 'bg-green-600' : 'bg-red-600'
-              }`}>
-                <span>{uploadStatus.message}</span>
-                <button 
-                  onClick={handleCloseSnackbar}
-                  className="text-white hover:text-gray-200"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-          )}
+
         </div>
         
         {/* Drag Preview */}
@@ -1509,6 +1491,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
         `}</style>
         </ClaudeRuntimeProvider>
       </TiptapAIProvider>
+      <Toaster />
     </TooltipProvider>
   );
 };
