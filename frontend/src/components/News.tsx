@@ -1,5 +1,4 @@
 import { Box, Card, CardMedia, Container, Grid, Typography, Paper } from '@mui/material';
-import { useTheme } from '@mui/material/styles';
 import axios from 'axios';
 import NextLink from 'next/link';
 import { useRouter } from 'next/router';
@@ -135,7 +134,6 @@ const NEWS_POSTS: NewsPostType[] = [
 ];
 
 const News = (): JSX.Element => {
-  const theme = useTheme();
   const router = useRouter();
   const { postId } = router.query as { postId?: string };
   const [products, setProducts] = useState<ProductsProps[]>([]);
@@ -151,7 +149,9 @@ const News = (): JSX.Element => {
       },
     }).then((response) => {
       setProducts(response.data);
-    }).catch((error) => console.log(error));
+    }).catch((error) => {
+      // Handle error silently
+    });
   };
 
 
@@ -164,18 +164,27 @@ const News = (): JSX.Element => {
       elevation={0}
       sx={{
         position: 'relative',
-        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-        color: theme.palette.text.primary,
+        background: 'rgba(255,255,255,0.02)',
+        color: '#ffffff',
         mb: 8,
-        backgroundSize: 'cover',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center',
+        borderRadius: '20px',
+        border: '1px solid rgba(255,255,255,0.08)',
         cursor: 'pointer',
-        borderRadius: 2,
-        transition: 'all 0.3s ease',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        overflow: 'hidden',
         '&:hover': {
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          transform: 'translateY(-2px)',
+          transform: 'translateY(-8px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          background: 'rgba(255, 255, 255, 0.05)',
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
         },
       }}
       onClick={() => router.push(`/news/${post.id}`)}
@@ -183,38 +192,42 @@ const News = (): JSX.Element => {
       <Box
         sx={{
           position: 'relative',
-          p: { xs: 3, md: 6 },
-          pr: { md: 0 },
+          p: { xs: 4, md: 8 },
+          zIndex: 2,
         }}
       >
         <Typography
           component="h1"
-          variant="h2"
           sx={{
-            fontSize: '3.5rem',
+            fontSize: { xs: '2.5rem', md: '3.5rem' },
             mb: 4,
-            fontWeight: 500,
+            fontWeight: 600,
+            color: '#ffffff',
+            letterSpacing: '-0.02em',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
           {post.title}
         </Typography>
         <Typography
-          variant="subtitle1"
           sx={{
             fontSize: '1.1rem',
-            mb: 2,
-            color: theme.palette.text.secondary,
+            mb: 4,
+            color: '#a1a1aa',
+            fontWeight: 400,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
           {post.date} • 5 min read
         </Typography>
         <Typography
-          variant="h5"
-          paragraph
           sx={{
             maxWidth: '800px',
             lineHeight: 1.6,
-            color: theme.palette.text.secondary,
+            color: '#a1a1aa',
+            fontSize: { xs: '1rem', md: '1.1rem' },
+            fontWeight: 400,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
           {typeof post.content === 'string' ? post.content : post.content[0]}
@@ -228,49 +241,70 @@ const News = (): JSX.Element => {
       elevation={0}
       sx={{
         height: '100%',
-        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+        background: 'rgba(255,255,255,0.02)',
+        borderRadius: '20px',
+        border: '1px solid rgba(255,255,255,0.08)',
         cursor: 'pointer',
-        borderRadius: 2,
-        transition: 'all 0.3s ease',
+        transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+        position: 'relative',
+        overflow: 'hidden',
         '&:hover': {
-          backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-          transform: 'translateY(-2px)',
+          transform: 'translateY(-8px)',
+          border: '1px solid rgba(255, 255, 255, 0.15)',
+          background: 'rgba(255, 255, 255, 0.05)',
           '& .post-title': {
-            color: theme.palette.primary.main,
+            color: '#3b82f6',
           },
+        },
+        '&::before': {
+          content: '""',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '1px',
+          background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
         },
       }}
       onClick={() => router.push(`/news/${post.id}`)}
     >
-      <Box sx={{ p: 4 }}>
+      <Box sx={{ p: 6 }}>
         <Typography
-          variant="h5"
           className="post-title"
           sx={{
-            mb: 2,
-            fontWeight: 500,
-            transition: 'color 0.2s',
+            mb: 3,
+            fontWeight: 600,
+            color: '#ffffff',
+            fontSize: '1.25rem',
+            letterSpacing: '-0.01em',
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            transition: 'color 0.3s ease',
           }}
         >
           {post.title}
         </Typography>
         <Typography
-          variant="subtitle2"
           sx={{
-            mb: 2,
-            color: theme.palette.text.secondary,
+            mb: 3,
+            color: '#a1a1aa',
+            fontSize: '0.95rem',
+            fontWeight: 400,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
           {post.date} • 3 min read
         </Typography>
         <Typography
-          variant="body1"
           sx={{
-            color: theme.palette.text.secondary,
+            color: '#a1a1aa',
             display: '-webkit-box',
             WebkitLineClamp: 3,
             WebkitBoxOrient: 'vertical',
             overflow: 'hidden',
+            lineHeight: 1.6,
+            fontSize: '0.95rem',
+            fontWeight: 400,
+            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
           }}
         >
           {typeof post.content === 'string' ? post.content : post.content[0]}
@@ -280,13 +314,27 @@ const News = (): JSX.Element => {
   );
 
   return (
-    <div id='neuranet'>
+    <Box sx={{ overflow: 'visible', background: '#000000' }}>
       <Box
         sx={{
-          paddingTop: 5,
-          paddingBottom: 10,
+          py: { xs: 8, md: 12 },
           px: { xs: 2, sm: 4, md: 8 },
-          backgroundColor: theme.palette.background.default,
+          background: '#000000',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundImage: `
+              linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px)
+            `,
+            backgroundSize: '40px 40px',
+            opacity: 0.4,
+            zIndex: 0,
+          },
         }}
       >
         {selectedPost ? (
@@ -294,8 +342,15 @@ const News = (): JSX.Element => {
             <Box sx={{ mb: 4 }}>
               <NextLink href="/news" style={{ textDecoration: 'none' }}>
                 <Typography
-                  variant="body1"
-                  sx={{ color: theme.palette.primary.main }}
+                  sx={{ 
+                    color: '#3b82f6',
+                    fontSize: '1rem',
+                    fontWeight: 500,
+                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                    '&:hover': {
+                      color: '#60a5fa',
+                    },
+                  }}
                 >
                   ← Back to News
                 </Typography>
@@ -323,30 +378,55 @@ const News = (): JSX.Element => {
               <Grid item xs={12} sm={6} key={i}>
                 <Box
                   component={Card}
-                  padding={4}
-                  width={1}
-                  height={1}
-                  bgcolor={theme.palette.background.paper}
                   sx={{
+                    p: 6,
+                    height: '100%',
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    overflow: 'hidden',
                     '&:hover': {
-                      bgcolor: theme.palette.background.default,
-                      color: theme.palette.mode === 'dark'
-                        ? theme.palette.common.white
-                        : theme.palette.common.black,
+                      transform: 'translateY(-8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.15)',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                    },
+                    '&::before': {
+                      content: '""',
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      height: '1px',
+                      background: 'linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent)',
                     },
                   }}
                 >
                   <Box display='flex' flexDirection='column'>
                     <Typography
-                      variant='h6'
-                      gutterBottom
                       sx={{
+                        mb: 2,
                         fontWeight: 600,
+                        color: '#ffffff',
+                        fontSize: '1.25rem',
+                        letterSpacing: '-0.01em',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                       }}
                     >
                       {item.name}
                     </Typography>
-                    <Typography color='inherit'>{item.description}</Typography>
+                    <Typography 
+                      sx={{
+                        color: '#a1a1aa',
+                        lineHeight: 1.6,
+                        fontSize: '0.95rem',
+                        fontWeight: 400,
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      {item.description}
+                    </Typography>
                   </Box>
                   <Box display='block' width={1} height={1}>
                     <CardMedia
@@ -357,9 +437,7 @@ const News = (): JSX.Element => {
                         height: 320,
                         overflow: 'hidden',
                         borderRadius: 2,
-                        filter: theme.palette.mode === 'dark'
-                          ? 'brightness(0.7)'
-                          : 'brightness(0.9)',
+                        filter: 'brightness(0.7)',
                         marginTop: 4,
                       }}
                     />
@@ -370,7 +448,7 @@ const News = (): JSX.Element => {
           </Grid>
         </Container>
       </Box>
-    </div>
+    </Box>
   );
 };
 
