@@ -1,6 +1,5 @@
-import { AlertCircle, Download, Save, FileSpreadsheet } from 'lucide-react';
-import { useState, useEffect } from 'react';
-import { Button } from './ui/button';
+import { AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { ApiService } from '../services/apiService';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { useToast } from './ui/use-toast';
@@ -22,7 +21,12 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
   const [currentContent, setCurrentContent] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [latestData, setLatestData] = useState<any[][] | null>(null);
+  const [currentFile, setCurrentFile] = useState<FileSystemItem>(file);
+  const [documentBlob, setDocumentBlob] = useState<Blob | null>(null);
   const { toast } = useToast();
+
+  // Prevent duplicate loads (e.g., React StrictMode) for the same file
+  const lastFetchKeyRef = useRef<string | null>(null);
 
   // Convert table data to CSV (mirrors CSVEditor's logic)
   const convertToCSV = (data: any[][]): string => {
@@ -41,11 +45,22 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
       .join('\n');
   };
 
+  // keep local file in sync
+  useEffect(() => {
+    setCurrentFile(file);
+  }, [file]);
+
   useEffect(() => {
     let currentUrl: string | null = null;
     
     const loadDocument = async () => {
-      if (!file.file_id) {
+      const fetchKey = `${currentFile.file_id}|${currentFile.name}`;
+      if (lastFetchKeyRef.current === fetchKey) {
+        return;
+      }
+      lastFetchKeyRef.current = fetchKey;
+
+      if (!currentFile.file_id) {
         setError('No file ID available for this spreadsheet');
         setLoading(false);
         return;
@@ -56,10 +71,12 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
 
       try {
         // Download the spreadsheet file content
-        const result = await ApiService.downloadS3File(file.file_id, file.name);
+        const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
         if (result.success && result.url) {
           currentUrl = result.url;
-          setDocumentUrl(result.url);
+          // Avoid setting a new blob URL if it's unchanged to prevent re-renders
+          setDocumentUrl(prev => (prev === result.url ? prev : result.url));
+          setDocumentBlob(result.blob);
         } else {
           setError('Failed to load spreadsheet content');
         }
@@ -77,22 +94,31 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
       if (currentUrl && currentUrl.startsWith('blob:')) {
         window.URL.revokeObjectURL(currentUrl);
       }
+      setDocumentBlob(null);
     };
-  }, [file.file_id, file.name]);
+  }, [currentFile.file_id, currentFile.name]);
 
   const handleDownload = async () => {
-    if (!file.file_id) return;
+    if (!currentFile.file_id) return;
     
     try {
-      const result = await ApiService.downloadS3File(file.file_id, file.name);
-      if (result.success && result.url) {
+      if (documentUrl) {
         const a = document.createElement('a');
-        a.href = result.url;
-        a.download = file.name;
+        a.href = documentUrl;
+        a.download = currentFile.name;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        // Clean up the blob URL after download
+        return;
+      }
+      const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+      if (result.success && result.url) {
+        const a = document.createElement('a');
+        a.href = result.url;
+        a.download = currentFile.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
       }
     } catch (err) {
@@ -101,39 +127,93 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
   };
 
   const handleSave = async () => {
-    if (!file.file_id || !userInfo?.username) return;
+    if (!currentFile.file_id || !userInfo?.username) return;
     const contentToSave = currentContent || (latestData ? convertToCSV(latestData) : '');
     if (!contentToSave) return;
     
     setSaving(true);
     try {
+      // Clean up the current blob URL before saving
+      if (documentUrl && documentUrl.startsWith('blob:')) {
+        window.URL.revokeObjectURL(documentUrl);
+      }
       // First delete the existing file from S3
-      await ApiService.deleteS3File(file.file_id);
+      await ApiService.deleteS3File(currentFile.file_id);
       
       // Create CSV blob
       const blob = new Blob([contentToSave], { type: 'text/csv' });
       
       // Extract parent path from file path
-      const parentPath = file.path ? file.path.split('/').slice(0, -1).join('/') : '';
+      const parentPath = currentFile.path ? currentFile.path.split('/').slice(0, -1).join('/') : '';
       
       // Upload the new file to S3
       await ApiService.uploadToS3(
         blob,
-        file.name,
+        currentFile.name,
         'web-editor',
-        file.path || '',
+        currentFile.path || '',
         parentPath
       );
       
-      // Call the save complete callback
+      // Call the save complete callback to refresh the sidebar
       onSaveComplete?.();
-      
-      // Show success toast notification
-      toast({
-        title: "Spreadsheet saved successfully",
-        description: `${file.name} has been saved.`,
-        variant: "success",
-      });
+
+      // Reload the saved spreadsheet with retry (S3 propagation)
+      const reloadSpreadsheet = async (retryCount = 0) => {
+        const maxRetries = 3;
+        const retryDelay = 1000;
+        try {
+          const userFilesResult = await ApiService.getUserFiles(userInfo.username);
+          if (!userFilesResult.success) {
+            throw new Error('Failed to get updated file list');
+          }
+          const updatedFile = userFilesResult.files.find((f: any) => f.file_path === currentFile.path);
+          if (!updatedFile || !updatedFile.file_id) {
+            throw new Error('Updated file not found');
+          }
+
+          const newFile: FileSystemItem = {
+            id: updatedFile.file_path,
+            file_id: updatedFile.file_id,
+            name: updatedFile.file_name,
+            path: updatedFile.file_path,
+            type: updatedFile.file_type === 'folder' ? 'folder' : 'file',
+            size: updatedFile.file_size,
+            modified: new Date(updatedFile.date_modified),
+            s3_url: updatedFile.s3_url,
+          };
+          setCurrentFile(newFile);
+
+          const dl = await ApiService.downloadS3File(updatedFile.file_id, currentFile.name);
+          if (dl.success && dl.url) {
+            setDocumentUrl(dl.url);
+            setDocumentBlob(dl.blob);
+            toast({
+              title: "Spreadsheet saved successfully",
+              description: `${currentFile.name} has been saved.`,
+              variant: "success",
+            });
+            return;
+          }
+
+          if (retryCount < maxRetries) {
+            setTimeout(() => reloadSpreadsheet(retryCount + 1), retryDelay);
+          } else {
+            throw new Error('Reload failed');
+          }
+        } catch (e) {
+          if (retryCount < 3) {
+            setTimeout(() => reloadSpreadsheet(retryCount + 1), 1000);
+          } else {
+            toast({
+              title: "Spreadsheet saved but reload failed",
+              description: "Saved successfully, but you may need to refresh to see changes.",
+              variant: "destructive",
+            });
+          }
+        }
+      };
+      setTimeout(() => reloadSpreadsheet(), 500);
       
     } catch (err) {
       setError('Failed to save spreadsheet');
@@ -175,45 +255,14 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header with file info and actions */}
-      <div className="flex items-center justify-between p-3 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <FileSpreadsheet className="h-5 w-5 text-primary" />
-          <div>
-            <h3 className="text-sm font-semibold text-card-foreground">{file.name}</h3>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleSave}
-            disabled={saving || (!currentContent && !latestData)}
-            className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Save spreadsheet"
-          >
-            <Save className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleDownload}
-            className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Download spreadsheet"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
       {/* Spreadsheet display area with CSVEditor */}
       <div className="flex-1 overflow-hidden h-full">
         {documentUrl ? (
           <div className="h-full">
             <CSVEditor
               src={documentUrl}
-              fileName={file.name}
+              fileName={currentFile.name}
+              srcBlob={documentBlob || undefined}
               onError={() => setError('Failed to load spreadsheet in editor')}
               onLoad={() => setError(null)}
               onContentChange={(data) => setLatestData(data)}
@@ -221,6 +270,10 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
                 setCurrentContent(content);
                 handleSave();
               }}
+              onSaveDocument={handleSave}
+              onDownloadDocument={handleDownload}
+              saving={saving}
+              canSave={!!currentContent || !!latestData}
             />
           </div>
         ) : (

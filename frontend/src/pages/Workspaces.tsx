@@ -771,7 +771,7 @@ You can edit this document directly in the browser with formatting support. The 
 Created on: ${new Date().toLocaleDateString()}`;
 
       // Generate filename
-      const fileName = `Another New Test Document ${new Date().toISOString().split('T')[0]}.docx`;
+      const fileName = `New Document ${new Date().toISOString().split('T')[0]}.docx`;
 
       // Create .docx using docx library
       const { Document, Packer, Paragraph, TextRun, HeadingLevel } = await import('docx');
@@ -1319,7 +1319,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                        dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
                        disabled={uploading}
                      >
-                       <Plus className="h-5 w-5" />
+                       <Plus className="h-4 w-4" />
                      </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
@@ -1366,7 +1366,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                   disabled={uploading}
                   className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  <UploadIcon className="h-5 w-5" />
+                  <UploadIcon className="h-4 w-4" />
                 </button>
                 {/* Custom CSS tooltip */}
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">

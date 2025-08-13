@@ -1,5 +1,5 @@
 import { AlertCircle } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 
 
 import WordViewer from './workspaces/WordViewer';
@@ -23,7 +23,11 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
   const [currentContent, setCurrentContent] = useState<string>('');
   const [saving, setSaving] = useState(false);
   const [currentFile, setCurrentFile] = useState<FileSystemItem>(file);
+  const [documentBlob, setDocumentBlob] = useState<Blob | null>(null);
   const { toast } = useToast();
+
+  // Prevent duplicate loads (e.g., React StrictMode) for the same file
+  const lastFetchKeyRef = useRef<string | null>(null);
 
   // Update currentFile when file prop changes
   useEffect(() => {
@@ -34,6 +38,12 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     let currentUrl: string | null = null;
     
     const loadDocument = async () => {
+      const fetchKey = `${currentFile.file_id}|${currentFile.name}`;
+      if (lastFetchKeyRef.current === fetchKey) {
+        return;
+      }
+      lastFetchKeyRef.current = fetchKey;
+      
       if (!currentFile.file_id) {
         setError('No file ID available for this document');
         setLoading(false);
@@ -49,6 +59,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         if (result.success && result.url) {
           currentUrl = result.url;
           setDocumentUrl(result.url);
+          setDocumentBlob(result.blob);
         } else {
           setError('Failed to load document content');
         }
@@ -66,6 +77,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       if (currentUrl && currentUrl.startsWith('blob:')) {
         window.URL.revokeObjectURL(currentUrl);
       }
+      setDocumentBlob(null);
     };
   }, [currentFile.file_id, currentFile.name]);
 
@@ -73,6 +85,17 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     if (!currentFile.file_id) return;
     
     try {
+      // Prefer reusing the existing blob URL to avoid another fetch
+      if (documentUrl) {
+        const a = document.createElement('a');
+        a.href = documentUrl;
+        a.download = currentFile.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        return;
+      }
+      // Fallback to fetching if no URL is available
       const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
       if (result.success && result.url) {
         const a = document.createElement('a');
@@ -81,11 +104,10 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        // Clean up the blob URL after download
         setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
       }
     } catch (err) {
-      // console.error('Failed to download document:', err);
+      // no-op
     }
   };
 
@@ -196,16 +218,14 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
           
           // Update our currentFile state with the new file information
           const newFileSystemItem: FileSystemItem = {
+            id: updatedFile.file_path,
             file_id: updatedFile.file_id,
             name: updatedFile.file_name,
             path: updatedFile.file_path,
-            type: updatedFile.file_type,
+            type: 'file',
             size: updatedFile.file_size,
-            date_modified: updatedFile.date_modified,
-            date_uploaded: updatedFile.date_uploaded,
-            s3_url: updatedFile.s3_url,
-            device_name: updatedFile.device_name,
-            kind: 'file'
+            modified: new Date(updatedFile.date_modified),
+            s3_url: updatedFile.s3_url
           };
           setCurrentFile(newFileSystemItem);
           
@@ -231,7 +251,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
             toast({
               title: "Document saved but reload failed",
               description: "Document was saved successfully, but you may need to refresh to see changes.",
-              variant: "warning",
+              variant: "destructive",
             });
           }
         }
@@ -288,21 +308,13 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header with file info */}
-      <div className="flex items-center justify-between p-3 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <div>
-            <h3 className="text-sm font-semibold text-card-foreground">{currentFile.name}</h3>
-          </div>
-        </div>
-      </div>
-
       {/* Document display area with TiptapWordEditor */}
       <div className="flex-1 overflow-hidden">
         {documentUrl ? (
           <WordViewer
             src={documentUrl}
             fileName={currentFile.name}
+            srcBlob={documentBlob || undefined}
             onError={() => setError('Failed to load document in editor')}
             onLoad={() => setError(null)}
             onSave={(content) => {

@@ -8,6 +8,7 @@ import TiptapWordEditor from './TiptapWordEditor';
 interface WordViewerProps {
   src: string;
   fileName?: string;
+  srcBlob?: Blob;
   onError?: () => void;
   onLoad?: () => void;
   onSave?: (content: string) => void;
@@ -22,6 +23,7 @@ interface WordViewerProps {
 const WordViewer: React.FC<WordViewerProps> = ({
   src,
   fileName,
+  srcBlob,
   onError,
   onLoad,
   onSave,
@@ -37,7 +39,7 @@ const WordViewer: React.FC<WordViewerProps> = ({
 
   // Load DOCX content using mammoth
   useEffect(() => {
-    if (!src) return;
+    if (!src && !srcBlob) return;
 
     const loadDocxContent = async () => {
       try {
@@ -53,9 +55,8 @@ const WordViewer: React.FC<WordViewerProps> = ({
         
         // Fetch the document content
         let htmlContent;
-        if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
-          const response = await fetch(filePath);
-          const blob = await response.blob();
+        if (srcBlob) {
+          const blob = srcBlob;
           
           // Check the content type and file extension to determine how to parse
           const contentType = blob.type;
@@ -113,6 +114,58 @@ const WordViewer: React.FC<WordViewerProps> = ({
               } else {
                 // If it's plain text, wrap it in a paragraph
                 htmlContent = `<p>${text}</p>`;
+            }
+          }
+        }
+        }
+        else if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
+          const response = await fetch(filePath);
+          const blob = await response.blob();
+          
+          // Check the content type and file extension to determine how to parse
+          const contentType = blob.type;
+          const fileExtension = fileName?.toLowerCase().split('.').pop() || '';
+          
+          // Check if this is our custom edited DOCX format
+          const isEditedDocx = contentType === 'application/vnd.banbury.docx-html';
+          
+          if (contentType.includes('text/html') || contentType.includes('html') || fileExtension === 'html' || isEditedDocx) {
+            const text = await blob.text();
+            const hasOriginalFormatMeta = text.includes('meta name="original-format" content="docx"');
+            const hasEditorMeta = text.includes('meta name="editor" content="banbury-editor"');
+            if (hasOriginalFormatMeta && hasEditorMeta) {
+              const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              htmlContent = bodyMatch ? bodyMatch[1] : text;
+            } else {
+              const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+              htmlContent = bodyMatch ? bodyMatch[1] : text;
+            }
+          } else if (fileExtension === 'docx') {
+            try {
+              const arrayBuffer = await blob.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+              htmlContent = result.value;
+            } catch (mammothError) {
+              const text = await blob.text();
+              if (text.includes('<') && text.includes('>')) {
+                const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                htmlContent = bodyMatch ? bodyMatch[1] : text;
+              } else {
+                throw mammothError;
+              }
+            }
+          } else {
+            try {
+              const arrayBuffer = await blob.arrayBuffer();
+              const result = await mammoth.convertToHtml({ arrayBuffer: arrayBuffer });
+              htmlContent = result.value;
+            } catch (mammothError) {
+              const text = await blob.text();
+              if (text.includes('<') && text.includes('>')) {
+                const bodyMatch = text.match(/<body[^>]*>([\s\S]*?)<\/body>/i);
+                htmlContent = bodyMatch ? bodyMatch[1] : text;
+              } else {
+                htmlContent = `<p>${text}</p>`;
               }
             }
           }
@@ -146,7 +199,7 @@ const WordViewer: React.FC<WordViewerProps> = ({
     };
 
     loadDocxContent();
-  }, [src, fileName]);
+  }, [src, srcBlob, fileName]);
 
   const handleContentChange = (newContent: string) => {
     setContent(newContent);

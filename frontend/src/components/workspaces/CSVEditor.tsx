@@ -40,6 +40,8 @@ import {
   BorderRight,
   BorderBottom,
   BorderLeft,
+  Save,
+  Download,
 } from '@mui/icons-material';
 // Register all Handsontable modules
 registerAllModules();
@@ -97,19 +99,29 @@ const TextColorIcon: React.FC<{ sx?: any }> = ({ sx }) => (
 interface CSVEditorProps {
   src: string;
   fileName?: string;
+  srcBlob?: Blob;
   onError?: () => void;
   onLoad?: () => void;
   onSave?: (content: string) => void;
   onContentChange?: (data: any[][]) => void;
+  onSaveDocument?: () => void;
+  onDownloadDocument?: () => void;
+  saving?: boolean;
+  canSave?: boolean;
 }
 
 const CSVEditor: React.FC<CSVEditorProps> = ({
   src,
   fileName,
+  srcBlob,
   onError,
   onLoad,
   onSave,
   onContentChange,
+  onSaveDocument,
+  onDownloadDocument,
+  saving = false,
+  canSave = false,
 }) => {
   const [data, setData] = useState<any[][]>([
     ['Name', 'Email', 'Phone', 'Department'],
@@ -168,9 +180,9 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     ).join('\n');
   };
 
-  // Load CSV content
+  // Load CSV content (only when src changes)
   useEffect(() => {
-    if (!src) {
+    if (!src && !srcBlob) {
       setLoading(false);
       return;
     }
@@ -187,16 +199,18 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           filePath = filePath.replace('file://', '');
         }
         
-        // Fetch the CSV content
-        if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
+        // Use provided Blob if available to avoid refetch
+        if (srcBlob) {
+          const text = await srcBlob.text();
+          const parsedData = parseCSV(text);
+          setData(parsedData);
+        } else if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
           const response = await fetch(filePath);
           const blob = await response.blob();
           const text = await blob.text();
-          
           const parsedData = parseCSV(text);
           setData(parsedData);
         } else {
-          // For local files (if needed)
           const response = await fetch(filePath);
           const text = await response.text();
           const parsedData = parseCSV(text);
@@ -215,7 +229,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     };
 
     loadCSVContent();
-  }, [src, onLoad, onError]);
+  }, [src, srcBlob]);
 
   // Calculate container height dynamically
   useEffect(() => {
@@ -1651,6 +1665,57 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         >
           <FilterList sx={{ fontSize: 16 }} />
         </IconButton>
+
+        {/* Document Actions - Save and Download */}
+        {(onSaveDocument || onDownloadDocument) && (
+          <>
+            <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: '#e2e8f0' }} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
+              {onSaveDocument && (
+                <IconButton
+                  size="small"
+                  onClick={onSaveDocument}
+                  disabled={saving || !canSave}
+                  title="Save spreadsheet"
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    color: saving || !canSave ? '#94a3b8' : '#64748b',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: '#e2e8f0',
+                      color: saving || !canSave ? '#94a3b8' : '#475569',
+                    },
+                    '&:disabled': {
+                      color: '#94a3b8',
+                    },
+                  }}
+                >
+                  <Save sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+              {onDownloadDocument && (
+                <IconButton
+                  size="small"
+                  onClick={onDownloadDocument}
+                  title="Download spreadsheet"
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    color: '#64748b',
+                    borderRadius: '4px',
+                    '&:hover': {
+                      backgroundColor: '#e2e8f0',
+                      color: '#475569',
+                    },
+                  }}
+                >
+                  <Download sx={{ fontSize: 16 }} />
+                </IconButton>
+              )}
+            </Box>
+          </>
+        )}
         
         </Box>
         
@@ -1716,7 +1781,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                 className: format.className
               };
             })}
-            key={`hot-table-${containerHeight}-${Object.keys(cellFormats).length}`}
+            key="hot-table"
           />
 
         </div>
