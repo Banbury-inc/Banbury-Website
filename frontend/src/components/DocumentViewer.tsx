@@ -1,7 +1,7 @@
-import { AlertCircle, Download, FileText, Save } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
-import { Button } from './ui/button';
+
 import WordViewer from './workspaces/WordViewer';
 import { ApiService } from '../services/apiService';
 import { FileSystemItem } from '../utils/fileTreeUtils';
@@ -288,35 +288,12 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
 
   return (
     <div className="h-full flex flex-col bg-background">
-      {/* Header with file info and actions */}
+      {/* Header with file info */}
       <div className="flex items-center justify-between p-3 border-b border-border bg-card">
         <div className="flex items-center gap-3">
           <div>
             <h3 className="text-sm font-semibold text-card-foreground">{currentFile.name}</h3>
           </div>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleSave}
-            disabled={saving || !currentContent}
-            className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Save document"
-          >
-            <Save className="h-4 w-4" />
-          </Button>
-
-          <Button
-            variant="default"
-            size="icon"
-            onClick={handleDownload}
-            className="h-9 w-9 bg-primary hover:bg-primary/80"
-            title="Download document"
-          >
-            <Download className="h-4 w-4" />
-          </Button>
         </div>
       </div>
 
@@ -331,6 +308,10 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
             onSave={(content) => {
               setCurrentContent(content);
             }}
+            onSaveDocument={handleSave}
+            onDownloadDocument={handleDownload}
+            saving={saving}
+            canSave={!!currentContent}
           />
         ) : (
           <div className="flex items-center justify-center h-full">

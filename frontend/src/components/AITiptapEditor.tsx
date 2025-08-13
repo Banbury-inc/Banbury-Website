@@ -36,7 +36,9 @@ import {
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon,
   Wand2,
-  MoreHorizontal
+  MoreHorizontal,
+  Save,
+  Download
 } from 'lucide-react';
 
 import { useTiptapAIContext } from '../contexts/TiptapAIContext';
@@ -57,13 +59,21 @@ interface AITiptapEditorProps {
   onContentChange?: (content: string) => void;
   placeholder?: string;
   className?: string;
+  onSave?: () => void;
+  onDownload?: () => void;
+  saving?: boolean;
+  canSave?: boolean;
 }
 
 export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
   initialContent = '<p>Start typing...</p>',
   onContentChange,
   placeholder = 'Start typing...',
-  className
+  className,
+  onSave,
+  onDownload,
+  saving = false,
+  canSave = false
 }) => {
   const { setEditor, aiBridge, registerAICommands, aiCommands } = useTiptapAIContext();
   const [selection, setSelection] = useState<{ from: number; to: number; text: string } | null>(null);
@@ -327,6 +337,36 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
             <Quote size={16} />
           </button>
         </div>
+
+        <div className={styles['toolbar-separator']} />
+
+        {/* Document Actions */}
+        {(onSave || onDownload) && (
+          <>
+            <div className={styles['toolbar-separator']} />
+            <div className={styles['toolbar-group']}>
+              {onSave && (
+                <button
+                  onClick={onSave}
+                  disabled={saving || !canSave}
+                  className={styles['toolbar-button']}
+                  title="Save document"
+                >
+                  <Save size={16} />
+                </button>
+              )}
+              {onDownload && (
+                <button
+                  onClick={onDownload}
+                  className={styles['toolbar-button']}
+                  title="Download document"
+                >
+                  <Download size={16} />
+                </button>
+              )}
+            </div>
+          </>
+        )}
 
         <div className={styles['toolbar-separator']} />
 

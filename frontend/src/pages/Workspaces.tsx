@@ -1308,37 +1308,46 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
           {/* Main Content Area with Resizable Panels */}
           <div className="flex flex-1 ml-16 flex-col">
             {/* Toolbar */}
-            <div className="bg-black border-b border-zinc-700 px-4 py-2 flex items-center justify-start gap-2">
+            <div className="bg-black border-b border-zinc-700 px-4 py-2 flex items-center justify-start gap-2 relative">
               {/* Add Dropdown Menu */}
               <div className="relative group">
-                <DropdownMenu>
+                                <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <Button 
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors"
-                      disabled={uploading}
-                    >
-                      <Plus className="h-5 w-5" />
-                    </Button>
+                    <button 
+                       className="h-10 w-10 text-white
+                        hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300
+                       dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                       disabled={uploading}
+                     >
+                       <Plus className="h-5 w-5" />
+                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent
+                    align="start"
+                    side="bottom"
+                    sideOffset={8}
+                    avoidCollisions={true}
+                    sticky="always"
+                    className="bg-zinc-800 border-zinc-600 text-white shadow-xl min-w-[160px]"
                     style={{ zIndex: 999999 }}
                   >
                     <DropdownMenuItem 
                       onSelect={handleCreateWordDocument}
+                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                     >
                       <FileText size={20} className="mr-2" />
                       Document
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onSelect={handleCreateSpreadsheet}
+                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                     >
                       <FileSpreadsheet size={20} className="mr-2" />
                       Spreadsheet
                     </DropdownMenuItem>
                     <DropdownMenuItem 
                       onSelect={handleCreateFolder}
+                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                     >
                       <Folder size={20} className="mr-2" />
                       Folder
@@ -1352,15 +1361,13 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
               </div>
 
               <div className="relative group">
-                <Button
-                  variant="ghost"
-                  size="icon"
+                <button
                   onClick={handleFileUpload}
                   disabled={uploading}
-                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors"
+                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <UploadIcon className="h-5 w-5" />
-                </Button>
+                </button>
                 {/* Custom CSS tooltip */}
                 <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                   Upload File

@@ -13,6 +13,10 @@ interface WordViewerProps {
   onSave?: (content: string) => void;
   documentActions?: any;
   onDocumentEditorChange?: (editor: any, content: string, fileName: string) => void;
+  onSaveDocument?: () => void;
+  onDownloadDocument?: () => void;
+  saving?: boolean;
+  canSave?: boolean;
 }
 
 const WordViewer: React.FC<WordViewerProps> = ({
@@ -22,6 +26,10 @@ const WordViewer: React.FC<WordViewerProps> = ({
   onLoad,
   onSave,
   onDocumentEditorChange,
+  onSaveDocument,
+  onDownloadDocument,
+  saving,
+  canSave
 }) => {
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(true);
@@ -173,6 +181,10 @@ const WordViewer: React.FC<WordViewerProps> = ({
         initialContent={content}
         onContentChange={handleContentChange}
         placeholder={`Start editing ${fileName || 'your document'}...`}
+        onSave={onSaveDocument}
+        onDownload={onDownloadDocument}
+        saving={saving}
+        canSave={canSave}
       />
     </Box>
   );

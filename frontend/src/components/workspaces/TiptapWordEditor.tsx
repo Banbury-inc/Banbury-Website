@@ -7,12 +7,20 @@ interface TiptapWordEditorProps {
   initialContent?: string;
   onContentChange?: (content: string) => void;
   placeholder?: string;
+  onSave?: () => void;
+  onDownload?: () => void;
+  saving?: boolean;
+  canSave?: boolean;
 }
 
 const TiptapWordEditor: React.FC<TiptapWordEditorProps> = ({
   initialContent = '',
   onContentChange,
   placeholder = 'Start typing...',
+  onSave,
+  onDownload,
+  saving,
+  canSave
 }) => {
   const { registerAICommands } = useTiptapAIContext();
 
@@ -56,6 +64,10 @@ Please provide your response in HTML format that can be directly applied to the 
       onContentChange={onContentChange}
       placeholder={placeholder}
       className="h-full border-0 rounded-none"
+      onSave={onSave}
+      onDownload={onDownload}
+      saving={saving}
+      canSave={canSave}
     />
   );
 };
