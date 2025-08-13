@@ -524,7 +524,7 @@ const Features = (): JSX.Element => {
                     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                   }}
                 >
-                  Simply ask "search the internet for latest NFL news and place a summary in this document" and watch as Banbury 
+                  Simply ask &ldquo;search the internet for latest NFL news and place a summary in this document&rdquo; and watch as Banbury 
                   searches multiple sources, analyzes the content, and automatically populates your document with comprehensive findings.
                 </Typography>
         </Box>
