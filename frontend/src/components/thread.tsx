@@ -63,9 +63,10 @@ interface ThreadProps {
     email?: string;
   } | null;
   selectedFile?: FileSystemItem | null;
+  onEmailSelect?: (email: any) => void;
 }
 
-export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
+export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect }) => {
   const [attachedFiles, setAttachedFiles] = useState<FileSystemItem[]>([]);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(true);
   const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean }>(() => {

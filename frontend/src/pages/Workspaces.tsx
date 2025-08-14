@@ -26,6 +26,8 @@ import { Toaster } from "../components/ui/toaster";
 import { useToast } from "../components/ui/use-toast";
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
+import { EmailViewer } from '../components/EmailViewer';
+import { EmailComposer } from '../components/EmailComposer';
 
 
 
@@ -93,6 +95,12 @@ const Workspaces = (): JSX.Element => {
     tabId: string;
     panelId: string;
   } | null>(null);
+  
+  // Email viewing state
+  const [selectedEmail, setSelectedEmail] = useState<any>(null);
+  const [composeMode, setComposeMode] = useState(false);
+  const [replyToEmail, setReplyToEmail] = useState<any>(null);
+  const [emailLoading, setEmailLoading] = useState(false);
   
   // Drag and drop state
   const [dragState, setDragState] = useState<{
@@ -481,6 +489,14 @@ const Workspaces = (): JSX.Element => {
   const triggerSidebarRefresh = useCallback(() => {
     setRefreshTrigger(prev => prev + 1);
   }, []);
+
+  // Handle reply to email
+  const handleReplyToEmail = useCallback((email: any) => {
+    setComposeMode(true);
+    setSelectedEmail(null);
+    setReplyToEmail(email);
+  }, []);
+
   
   // Render a single panel
   const renderPanel = useCallback((panel: Panel) => {
@@ -615,6 +631,30 @@ const Workspaces = (): JSX.Element => {
                 );
               }
             })()
+          ) : composeMode ? (
+            <EmailComposer 
+              onBack={() => setComposeMode(false)}
+              onSendComplete={handleSendComplete}
+              replyTo={replyToEmail ? {
+                to: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'from')?.value || '',
+                subject: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'subject')?.value || '',
+                body: replyToEmail.snippet || '',
+                messageId: replyToEmail.id || ''
+              } : undefined}
+            />
+          ) : emailLoading ? (
+            <div className="h-full flex items-center justify-center bg-white">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading email...</p>
+              </div>
+            </div>
+          ) : selectedEmail ? (
+            <EmailViewer 
+              email={selectedEmail} 
+              onBack={() => setSelectedEmail(null)}
+              onReply={handleReplyToEmail}
+            />
           ) : (
             <div className="h-full flex items-center justify-center">
               <div className="text-center max-w-md">
@@ -631,7 +671,7 @@ const Workspaces = (): JSX.Element => {
         </div>
       </div>
     );
-  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, isSpreadsheetFile, dragState]);
+  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, isSpreadsheetFile, dragState, composeMode, selectedEmail, replyToEmail, handleReplyToEmail]);
   
   // Render panel group (recursive for nested splits)
   const renderPanelGroup = useCallback((group: PanelGroup): React.ReactNode => {
@@ -893,6 +933,32 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
   };
 
 
+
+  // Handle email selection from EmailTab
+  const handleEmailSelect = useCallback((email: any) => {
+    setEmailLoading(true);
+    setSelectedEmail(email);
+    setComposeMode(false);
+    setReplyToEmail(null);
+    // Simulate loading time for better UX
+    setTimeout(() => {
+      setEmailLoading(false);
+    }, 500);
+  }, []);
+
+  // Handle compose email
+  const handleComposeEmail = useCallback(() => {
+    setComposeMode(true);
+    setSelectedEmail(null);
+    setReplyToEmail(null);
+  }, []);
+
+  // Handle send complete
+  const handleSendComplete = useCallback(() => {
+    setComposeMode(false);
+    setReplyToEmail(null);
+    // Refresh email list if needed
+  }, []);
 
   const handleFileDeleted = useCallback((fileId: string) => {
     // Remove tabs for the deleted file from all panels
@@ -1393,6 +1459,8 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                     onFolderCreated={handleFolderCreated}
                     onFolderRenamed={handleFolderRenamed}
                     triggerRootFolderCreation={folderCreationTrigger}
+                    onEmailSelect={handleEmailSelect}
+                    onComposeEmail={handleComposeEmail}
                   />
                 </Allotment.Pane>
                 
@@ -1406,7 +1474,11 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                 {/* Assistant Panel */}
                 <Allotment.Pane minSize={250} preferredSize={350} maxSize={500}>
                       <div className="h-full bg-black border-l border-gray-800">
-                        <Thread userInfo={userInfo} selectedFile={selectedFile} />
+                        <Thread 
+                          userInfo={userInfo} 
+                          selectedFile={selectedFile} 
+                          onEmailSelect={handleEmailSelect}
+                        />
                       </div>
                 </Allotment.Pane>
               </Allotment>
@@ -1481,6 +1553,8 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
           </div>
         )}
         
+
+
         {/* Global Drag Styles */}
         <style>{`
           .drag-cursor {

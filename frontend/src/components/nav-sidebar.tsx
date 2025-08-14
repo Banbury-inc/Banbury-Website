@@ -1,6 +1,7 @@
-import { Home, FolderOpen, LogOut } from "lucide-react"
+import { Home, FolderOpen, LogOut, Settings } from "lucide-react"
 import Image from 'next/image'
 import { useRouter } from "next/router"
+import { useState, useEffect } from "react"
 
 import { Button } from "./ui/button"
 import BanburyLogo from "../assets/images/Logo.png"
@@ -11,6 +12,15 @@ interface NavSidebarProps {
 
 export function NavSidebar({ onLogout }: NavSidebarProps) {
   const router = useRouter()
+  const [username, setUsername] = useState<string>('')
+
+  useEffect(() => {
+    // Get username from localStorage
+    if (typeof window !== 'undefined') {
+      const storedUsername = localStorage.getItem('username')
+      setUsername(storedUsername || '')
+    }
+  }, [])
 
   const navItems = [
     {
@@ -24,7 +34,14 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
       icon: FolderOpen,
       label: 'Workspaces',
       path: '/workspaces'
-    }
+    },
+    // Only include admin item if user is mmills or mmills6060@gmail.com
+    ...(username === 'mmills' || username === 'mmills6060@gmail.com' ? [{
+      id: 'admin',
+      icon: Settings,
+      label: 'Admin',
+      path: '/admin'
+    }] : [])
   ]
 
   const isActive = (path: string) => router.pathname === path

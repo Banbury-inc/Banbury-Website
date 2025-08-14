@@ -1,10 +1,12 @@
 import * as ContextMenu from "@radix-ui/react-context-menu"
-import { ChevronDown, ChevronRight, File, Folder, RefreshCw, Edit2, Trash2, FolderPlus } from "lucide-react"
+import { ChevronDown, ChevronRight, File, Folder, RefreshCw, Edit2, Trash2, FolderPlus, Mail } from "lucide-react"
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useRouter } from 'next/router'
 
 import { Button } from "./ui/button"
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
+import { EmailTab } from "./EmailTab"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
@@ -22,6 +24,8 @@ interface AppSidebarProps {
   onFolderCreated?: (folderPath: string) => void
   onFolderRenamed?: (oldPath: string, newPath: string) => void
   triggerRootFolderCreation?: boolean
+  onEmailSelect?: (email: any) => void
+  onComposeEmail?: () => void
 }
 
 // Drag and drop state interfaces
@@ -439,7 +443,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation }: AppSidebarProps) {
+export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -447,6 +451,7 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false)
   const [newRootFolderName, setNewRootFolderName] = useState('New Folder')
   const rootFolderInputRef = useRef<HTMLInputElement | null>(null)
+  const [activeTab, setActiveTab] = useState<'files' | 'email'>('files')
   
   // Drag and drop state
   const [dragState, setDragState] = useState<DragState>({
@@ -672,88 +677,137 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
     }
   }
   
+  const router = useRouter()
+
   return (
     <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-300 dark:border-zinc-600">
-        <h2 className="text-white text-sm font-medium">Files</h2>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-6 w-6 p-0 text-gray-400 hover:text-white"
-          onClick={fetchUserFiles}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-        </Button>
+      {/* Header with Tabs */}
+      <div className="border-b border-zinc-300 dark:border-zinc-600">
+        {/* Tab Navigation */}
+        <div className="flex px-2 pt-2">
+          <button
+            onClick={() => setActiveTab('files')}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+              activeTab === 'files'
+                ? 'text-white bg-zinc-800 shadow-sm'
+                : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Folder className="h-4 w-4" />
+              Files
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab('email')}
+            className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+              activeTab === 'email'
+                ? 'text-white bg-zinc-800 shadow-sm'
+                : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-900/50'
+            }`}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <Mail className="h-4 w-4" />
+              Email
+            </div>
+          </button>
+        </div>
+        
+        {/* Tab Content Header */}
+        {activeTab === 'files' && (
+          <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/30">
+            <h2 className="text-gray-200 text-sm font-medium">Files</h2>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
+              onClick={fetchUserFiles}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+            </Button>
+          </div>
+        )}
       </div>
 
-      {/* File Tree Content */}
-      <div className="flex-1 overflow-y-auto" onContextMenu={(e) => {
-        e.preventDefault()
-        // You could add a root-level context menu here for creating folders at the root
-      }}>
-        {loading && !fileSystem.length && (
-          <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
-            <RefreshCw className="h-4 w-4 animate-spin" />
-            Loading files...
-          </div>
-        )}
-        
-        {error && (
-          <div className="px-3 py-2 text-sm text-red-500">
-            {error}
-          </div>
-        )}
-        
-        {!loading && !error && fileSystem.length === 0 && (
-          <div className="px-3 py-2 text-sm text-gray-400">
-            No files found
-          </div>
-        )}
+      {/* Tab Content */}
+      <div className="flex-1 overflow-y-auto">
+        {activeTab === 'files' && (
+          <div onContextMenu={(e) => {
+            e.preventDefault()
+            // You could add a root-level context menu here for creating folders at the root
+          }}>
+            {loading && !fileSystem.length && (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Loading files...
+              </div>
+            )}
+            
+            {error && (
+              <div className="px-3 py-2 text-sm text-red-500">
+                {error}
+              </div>
+            )}
+            
+            {!loading && !error && fileSystem.length === 0 && (
+              <div className="px-3 py-2 text-sm text-gray-400">
+                No files found
+              </div>
+            )}
 
-        {/* Root level folder creation */}
-        {isCreatingRootFolder && (
-          <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
-            <div className="w-3" />
-            <Folder className="h-4 w-4" />
-            <input
-              type="text"
-              value={newRootFolderName}
-              onChange={(e) => setNewRootFolderName(e.target.value)}
-              onBlur={handleCreateRootFolderSubmit}
-              onKeyDown={handleCreateRootFolderKeyDown}
-              className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
-              autoFocus
-              ref={rootFolderInputRef}
-              onFocus={(e) => e.currentTarget.select()}
-              onClick={(e) => e.stopPropagation()}
-            />
+            {/* Root level folder creation */}
+            {isCreatingRootFolder && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <Folder className="h-4 w-4" />
+                <input
+                  type="text"
+                  value={newRootFolderName}
+                  onChange={(e) => setNewRootFolderName(e.target.value)}
+                  onBlur={handleCreateRootFolderSubmit}
+                  onKeyDown={handleCreateRootFolderKeyDown}
+                  className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
+                  autoFocus
+                  ref={rootFolderInputRef}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+            
+            {fileSystem.map((item) => (
+              <FileTreeItem
+                key={item.id}
+                item={item}
+                level={0}
+                expandedItems={expandedItems}
+                toggleExpanded={toggleExpanded}
+                onFileSelect={onFileSelect}
+                selectedFile={selectedFile}
+                onFileDeleted={onFileDeleted}
+                onFileRenamed={onFileRenamed}
+                onFolderCreated={handleFolderCreated}
+                onFolderRenamed={handleFolderRenamed}
+                userInfo={userInfo}
+                dragState={dragState}
+                onDragStart={handleDragStart}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+              />
+            ))}
           </div>
         )}
         
-        {fileSystem.map((item) => (
-          <FileTreeItem
-            key={item.id}
-            item={item}
-            level={0}
-            expandedItems={expandedItems}
-            toggleExpanded={toggleExpanded}
-            onFileSelect={onFileSelect}
-            selectedFile={selectedFile}
-            onFileDeleted={onFileDeleted}
-            onFileRenamed={onFileRenamed}
-            onFolderCreated={handleFolderCreated}
-            onFolderRenamed={handleFolderRenamed}
-            userInfo={userInfo}
-            dragState={dragState}
-            onDragStart={handleDragStart}
-            onDragEnd={handleDragEnd}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-          />
-        ))}
+                 {activeTab === 'email' && (
+           <EmailTab 
+             onOpenEmailApp={() => router.push('/email')} 
+             onMessageSelect={onEmailSelect}
+             onComposeEmail={onComposeEmail}
+           />
+         )}
       </div>
     </div>
   )

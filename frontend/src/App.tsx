@@ -13,6 +13,7 @@ import AuthCallback from './pages/AuthCallback';
 import Dashboard from './pages/Dashboard';
 import Home from './pages/Home';
 import Login from './pages/Login';
+import Admin from './pages/Admin';
 
 import Workspaces from './pages/Workspaces';
 import Privacy_Policy from './components/Privacy_Policy';
@@ -83,6 +84,7 @@ const App = (): JSX.Element => {
               <Routes>
                 <Route path='/dashboard' element={<Dashboard />} />
                 <Route path='/workspaces' element={<Workspaces />} />
+                <Route path='/admin' element={<Admin />} />
                 <Route path='/' element={<Layout><Home /></Layout>} />
                 <Route path='/login' element={<Layout><Login /></Layout>} />
                 <Route path='/auth/callback' element={<Layout><AuthCallback /></Layout>} />
