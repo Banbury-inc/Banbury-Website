@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "./ui/button"
 import { ArrowLeft, Reply, Forward, Trash2, Archive, Star, Clock, User, Mail, Paperclip, Download } from "lucide-react"
 import { extractEmailContent, hasAttachments, formatFileSize, cleanHtmlContent } from "../utils/emailUtils"
@@ -16,13 +16,6 @@ interface EmailViewerProps {
 }
 
 export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDelete, onStarToggled, onRefresh }: EmailViewerProps) {
-  if (!email) {
-    return (
-      <div className="h-full flex items-center justify-center text-gray-400">
-        <p>Select an email to view</p>
-      </div>
-    )
-  }
 
   const getHeader = (name: string) => {
     return email.payload?.headers?.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || 'Unknown'
@@ -47,14 +40,18 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
     }
   }
 
-  // Extract full email content
-  const emailContent = extractEmailContent(email.payload)
-  const hasAttachmentsFlag = hasAttachments(emailContent)
-
   const [labels, setLabels] = useState<string[]>(email?.labelIds || [])
   const [actionLoading, setActionLoading] = useState<boolean>(false)
 
   const isStarred = useMemo(() => labels.includes('STARRED'), [labels])
+
+  useEffect(() => {
+    setLabels(email?.labelIds || [])
+  }, [email])
+
+  // Extract full email content (handle no email gracefully)
+  const emailContent = email ? extractEmailContent(email.payload) : { text: '', html: '', attachments: [] as any[] }
+  const hasAttachmentsFlag = hasAttachments(emailContent)
 
   const handleDownloadAttachment = async (attachmentId: string, filename: string) => {
     try {
@@ -162,6 +159,12 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
   return (
     <div className="h-full flex flex-col bg-white">
       {/* Compact Header */}
+      {!email ? (
+        <div className="h-full flex items-center justify-center text-gray-400">
+          <p>Select an email to view</p>
+        </div>
+      ) : (
+        <>
       <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {onBack && (
@@ -295,6 +298,8 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
           )}
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }
