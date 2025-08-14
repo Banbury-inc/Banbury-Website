@@ -5,6 +5,8 @@ import { z } from "zod";
 import { StateGraph, START, END, MessagesAnnotation } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
 import type { BaseMessage } from "@langchain/core/messages";
+import { getServerContextValue } from "../serverContext";
+import { CONFIG } from "../../config/config";
 
 // Define our agent state
 interface AgentState {
@@ -255,8 +257,101 @@ const anthropicModel = new ChatAnthropic({
   temperature: 0.2,
 });
 
+// Create file tool (inline) to avoid module resolution issues
+const createFileTool = tool(
+  async (input: { fileName: string; filePath: string; content: string; contentType?: string }) => {
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const lowerName = (input.fileName || input.filePath).toLowerCase();
+    const ext = lowerName.includes('.') ? lowerName.split('.').pop() || '' : '';
+    let resolvedType = input.contentType || 'text/plain';
+    let bodyContent = input.content;
+
+    const wrapHtml = (title: string, bodyHtml: string) => (
+      `<!DOCTYPE html>\n<html>\n<head>\n    <meta charset="UTF-8">\n    <title>${title}</title>\n    <style>body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }</style>\n</head>\n<body>\n${bodyHtml}\n</body>\n</html>`
+    );
+
+    switch (ext) {
+      case 'docx': {
+        const title = input.fileName;
+        bodyContent = wrapHtml(title, bodyContent);
+        resolvedType = 'application/vnd.banbury.docx-html';
+        break;
+      }
+      case 'html':
+      case 'htm': {
+        const hasHtmlTag = /<html[\s>]/i.test(bodyContent);
+        bodyContent = hasHtmlTag ? bodyContent : wrapHtml(input.fileName, bodyContent);
+        resolvedType = 'text/html';
+        break;
+      }
+      case 'csv': {
+        resolvedType = 'text/csv';
+        break;
+      }
+      case 'md': {
+        resolvedType = 'text/markdown';
+        break;
+      }
+      case 'json': {
+        resolvedType = 'application/json';
+        break;
+      }
+      case 'txt':
+      default: {
+        resolvedType = resolvedType || 'text/plain';
+      }
+    }
+
+    const fileBlob = new Blob([bodyContent], { type: resolvedType });
+    const formData = new FormData();
+    formData.append('file', fileBlob, input.fileName);
+    formData.append('device_name', 'web-editor');
+    formData.append('file_path', input.filePath);
+    formData.append('file_parent', input.filePath.split('/').slice(0, -1).join('/') || 'root');
+
+    const resp = await fetch(`${apiBase}/files/upload_to_s3/`, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}` },
+      body: formData,
+    });
+
+    if (!resp.ok) {
+      let message = `HTTP ${resp.status}`;
+      try {
+        const data = await resp.json();
+        if (data?.error) message += ` - ${data.error}`;
+      } catch {}
+      throw new Error(`Failed to create file: ${message}`);
+    }
+
+    const data = await resp.json();
+    return JSON.stringify({
+      result: data?.result || 'success',
+      file_url: data?.file_url,
+      file_info: data?.file_info,
+      message: data?.message || 'File created successfully',
+    });
+  },
+  {
+    name: 'create_file',
+    description: 'Create a new file in the user\'s cloud workspace. Provide file name, full path including the file name, and the file content.',
+    schema: z.object({
+      fileName: z.string().describe("The new file name (e.g., 'notes.md')"),
+      filePath: z.string().describe("Full path where the file should be stored, including the file name (e.g., 'projects/alpha/notes.md')"),
+      content: z.string().describe('The file contents as text'),
+      contentType: z.string().optional().describe("Optional MIME type, defaults by extension"),
+    }),
+  }
+);
+
 // Bind tools to the model and also prepare tools array for React agent
-const tools = [webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool];
+const tools = [webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool, createFileTool];
 const modelWithTools = anthropicModel.bindTools(tools);
 
 // React-style agent that handles tool-calling loops internally
@@ -274,8 +369,9 @@ async function agentNode(state: AgentState): Promise<AgentState> {
     if (!hasSystemMessage) {
       const systemMessage = new SystemMessage(
         "You are Athena, a helpful AI assistant with advanced capabilities. " +
-        "You have access to web search, memory management, and document editing tools. " +
+        "You have access to web search, memory management, document editing, and file creation tools. " +
         "When helping with document editing tasks, use the tiptap_ai tool to deliver your response. " +
+        "To create a new file in the user's cloud workspace, use the create_file tool with file name, full path (including the file name), and content. " +
         "Store important information in memory for future reference using the store_memory tool. " +
         "Search your memories when relevant using the search_memory tool. " +
         "Provide clear, accurate, and helpful responses with proper citations when using web search."
@@ -325,6 +421,9 @@ async function toolNode(state: AgentState): Promise<AgentState> {
           break;
         case "search_memory":
           result = await searchMemoryTool.invoke(toolCall.args);
+          break;
+        case "create_file":
+          result = await createFileTool.invoke(toolCall.args);
           break;
         default:
           result = `Unknown tool: ${toolCall.name}`;

@@ -309,8 +309,13 @@ export class ApiService {
         }
       });
 
-      // Create blob URL for the file
-      const blob = new Blob([response.data]);
+      // Preserve server-provided content-type for correct handling (e.g., XLSX)
+      const incomingBlob = response.data as Blob;
+      const serverType = (response.headers && (response.headers['content-type'] || (response.headers as any).get?.('content-type'))) || '';
+      const type = (incomingBlob && (incomingBlob as any).type) || serverType || 'application/octet-stream';
+      const blob = (incomingBlob && (incomingBlob as any).type)
+        ? incomingBlob
+        : new Blob([incomingBlob], { type });
       const url = window.URL.createObjectURL(blob);
       
       return {

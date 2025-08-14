@@ -1,6 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage, ToolMessage } from "@langchain/core/messages";
 import { reactAgent } from "../../../src/lib/langraph/agent";
+import { runWithServerContext } from "../../../src/lib/serverContext";
 
 // Types following athena-intelligence patterns
 type AssistantUiMessagePart =
@@ -316,9 +317,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // Prefer the prebuilt React agent streaming to manage tool loops
     let finalResult: any = null;
+
+    // Run the agent with server context so tools can access the auth token
+    // Reuse the token defined earlier for file pre-downloads
     
     try {
-      const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
+      await runWithServerContext({ authToken: token }, async () => {
+        const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
 
       // Track how many messages we've already processed to avoid duplicates
       let prevMessageCount = allMessages.length;
@@ -329,7 +334,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Track processed tool calls to avoid duplicates
       let processedToolCalls = new Set<string>();
 
-      for await (const chunk of stream) {
+        for await (const chunk of stream) {
         finalResult = chunk;
 
         const messages = (chunk as any).messages || [];
@@ -388,11 +393,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   });
                   
                   // Stream tool-specific status messages
-                  const toolStatusMessages: Record<string, string> = {
+              const toolStatusMessages: Record<string, string> = {
                     web_search: "Searching the web...",
                     tiptap_ai: "Processing document content...",
                     store_memory: "Storing information in memory...",
-                    search_memory: "Searching memory..."
+                search_memory: "Searching memory...",
+                create_file: "Creating file..."
                   };
                   
                   const statusMessage = toolStatusMessages[toolCall.name] || `Executing ${toolCall.name}...`;
@@ -418,12 +424,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             });
             
             // Stream tool completion status
-            if (currentToolExecution?.name) {
+              if (currentToolExecution?.name) {
               const completionMessages: Record<string, string> = {
                 web_search: "Web search completed",
                 tiptap_ai: "Document processing completed",
                 store_memory: "Memory stored successfully",
-                search_memory: "Memory search completed"
+                  search_memory: "Memory search completed",
+                  create_file: "File created successfully"
               };
               
               const completionMessage = completionMessages[currentToolExecution.name] || `${currentToolExecution.name} completed`;
@@ -436,6 +443,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
       }
       
+    });
     } catch (graphError) {
       // LangGraph execution error
       

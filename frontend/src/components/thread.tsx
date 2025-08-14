@@ -92,7 +92,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
         // Only attach if it's a viewable file type (same logic as in Workspaces)
         const isViewableFile = (fileName: string): boolean => {
           const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'];
-          const documentExtensions = ['.docx', '.doc', '.pdf'];
+          const documentExtensions = ['.docx', '.doc', '.pdf', '.csv'];
           const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
           return [...imageExtensions, ...documentExtensions].includes(extension);
         };
@@ -471,6 +471,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, onFileAttach, 
       <ThreadPrimitive.If running>
         <ComposerPrimitive.Cancel asChild>
           <TooltipIconButton
+            tooltip="Stop generating"
             type="button"
             variant="default"
             className="dark:border-muted-foreground/90 border-muted-foreground/60 hover:bg-primary/75 p-2 border border-zinc-300 dark:border-zinc-600 scale-100"

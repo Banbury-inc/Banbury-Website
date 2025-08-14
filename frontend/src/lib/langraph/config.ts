@@ -48,7 +48,8 @@ export const defaultLangGraphConfig: LangGraphConfig = {
     "web_search",
     "tiptap_ai",
     "store_memory",
-    "search_memory"
+    "search_memory",
+    "create_file"
   ],
   parallelFunctionCalling: false,
   backendParallelFunctionCalling: false,

@@ -103,6 +103,7 @@ interface CSVEditorProps {
   onError?: () => void;
   onLoad?: () => void;
   onSave?: (content: string) => void;
+  onSaveXlsx?: (blob: Blob, fileName: string) => void;
   onContentChange?: (data: any[][]) => void;
   onSaveDocument?: () => void;
   onDownloadDocument?: () => void;
@@ -117,6 +118,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   onError,
   onLoad,
   onSave,
+  onSaveXlsx,
   onContentChange,
   onSaveDocument,
   onDownloadDocument,
@@ -180,7 +182,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     ).join('\n');
   };
 
-  // Load CSV content (only when src changes)
+  // Load CSV/XLSX content (only when src changes)
   useEffect(() => {
     if (!src && !srcBlob) {
       setLoading(false);
@@ -199,22 +201,111 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           filePath = filePath.replace('file://', '');
         }
         
-        // Use provided Blob if available to avoid refetch
+        const parseXlsx = async (blob: Blob) => {
+          const ExcelJSImport = await import('exceljs');
+          const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport;
+          const wb = new ExcelJS.Workbook();
+          const ab = await blob.arrayBuffer();
+          await wb.xlsx.load(ab);
+          const ws = wb.worksheets[0];
+          const maxRow = ws.actualRowCount || ws.rowCount || 0;
+          const maxCol = ws.actualColumnCount || (ws.columns ? ws.columns.length : 0) || 0;
+          const nextData: any[][] = [];
+          const nextFormats: {[k:string]: {className?: string}} = {};
+          const nextStyles: {[k:string]: React.CSSProperties} = {};
+          const argbToCss = (argb?: string) => {
+            if (!argb) return undefined;
+            const hex = argb.replace(/^FF/i, '');
+            if (hex.length === 6) return `#${hex}`;
+            if (hex.length === 8) return `#${hex.slice(2)}`;
+            return undefined;
+          };
+          for (let r = 1; r <= maxRow; r++) {
+            const rowArr: any[] = [];
+            for (let c = 1; c <= maxCol; c++) {
+              const cell = ws.getCell(r, c) as any;
+              let value: any = cell.value;
+              if (value && typeof value === 'object') {
+                if (value.text != null) value = value.text; else if (value.result != null) value = value.result; else if (value.richText) value = value.richText.map((t:any)=>t.text).join('');
+              }
+              if (value instanceof Date) value = value.toISOString();
+              rowArr.push(value == null ? '' : value);
+
+              const key = `${r-1}-${c-1}`;
+              const classes: string[] = [];
+              const styles: React.CSSProperties = {};
+              const f = cell.font || {};
+              if (f.bold) classes.push('ht-bold');
+              if (f.italic) classes.push('ht-italic');
+              if (f.underline) classes.push('ht-underline');
+              if (f.size) styles.fontSize = `${f.size}px` as any;
+              if (f.color?.argb) styles.color = argbToCss(f.color.argb) as any;
+              const fill = cell.fill;
+              if (fill && fill.fgColor?.argb) styles.backgroundColor = argbToCss(fill.fgColor.argb) as any;
+              const align = cell.alignment || {};
+              if (align.horizontal === 'left') classes.push('ht-align-left');
+              if (align.horizontal === 'center') classes.push('ht-align-center');
+              if (align.horizontal === 'right') classes.push('ht-align-right');
+              const b = cell.border || {};
+              const cssFor = (edge?: any) => edge ? `${edge.style === 'thick' ? '2px' : '1px'} ${edge.style === 'dashed' ? 'dashed' : 'solid'} ${argbToCss(edge.color?.argb) || '#000'}` : undefined;
+              if (b.top) styles.borderTop = cssFor(b.top) as any;
+              if (b.right) styles.borderRight = cssFor(b.right) as any;
+              if (b.bottom) styles.borderBottom = cssFor(b.bottom) as any;
+              if (b.left) styles.borderLeft = cssFor(b.left) as any;
+              if (classes.length) nextFormats[key] = { className: classes.join(' ') };
+              if (Object.keys(styles).length) nextStyles[key] = styles;
+            }
+            nextData.push(rowArr);
+          }
+          setData(nextData);
+          setCellFormats(nextFormats);
+          setCellStyles(nextStyles);
+        };
+
+        const needsXlsx = async (name: string, blob?: Blob) => {
+          if (name.toLowerCase().endsWith('.xlsx')) return true;
+          if (blob && /spreadsheetml|officedocument\.spreadsheetml\.sheet/i.test(blob.type)) return true;
+          if (blob) {
+            try {
+              const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+              // XLSX is a ZIP: PK\x03\x04
+              if (header.length >= 4 && header[0] === 0x50 && header[1] === 0x4b && header[2] === 0x03 && header[3] === 0x04) {
+                return true;
+              }
+            } catch {}
+          }
+          return false;
+        };
+
         if (srcBlob) {
-          const text = await srcBlob.text();
-          const parsedData = parseCSV(text);
-          setData(parsedData);
+          if (await needsXlsx(fileName || '', srcBlob)) {
+            await parseXlsx(srcBlob);
+          } else {
+            const text = await srcBlob.text();
+            const parsedData = parseCSV(text);
+            setData(parsedData);
+          }
         } else if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
           const response = await fetch(filePath);
           const blob = await response.blob();
-          const text = await blob.text();
-          const parsedData = parseCSV(text);
-          setData(parsedData);
+          if (await needsXlsx(fileName || filePath, blob)) {
+            await parseXlsx(blob);
+          } else {
+            const text = await blob.text();
+            const parsedData = parseCSV(text);
+            setData(parsedData);
+          }
         } else {
           const response = await fetch(filePath);
-          const text = await response.text();
-          const parsedData = parseCSV(text);
-          setData(parsedData);
+          const contentType = response.headers.get('Content-Type') || '';
+          if (/spreadsheetml|officedocument\.spreadsheetml\.sheet/i.test(contentType) || (fileName || filePath).toLowerCase().endsWith('.xlsx')) {
+            const blob = await response.blob();
+            await parseXlsx(blob);
+          } else {
+            const text = await response.text();
+            const parsedData = parseCSV(text);
+            setData(parsedData);
+          }
         }
         
         onLoad?.();
@@ -344,11 +435,36 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   }, [onContentChange]);
 
   const handleSave = useCallback(() => {
-
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (hotInstance?.getPlugin) {
+      const exportFile = hotInstance.getPlugin('exportFile');
+      if (exportFile && exportFile.isEnabled && exportFile.isEnabled()) {
+        try {
+          const csvContent = exportFile.exportAsString('csv', {
+            bom: false,
+            columnDelimiter: ',',
+            columnHeaders: false,
+            exportHiddenColumns: true,
+            exportHiddenRows: true,
+            fileExtension: 'csv',
+            filename: (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'export') + '_[YYYY]-[MM]-[DD]',
+            mimeType: 'text/csv',
+            rowDelimiter: '\r\n',
+            rowHeaders: true,
+          });
+          onSave?.(csvContent);
+          setHasChanges(false);
+          return;
+        } catch {
+          // Fallback below
+        }
+      }
+    }
+    // Fallback: manual CSV generation
     const csvContent = convertToCSV(data);
     onSave?.(csvContent);
     setHasChanges(false);
-  }, [data, onSave]);
+  }, [data, fileName, onSave]);
 
   // Spreadsheet actions
   const handleAddRow = () => {
@@ -565,9 +681,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
   // Store cell formatting state
   const [cellFormats, setCellFormats] = useState<{[key: string]: {className?: string}}>({});
+  const [cellStyles, setCellStyles] = useState<{[key: string]: React.CSSProperties}>({});
 
   // Cell formatting functions using proper Handsontable approach
-  const toggleCellFormat = (formatProperty: string, className: string) => {
+  const toggleCellFormat = (className: string) => {
     const hotInstance = hotTableRef.current?.hotInstance;
     if (hotInstance) {
       const selected = hotInstance.getSelected();
@@ -575,7 +692,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         const [startRow, startCol, endRow, endCol] = selected[0];
         const newCellFormats = { ...cellFormats };
         
-        hotInstance.suspendRender();
         for (let row = startRow; row <= endRow; row++) {
           for (let col = startCol; col <= endCol; col++) {
             const cellKey = `${row}-${col}`;
@@ -594,9 +710,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
               classNames.push(className);
             }
             
-            // Also update Handsontable meta directly so it applies immediately
-            hotInstance.setCellMeta(row, col, 'className', classNames.join(' '));
-
             // Update the cell format
             newCellFormats[cellKey] = {
               ...currentFormat,
@@ -604,9 +717,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             };
           }
         }
-        
         setCellFormats(newCellFormats);
-        hotInstance.resumeRender();
         hotInstance.render();
         setHasChanges(true);
       }
@@ -614,15 +725,15 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   };
 
   const handleBold = () => {
-    toggleCellFormat('fontWeight', 'ht-bold');
+    toggleCellFormat('ht-bold');
   };
 
   const handleItalic = () => {
-    toggleCellFormat('fontStyle', 'ht-italic');
+    toggleCellFormat('ht-italic');
   };
 
   const handleUnderline = () => {
-    toggleCellFormat('textDecoration', 'ht-underline');
+    toggleCellFormat('ht-underline');
   };
 
   const handleAlignLeft = () => {
@@ -646,7 +757,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         const [startRow, startCol, endRow, endCol] = selected[0];
         const newCellFormats = { ...cellFormats };
         
-        hotInstance.suspendRender();
         for (let row = startRow; row <= endRow; row++) {
           for (let col = startCol; col <= endCol; col++) {
             const cellKey = `${row}-${col}`;
@@ -666,9 +776,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             // Add the new alignment class
             classNames.push(alignmentClass);
             
-            // Also update Handsontable meta directly so it applies immediately
-            hotInstance.setCellMeta(row, col, 'className', classNames.join(' '));
-
             // Update the cell format
             newCellFormats[cellKey] = {
               ...currentFormat,
@@ -676,9 +783,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             };
           }
         }
-        
         setCellFormats(newCellFormats);
-        hotInstance.resumeRender();
         hotInstance.render();
         setHasChanges(true);
       }
@@ -686,19 +791,21 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   };
 
   // Text/Fill color dropdown anchors
-  const [textColorAnchorEl, setTextColorAnchorEl] = useState<null | HTMLElement>(null);
+  const [isTextColorOpen, setIsTextColorOpen] = useState(false);
+  const [textColorMenuPosition, setTextColorMenuPosition] = useState<{ top: number; left: number } | null>(null);
   const [fillColorAnchorEl, setFillColorAnchorEl] = useState<null | HTMLElement>(null);
 
   const handleTextColorClick = (event: React.MouseEvent<HTMLElement>) => {
-    setTextColorAnchorEl(event.currentTarget);
+    setTextColorMenuPosition({ top: event.clientY + 8, left: event.clientX });
+    setIsTextColorOpen(true);
   };
-  const handleTextColorClose = () => setTextColorAnchorEl(null);
+  const handleTextColorClose = () => setIsTextColorOpen(false);
   const handleBackgroundColorClick = (event: React.MouseEvent<HTMLElement>) => {
     setFillColorAnchorEl(event.currentTarget);
   };
   const handleBackgroundColorClose = () => setFillColorAnchorEl(null);
 
-  // Helper function to apply styles via cell meta (persists across re-render)
+  // Helper function to apply styles via React state
   const applyCellStyle = (styleProperty: string, styleValue: string) => {
     const hotInstance = hotTableRef.current?.hotInstance;
     if (!hotInstance) return;
@@ -712,21 +819,15 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       }
     }
     const [startRow, startCol, endRow, endCol] = sel[0] as [number, number, number, number];
-    hotInstance.suspendRender();
+    const nextStyles: {[key: string]: React.CSSProperties} = { ...cellStyles };
     for (let row = startRow; row <= endRow; row++) {
       for (let col = startCol; col <= endCol; col++) {
-        const currentStyle = hotInstance.getCellMeta(row, col).style || {};
-        hotInstance.setCellMeta(row, col, 'style', {
-          ...currentStyle,
-          [styleProperty]: styleValue,
-        });
-        const td = hotInstance.getCell(row, col) as HTMLElement | null;
-        if (td) {
-          try { (td.style as any)[styleProperty] = styleValue as any; } catch {}
-        }
+        const key = `${row}-${col}`;
+        const current = (nextStyles[key] || {}) as React.CSSProperties;
+        nextStyles[key] = { ...current, [styleProperty]: styleValue } as React.CSSProperties;
       }
     }
-    hotInstance.resumeRender();
+    setCellStyles(nextStyles);
     hotInstance.render();
     setHasChanges(true);
   };
@@ -744,21 +845,20 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       }
     }
     const [startRow, startCol, endRow, endCol] = sel[0] as [number, number, number, number];
-    hotInstance.suspendRender();
+    const nextStyles: {[key: string]: React.CSSProperties} = { ...cellStyles };
     for (let row = startRow; row <= endRow; row++) {
       for (let col = startCol; col <= endCol; col++) {
-        const currentStyle = { ...(hotInstance.getCellMeta(row, col).style || {}) } as any;
-        if (currentStyle && styleProperty in currentStyle) {
-          delete currentStyle[styleProperty as any];
-        }
-        hotInstance.setCellMeta(row, col, 'style', currentStyle);
-        const td = hotInstance.getCell(row, col) as HTMLElement | null;
-        if (td) {
-          try { (td.style as any)[styleProperty] = ''; } catch {}
+        const key = `${row}-${col}`;
+        const current = { ...(nextStyles[key] || {}) } as any;
+        if (styleProperty in current) delete current[styleProperty];
+        if (Object.keys(current).length) {
+          nextStyles[key] = current;
+        } else {
+          delete nextStyles[key];
         }
       }
     }
-    hotInstance.resumeRender();
+    setCellStyles(nextStyles);
     hotInstance.render();
     setHasChanges(true);
   };
@@ -789,6 +889,120 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     setBorderAnchorEl(document.body);
   };
 
+  const handleSaveXlsx = useCallback(async () => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) return;
+    const tableData: any[][] = hotInstance.getData();
+
+    const cssHexToARGB = (cssHex?: string) => {
+      if (!cssHex) return undefined;
+      const hex = cssHex.replace('#', '').trim();
+      if (hex.length === 3) {
+        const r = hex[0]; const g = hex[1]; const b = hex[2];
+        return `FF${r}${r}${g}${g}${b}${b}`.toUpperCase();
+      }
+      if (hex.length === 6) return `FF${hex}`.toUpperCase();
+      if (hex.length === 8) return hex.toUpperCase();
+      return undefined;
+    };
+
+    const numeralToExcelNumFmt = (pattern?: string) => {
+      if (!pattern) return undefined;
+      let fmt = pattern;
+      fmt = fmt.replace(/0,0(\.0+)?/g, (m) => m.replace('0,0', '#,##0'));
+      fmt = fmt.replace(/\$#,##0/g, '[$$]#,##0');
+      return fmt;
+    };
+
+    const ExcelJSImport = await import('exceljs');
+    const ExcelJS = ExcelJSImport.default || ExcelJSImport;
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Sheet1');
+
+    if (tableData && tableData.length) {
+      worksheet.addRows(tableData.map(row => row.map((v) => v == null ? '' : v)));
+    }
+
+    const numRows = tableData?.length || 0;
+    const numCols = Math.max(0, ...(tableData || []).map(r => r.length));
+
+    for (let r = 0; r < numRows; r++) {
+      for (let c = 0; c < numCols; c++) {
+        const cell = worksheet.getCell(r + 1, c + 1);
+        const key = `${r}-${c}`;
+        const fmt = cellFormats[key];
+        const sty = cellStyles[key] as any;
+
+        if (fmt?.className) {
+          const classes = fmt.className.split(' ').filter(Boolean);
+          if (classes.includes('ht-bold')) cell.font = { ...(cell.font || {}), bold: true };
+          if (classes.includes('ht-italic')) cell.font = { ...(cell.font || {}), italic: true };
+          if (classes.includes('ht-underline')) cell.font = { ...(cell.font || {}), underline: true } as any;
+          if (classes.includes('ht-align-left')) cell.alignment = { ...(cell.alignment || {}), horizontal: 'left' };
+          if (classes.includes('ht-align-center')) cell.alignment = { ...(cell.alignment || {}), horizontal: 'center' };
+          if (classes.includes('ht-align-right')) cell.alignment = { ...(cell.alignment || {}), horizontal: 'right' };
+        }
+
+        if (sty) {
+          if (sty.fontSize) {
+            const size = parseInt(String(sty.fontSize).replace('px',''), 10);
+            if (!isNaN(size)) cell.font = { ...(cell.font || {}), size };
+          }
+          if (sty.color) {
+            const argb = cssHexToARGB(sty.color);
+            if (argb) cell.font = { ...(cell.font || {}), color: { argb } };
+          }
+          if (sty.backgroundColor) {
+            const argb = cssHexToARGB(sty.backgroundColor);
+            if (argb) cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb } } as any;
+          }
+          const parseBorder = (v?: string) => {
+            if (!v) return undefined;
+            const lower = v.toLowerCase();
+            let style: 'thin' | 'thick' | 'dashed' = 'thin';
+            if (lower.includes('2px') || lower.includes('thick')) style = 'thick';
+            if (lower.includes('dashed')) style = 'dashed';
+            const colorHex = (lower.match(/#([0-9a-f]{6})/) || [])[1];
+            const argb = colorHex ? cssHexToARGB(`#${colorHex}`) : 'FF000000';
+            return { style, color: { argb } } as any;
+          };
+          const top = parseBorder(sty.borderTop);
+          const right = parseBorder(sty.borderRight);
+          const bottom = parseBorder(sty.borderBottom);
+          const left = parseBorder(sty.borderLeft);
+          if (top || right || bottom || left) {
+            cell.border = {
+              ...(top ? { top } : {}),
+              ...(right ? { right } : {}),
+              ...(bottom ? { bottom } : {}),
+              ...(left ? { left } : {}),
+            } as any;
+          }
+        }
+
+        try {
+          const meta = hotInstance.getCellMeta(r, c) as any;
+          if (meta) {
+            if (meta.type === 'numeric' && meta.numericFormat?.pattern) {
+              const fmtPattern = numeralToExcelNumFmt(meta.numericFormat.pattern);
+              if (fmtPattern) (cell as any).numFmt = fmtPattern;
+            }
+            if (meta.type === 'date' && meta.dateFormat) {
+              const fmtPattern = String(meta.dateFormat).replace(/MM/g, 'mm').replace(/YYYY/g, 'yyyy');
+              (cell as any).numFmt = fmtPattern;
+            }
+          }
+        } catch {}
+      }
+    }
+
+    const base = fileName ? fileName.replace(/\.[^/.]+$/, '') : 'export';
+    const buffer = await workbook.xlsx.writeBuffer();
+    const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    onSaveXlsx?.(blob, `${base}.xlsx`);
+    setHasChanges(false);
+  }, [cellFormats, cellStyles, fileName, onSaveXlsx, onSave]);
+
   const handleBorderClick = (event: React.MouseEvent<HTMLElement>) => {
     setBorderAnchorEl(event.currentTarget);
   };
@@ -813,20 +1027,22 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
     const [startRow, startCol, endRow, endCol] = sel[0] as [number, number, number, number];
 
+    const nextStyles: {[key: string]: React.CSSProperties} = { ...cellStyles };
     const clearBorderKeys = (style: Record<string, any>) => {
       const { border, borderTop, borderRight, borderBottom, borderLeft, ...rest } = style || {};
       return rest;
     };
 
     const setEdge = (row: number, col: number, edges: Partial<Record<'top'|'right'|'bottom'|'left', string>>) => {
-      const currentStyle = hotInstance.getCellMeta(row, col).style || {};
-      const base = clearBorderKeys(currentStyle);
+      const key = `${row}-${col}`;
+      const current = (nextStyles[key] || {}) as any;
+      const base = clearBorderKeys(current);
       const next: Record<string, any> = { ...base };
       if (edges.top) next.borderTop = edges.top;
       if (edges.right) next.borderRight = edges.right;
       if (edges.bottom) next.borderBottom = edges.bottom;
       if (edges.left) next.borderLeft = edges.left;
-      hotInstance.setCellMeta(row, col, 'style', next);
+      nextStyles[key] = next as React.CSSProperties;
     };
 
     const styleFor = (kind: 'thin' | 'thick' | 'dashed') => {
@@ -873,17 +1089,30 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
     switch (option) {
       case 'all': {
+        const value = styleFor(borderStyle);
         for (let r = startRow; r <= endRow; r++) {
           for (let c = startCol; c <= endCol; c++) {
             pushPerCell(r, c, { top: true, right: true, bottom: true, left: true });
+            setEdge(r, c, { top: value, right: value, bottom: value, left: value });
           }
         }
         break;
       }
-      case 'outer':
+      case 'outer': {
+        const value = styleFor(borderStyle);
         pushOuterRange();
+        for (let c = startCol; c <= endCol; c++) {
+          setEdge(startRow, c, { top: value });
+          setEdge(endRow, c, { bottom: value });
+        }
+        for (let r = startRow; r <= endRow; r++) {
+          setEdge(r, startCol, { left: value });
+          setEdge(r, endCol, { right: value });
+        }
         break;
-      case 'thick-outer':
+      }
+      case 'thick-outer': {
+        const value = styleFor('thick');
         defs.push({
           range: { from: { row: startRow, col: startCol }, to: { row: endRow, col: endCol } },
           top: { width: 2, color },
@@ -891,43 +1120,97 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           start: { width: 2, color },
           end: { width: 2, color },
         });
+        for (let c = startCol; c <= endCol; c++) {
+          setEdge(startRow, c, { top: value });
+          setEdge(endRow, c, { bottom: value });
+        }
+        for (let r = startRow; r <= endRow; r++) {
+          setEdge(r, startCol, { left: value });
+          setEdge(r, endCol, { right: value });
+        }
         break;
-      case 'dashed-outer':
+      }
+      case 'dashed-outer': {
         // Fallback to thin since plugin doesn't support dashed. Could emulate via CSS if needed.
         pushOuterRange();
+        const value = styleFor('dashed');
+        for (let c = startCol; c <= endCol; c++) {
+          setEdge(startRow, c, { top: value });
+          setEdge(endRow, c, { bottom: value });
+        }
+        for (let r = startRow; r <= endRow; r++) {
+          setEdge(r, startCol, { left: value });
+          setEdge(r, endCol, { right: value });
+        }
         break;
+      }
       case 'inner': {
+        const value = styleFor(borderStyle);
         for (let r = startRow; r <= endRow; r++) {
           for (let c = startCol; c <= endCol; c++) {
             const edges: any = {};
             if (r > startRow) edges.top = true;
             if (c > startCol) edges.left = true;
             if (Object.keys(edges).length) pushPerCell(r, c, edges);
+            const cssEdges: any = {};
+            if (r > startRow) cssEdges.top = value;
+            if (c > startCol) cssEdges.left = value;
+            if (Object.keys(cssEdges).length) setEdge(r, c, cssEdges);
           }
         }
         break;
       }
-      case 'top':
-        for (let c = startCol; c <= endCol; c++) pushPerCell(startRow, c, { top: true });
+      case 'top': {
+        const value = styleFor(borderStyle);
+        for (let c = startCol; c <= endCol; c++) {
+          pushPerCell(startRow, c, { top: true });
+          setEdge(startRow, c, { top: value });
+        }
         break;
-      case 'bottom':
-        for (let c = startCol; c <= endCol; c++) pushPerCell(endRow, c, { bottom: true });
+      }
+      case 'bottom': {
+        const value = styleFor(borderStyle);
+        for (let c = startCol; c <= endCol; c++) {
+          pushPerCell(endRow, c, { bottom: true });
+          setEdge(endRow, c, { bottom: value });
+        }
         break;
-      case 'left':
-        for (let r = startRow; r <= endRow; r++) pushPerCell(r, startCol, { left: true });
+      }
+      case 'left': {
+        const value = styleFor(borderStyle);
+        for (let r = startRow; r <= endRow; r++) {
+          pushPerCell(r, startCol, { left: true });
+          setEdge(r, startCol, { left: value });
+        }
         break;
-      case 'right':
-        for (let r = startRow; r <= endRow; r++) pushPerCell(r, endCol, { right: true });
+      }
+      case 'right': {
+        const value = styleFor(borderStyle);
+        for (let r = startRow; r <= endRow; r++) {
+          pushPerCell(r, endCol, { right: true });
+          setEdge(r, endCol, { right: value });
+        }
         break;
+      }
       case 'none':
         setCustomBordersDefs([]);
+        for (let r = startRow; r <= endRow; r++) {
+          for (let c = startCol; c <= endCol; c++) {
+            const key = `${r}-${c}`;
+            const current = { ...(nextStyles[key] || {}) } as any;
+            delete current.borderTop; delete current.borderRight; delete current.borderBottom; delete current.borderLeft; delete current.border;
+            if (Object.keys(current).length) nextStyles[key] = current; else delete nextStyles[key];
+          }
+        }
         handleBorderClose();
+        setCellStyles(nextStyles);
         hotInstance.render();
         setHasChanges(true);
         return;
     }
 
     setCustomBordersDefs(defs);
+    setCellStyles(nextStyles);
     hotInstance.render();
     setHasChanges(true);
     handleBorderClose();
@@ -1419,6 +1702,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
         <IconButton
           size="small"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={handleTextColorClick}
           title="Text Color"
           sx={{
@@ -1435,8 +1719,9 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           <TextColorIcon sx={{ fontSize: 16 }} />
         </IconButton>
         <Menu
-          anchorEl={textColorAnchorEl}
-          open={Boolean(textColorAnchorEl)}
+          anchorReference="anchorPosition"
+          anchorPosition={textColorMenuPosition || { top: 0, left: 0 }}
+          open={isTextColorOpen}
           onClose={handleTextColorClose}
           anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
           transformOrigin={{ vertical: 'top', horizontal: 'left' }}
@@ -1674,9 +1959,9 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
               {onSaveDocument && (
                 <IconButton
                   size="small"
-                  onClick={onSaveDocument}
+                  onClick={handleSaveXlsx}
                   disabled={saving || !canSave}
-                  title="Save spreadsheet"
+                  title="Save as XLSX"
                   sx={{
                     width: 32,
                     height: 32,
@@ -1762,25 +2047,19 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
               return {
                 renderer: (instance: any, td: HTMLTableCellElement, r: number, c: number, prop: any, value: any, cellProperties: any) => {
                   textRenderer(instance, td, r, c, prop, value, cellProperties);
-                  const meta = instance.getCellMeta(r, c) || {};
-                  if (meta.className) {
-                    try { meta.className.split(' ').forEach((cls: string) => { if (cls) td.classList.add(cls); }); } catch {}
+                  const cellKey = `${r}-${c}`;
+                  const fmt = cellFormats[cellKey];
+                  const sty = cellStyles[cellKey];
+                  if (fmt?.className) {
+                    try { fmt.className.split(' ').forEach((cls: string) => { if (cls) td.classList.add(cls); }); } catch {}
                   }
-                  if (meta.style) {
-                    try { Object.assign(td.style, meta.style); } catch {}
+                  if (sty) {
+                    try { Object.assign(td.style, sty); } catch {}
                   }
                   return td;
                 }
               };
             }}
-            cell={Object.entries(cellFormats).map(([cellKey, format]) => {
-              const [row, col] = cellKey.split('-').map(Number);
-              return {
-                row,
-                col,
-                className: format.className
-              };
-            })}
             key="hot-table"
           />
 

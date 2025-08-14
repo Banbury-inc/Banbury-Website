@@ -212,6 +212,21 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
                 // Mark this tool call as completed for proper message formatting
                 (matchingToolCall as any).status = "completed";
               }
+
+              // Dispatch an event for create_file to allow UI to refresh and open the new file
+              try {
+                if ((evt as any).part?.toolName === 'create_file') {
+                  const raw = (evt as any).part?.result;
+                  let parsed: any = null;
+                  if (typeof raw === 'string') {
+                    try { parsed = JSON.parse(raw); } catch {}
+                  } else if (raw && typeof raw === 'object') {
+                    parsed = raw;
+                  }
+                  const detail = { result: parsed };
+                  window.dispatchEvent(new CustomEvent('assistant-file-created', { detail }));
+                }
+              } catch {}
               shouldYield = true;
             } else if (evt.type === "completion-summary") {
               // Handle completion summary

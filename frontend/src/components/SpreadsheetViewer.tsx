@@ -228,6 +228,98 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
     }
   };
 
+  const handleSaveXlsx = async (xlsxBlob: Blob, suggestedFileName: string) => {
+    if (!currentFile.file_id || !userInfo?.username) return;
+    setSaving(true);
+    try {
+      if (documentUrl && documentUrl.startsWith('blob:')) {
+        window.URL.revokeObjectURL(documentUrl);
+      }
+      await ApiService.deleteS3File(currentFile.file_id);
+
+      const parentPath = currentFile.path ? currentFile.path.split('/').slice(0, -1).join('/') : '';
+      const newFileName = suggestedFileName || currentFile.name.replace(/\.[^/.]+$/, '.xlsx');
+      const newPath = currentFile.path
+        ? currentFile.path.split('/').slice(0, -1).concat(newFileName).join('/')
+        : '';
+
+      await ApiService.uploadToS3(
+        xlsxBlob,
+        newFileName,
+        'web-editor',
+        newPath,
+        parentPath
+      );
+
+      onSaveComplete?.();
+
+      const reloadSpreadsheet = async (retryCount = 0) => {
+        const maxRetries = 3;
+        const retryDelay = 1000;
+        try {
+          const userFilesResult = await ApiService.getUserFiles(userInfo.username);
+          if (!userFilesResult.success) {
+            throw new Error('Failed to get updated file list');
+          }
+          const updatedFile = userFilesResult.files.find((f: any) => f.file_path === newPath);
+          if (!updatedFile || !updatedFile.file_id) {
+            throw new Error('Updated file not found');
+          }
+
+          const newFile: FileSystemItem = {
+            id: updatedFile.file_path,
+            file_id: updatedFile.file_id,
+            name: updatedFile.file_name,
+            path: updatedFile.file_path,
+            type: updatedFile.file_type === 'folder' ? 'folder' : 'file',
+            size: updatedFile.file_size,
+            modified: new Date(updatedFile.date_modified),
+            s3_url: updatedFile.s3_url,
+          };
+          setCurrentFile(newFile);
+
+          const dl = await ApiService.downloadS3File(updatedFile.file_id, newFileName);
+          if (dl.success && dl.url) {
+            setDocumentUrl(dl.url);
+            setDocumentBlob(dl.blob);
+            toast({
+              title: 'Spreadsheet saved successfully',
+              description: `${newFileName} has been saved.`,
+              variant: 'success',
+            });
+            return;
+          }
+
+          if (retryCount < maxRetries) {
+            setTimeout(() => reloadSpreadsheet(retryCount + 1), retryDelay);
+          } else {
+            throw new Error('Reload failed');
+          }
+        } catch (e) {
+          if (retryCount < 3) {
+            setTimeout(() => reloadSpreadsheet(retryCount + 1), 1000);
+          } else {
+            toast({
+              title: 'Spreadsheet saved but reload failed',
+              description: 'Saved successfully, but you may need to refresh to see changes.',
+              variant: 'destructive',
+            });
+          }
+        }
+      };
+      setTimeout(() => reloadSpreadsheet(), 500);
+    } catch (err) {
+      setError('Failed to save spreadsheet');
+      toast({
+        title: 'Failed to save spreadsheet',
+        description: 'There was an error saving your spreadsheet. Please try again.',
+        variant: 'error',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -269,6 +361,9 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
               onSave={(content) => {
                 setCurrentContent(content);
                 handleSave();
+              }}
+              onSaveXlsx={(blob, fname) => {
+                handleSaveXlsx(blob, fname);
               }}
               onSaveDocument={handleSave}
               onDownloadDocument={handleDownload}

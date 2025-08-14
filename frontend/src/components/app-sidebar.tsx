@@ -564,6 +564,63 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
     fetchUserFiles()
   }, [fetchUserFiles])
 
+  // Listen for assistant create_file completion to refresh and optionally open the file
+  useEffect(() => {
+    const handleCreated = (e: Event) => {
+      try {
+        const detail: any = (e as CustomEvent).detail;
+        // Attempt to open the created file based on returned info
+        const info = detail?.result?.file_info || detail?.result;
+        const createdPath: string | undefined = info?.file_path || info?.path;
+        const createdName: string | undefined = info?.file_name || info?.name;
+        if (!createdPath || !createdName || !userInfo?.username) {
+          fetchUserFiles();
+          return;
+        }
+
+        let attempts = 0;
+        const maxAttempts = 8;
+        const delayMs = 500;
+        let cancelled = false;
+
+        const pollAndOpen = async () => {
+          if (cancelled) return;
+          try {
+            await fetchUserFiles();
+            const result = await ApiService.getUserFiles(userInfo.username);
+            if (result.success && Array.isArray(result.files)) {
+              const f = result.files.find(f => f.file_path === createdPath);
+              if (f && f.file_id) {
+                const item = {
+                  id: f.file_path,
+                  name: f.file_name,
+                  path: f.file_path,
+                  type: 'file',
+                  file_id: f.file_id,
+                  size: f.file_size,
+                  modified: new Date(f.date_modified),
+                  s3_url: f.s3_url,
+                } as any;
+                onFileSelect?.(item);
+                return;
+              }
+            }
+          } catch {}
+
+          attempts += 1;
+          if (attempts < maxAttempts) {
+            setTimeout(pollAndOpen, delayMs);
+          }
+        };
+
+        pollAndOpen();
+      } catch {}
+    }
+
+    window.addEventListener('assistant-file-created', handleCreated as EventListener)
+    return () => window.removeEventListener('assistant-file-created', handleCreated as EventListener)
+  }, [fetchUserFiles, onFileSelect, userInfo?.username])
+
   // Fetch files when refreshTrigger changes
   useEffect(() => {
     if (refreshTrigger !== undefined) {
