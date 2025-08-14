@@ -44,39 +44,50 @@ const Dashboard = (): JSX.Element => {
     const checkAuthAndFetchUser = async () => {
       try {
         setLoading(true);
-        
-        // Validate token first using ApiService
-        const isValidToken = await ApiService.validateToken();
 
-        if (!isValidToken) {
-          // Token is invalid, redirect to login
+        // If no token, go to login immediately
+        const existingToken = localStorage.getItem('authToken');
+        if (!existingToken) {
           router.push('/login');
           return;
         }
 
-        // Token is valid, create user info from stored data
-        const username = localStorage.getItem('authUsername') || localStorage.getItem('username');
+        // Optimistically set basic user info from storage
+        const storedUsername = localStorage.getItem('username');
         const basicUserInfo: UserInfo = {
-          username: username || 'User',
-          email: localStorage.getItem('userEmail') || username || '',
+          username: storedUsername || 'User',
+          email: localStorage.getItem('userEmail') || storedUsername || '',
           first_name: '',
           last_name: '',
           picture: null
         };
         setUserInfo(basicUserInfo);
-      } catch (err) {
-        
-        // Still try to show basic info if we have some stored data
-        const username = localStorage.getItem('authUsername') || localStorage.getItem('username');
-        if (username) {
-          const basicUserInfo: UserInfo = {
-            username: username,
-            email: localStorage.getItem('userEmail') || username,
+
+        // Validate token in background and try refresh if needed
+        let isValid = await ApiService.validateToken();
+        if (!isValid) {
+          const refreshed = await ApiService.refreshToken();
+          if (!refreshed) {
+            router.push('/login');
+            return;
+          }
+          isValid = await ApiService.validateToken();
+          if (!isValid) {
+            router.push('/login');
+            return;
+          }
+        }
+      } catch {
+        const storedUsername = localStorage.getItem('username');
+        if (storedUsername) {
+          const fallbackUser: UserInfo = {
+            username: storedUsername,
+            email: localStorage.getItem('userEmail') || storedUsername,
             first_name: '',
             last_name: '',
             picture: null
           };
-          setUserInfo(basicUserInfo);
+          setUserInfo(fallbackUser);
         } else {
           router.push('/login');
           return;

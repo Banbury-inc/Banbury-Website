@@ -187,8 +187,27 @@ export class ApiService {
       const response = await this.get<{ valid: boolean; username?: string }>('/authentication/validate-token/');
       return response.valid;
     } catch (error) {
-      // Token validation failed - clear invalid token
-      this.clearAuthToken();
+      // Do not aggressively clear token here; allow caller to decide next steps
+      return false;
+    }
+  }
+
+  /**
+   * Attempt to refresh the current token
+   */
+  static async refreshToken(): Promise<boolean> {
+    try {
+      // Ensure Authorization header is set from stored token
+      this.loadAuthToken();
+      const response = await this.get<{ success: boolean; token?: string; username?: string }>(
+        '/authentication/refresh-token/'
+      );
+      if (response.success && response.token) {
+        this.setAuthToken(response.token, response.username);
+        return true;
+      }
+      return false;
+    } catch {
       return false;
     }
   }
@@ -704,3 +723,41 @@ export class ApiService {
 
 // Load auth token on module initialization
 ApiService.loadAuthToken();
+
+// Ensure Authorization header is always sent if token exists
+axios.interceptors.request.use((config) => {
+  const existingAuth = (config.headers || {})['Authorization'] as string | undefined;
+  if (!existingAuth) {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      (config.headers ||= {});
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+  }
+  return config;
+});
+
+// Attempt token refresh once on 401, then retry the original request
+axios.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config || {};
+    const alreadyRetried = (originalRequest as any)._retry === true;
+    const status = error.response?.status;
+
+    if (status === 401 && !alreadyRetried) {
+      (originalRequest as any)._retry = true;
+      const refreshed = await ApiService.refreshToken();
+      if (refreshed) {
+        // Set updated Authorization header and retry
+        const token = localStorage.getItem('authToken');
+        if (token) {
+          (originalRequest.headers ||= {});
+          originalRequest.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return axios(originalRequest);
+      }
+    }
+    return Promise.reject(error);
+  }
+);
