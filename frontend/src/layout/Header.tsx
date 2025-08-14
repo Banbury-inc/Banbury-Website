@@ -130,18 +130,6 @@ const Header = (): JSX.Element => {
           >
             <Link href="/news">News</Link>
           </Button>
-          <Button 
-            asChild 
-            variant="ghost" 
-            size="lg"
-            className="text-zinc-300 hover:text-white hover:bg-zinc-800/50"
-            style={{
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              fontWeight: 400,
-            }}
-          >
-            <Link href="/api-docs">API</Link>
-          </Button>
         </div>
 
         <div className="flex-grow flex justify-end items-center">
