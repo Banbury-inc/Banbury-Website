@@ -48,6 +48,46 @@ function extractTextFromDocx(buffer: Buffer, fileName: string): string {
   }
 }
 
+// Best-effort XLSX/XLS extraction to CSV-like text for LLM consumption
+function extractTextFromXlsx(buffer: Buffer, fileName: string): string {
+  try {
+    // Lazy require to avoid hard dependency if module is missing
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const XLSX = require('xlsx');
+    const workbook = XLSX.read(buffer, { type: 'buffer' });
+    const sheetNames: string[] = workbook.SheetNames || [];
+    if (!sheetNames.length) {
+      return `Spreadsheet: ${fileName}\n\n(No sheets found)`;
+    }
+
+    const maxSheets = 5; // limit number of sheets to include
+    const maxChars = 150_000; // cap total characters to keep payload manageable
+    let total = '';
+    for (const sheetName of sheetNames.slice(0, maxSheets)) {
+      const sheet = workbook.Sheets[sheetName];
+      if (!sheet) continue;
+      // Convert sheet to CSV
+      const csv = XLSX.utils.sheet_to_csv(sheet, { FS: ',', RS: '\n' });
+      if (csv && csv.trim()) {
+        const section = `Sheet: ${sheetName}\n${csv}\n\n`;
+        if ((total.length + section.length) > maxChars) {
+          total += section.slice(0, Math.max(0, maxChars - total.length));
+          break;
+        }
+        total += section;
+      }
+      if (total.length >= maxChars) break;
+    }
+
+    if (!total.trim()) {
+      return `Spreadsheet: ${fileName}\n\n(Parsed but no tabular content found)`;
+    }
+    return `Spreadsheet: ${fileName}\n\n${total}`;
+  } catch (error) {
+    return `Spreadsheet: ${fileName}\n\nThis spreadsheet could not be parsed. Please provide key details or export a CSV.`;
+  }
+}
+
 function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
   const lc: BaseMessage[] = [];
   
@@ -85,6 +125,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
               const mimeMap: Record<string, string> = {
                 'pdf': 'application/pdf',
                 'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'doc': 'application/msword',
                 'txt': 'text/plain',
                 'csv': 'text/csv',
                 'html': 'text/html',
@@ -94,7 +135,9 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
                 'jpeg': 'image/jpeg',
                 'png': 'image/png',
                 'gif': 'image/gif',
-                'webp': 'image/webp'
+                'webp': 'image/webp',
+                'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'xls': 'application/vnd.ms-excel'
               };
               anthropicMimeType = mimeMap[ext || ''] || fa.mimeType;
             }
@@ -114,6 +157,13 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
                 if (fa.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
                   const binaryData = Buffer.from(fa.fileData, 'base64');
                   const extractedText = extractTextFromDocx(binaryData, fa.fileName);
+                  fa.fileData = Buffer.from(extractedText, 'utf8').toString('base64');
+                } else if (
+                  fa.mimeType === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
+                  fa.mimeType === 'application/vnd.ms-excel'
+                ) {
+                  const binaryData = Buffer.from(fa.fileData, 'base64');
+                  const extractedText = extractTextFromXlsx(binaryData, fa.fileName);
                   fa.fileData = Buffer.from(extractedText, 'utf8').toString('base64');
                 } else {
                   const fileInfo = `This is a ${fa.fileName} file (${fa.mimeType}). Please ask the user to provide key information from this document.`;
@@ -212,7 +262,7 @@ const SYSTEM_PROMPT =
   "proper document structure. Store important information in memory for future reference and " +
   "search your memories when relevant. Provide clear citations when using web search results.";
 
-export const config = { api: { bodyParser: { sizeLimit: "1mb" } } };
+export const config = { api: { bodyParser: { sizeLimit: "2mb" } } };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== "POST") {

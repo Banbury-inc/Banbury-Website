@@ -34,6 +34,7 @@ import { FileAttachmentDisplay } from "./file-attachment-display";
 import { TiptapAITool } from "./TiptapAITool";
 import { FileSystemItem } from "../utils/fileTreeUtils";
 import { cn } from "../utils";
+  import { ApiService } from "../services/apiService";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -69,6 +70,9 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
     return { web_search: true, tiptap_ai: true, read_file: true, langgraph_mode: true };
   });
 
+  // Cache of pre-downloaded attachment payloads keyed by fileId
+  const [attachmentPayloads, setAttachmentPayloads] = useState<Record<string, { fileData: string; mimeType: string }>>({});
+
   const handleFileAttach = (file: FileSystemItem) => {
     setAttachedFiles(prev => [...prev, file]);
   };
@@ -89,12 +93,13 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
       const isAlreadyAttached = attachedFiles.some(f => f.file_id === selectedFile.file_id);
       
       if (!isAlreadyAttached) {
-        // Only attach if it's a viewable file type (same logic as in Workspaces)
+        // Only attach if it's a viewable file type (aligned with Workspaces)
         const isViewableFile = (fileName: string): boolean => {
           const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'];
-          const documentExtensions = ['.docx', '.doc', '.pdf', '.csv'];
+          const documentExtensions = ['.docx', '.doc', '.pdf'];
+          const spreadsheetExtensions = ['.csv', '.xlsx', '.xls'];
           const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
-          return [...imageExtensions, ...documentExtensions].includes(extension);
+          return [...imageExtensions, ...documentExtensions, ...spreadsheetExtensions].includes(extension);
         };
         
         if (isViewableFile(selectedFile.name)) {
@@ -111,12 +116,15 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
         fileId: f.file_id,
         fileName: f.name,
         filePath: f.path,
+        ...(f.file_id && attachmentPayloads[f.file_id]
+          ? { fileData: attachmentPayloads[f.file_id].fileData, mimeType: attachmentPayloads[f.file_id].mimeType }
+          : {}),
       }));
       localStorage.setItem('pendingAttachments', JSON.stringify(simplified));
     } catch {
       // ignore storage errors
     }
-  }, [attachedFiles]);
+  }, [attachedFiles, attachmentPayloads]);
 
   // Persist tool preferences and keep web search toggle in sync with menu
   useEffect(() => {
@@ -129,6 +137,50 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
       setIsWebSearchEnabled(toolPreferences.web_search);
     }
   }, [toolPreferences, isWebSearchEnabled]);
+
+  // Pre-download spreadsheet blobs and cache as base64 + mimeType (size-capped)
+  useEffect(() => {
+    const isSpreadsheet = (fileName: string) => {
+      const ext = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+      return ['.csv', '.xlsx', '.xls'].includes(ext);
+    };
+
+    const blobToBase64 = (blob: Blob): Promise<string> =>
+      new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const result = typeof reader.result === 'string' ? reader.result : '';
+          // Strip data URL prefix if present
+          const base64 = result.includes(',') ? result.split(',')[1] : result;
+          resolve(base64);
+        };
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(blob);
+      });
+
+    const fetchMissingPayloads = async () => {
+      const tasks = attachedFiles
+        .filter((f) => f.file_id && isSpreadsheet(f.name) && !attachmentPayloads[f.file_id])
+        .map(async (f) => {
+          try {
+            const res = await ApiService.downloadS3File(f.file_id!, f.name);
+            if (res?.success && res.blob) {
+              // Skip embedding if blob exceeds ~600KB to keep request under server limit after base64 overhead
+              const approxSize = res.blob.size;
+              if (approxSize > 600 * 1024) return;
+              const base64 = await blobToBase64(res.blob);
+              const mimeType = res.blob.type || (f.name.toLowerCase().endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+              setAttachmentPayloads((prev) => ({ ...prev, [f.file_id!]: { fileData: base64, mimeType } }));
+            }
+          } catch {}
+        });
+      if (tasks.length > 0) {
+        await Promise.allSettled(tasks);
+      }
+    };
+
+    fetchMissingPayloads();
+  }, [attachedFiles, attachmentPayloads]);
 
   return (
     <ThreadPrimitive.Root
@@ -166,6 +218,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile }) => {
         onToggleWebSearch={toggleWebSearch}
         toolPreferences={toolPreferences}
         onUpdateToolPreferences={setToolPreferences}
+        attachmentPayloads={attachmentPayloads}
       />
     </ThreadPrimitive.Root>
   );
@@ -289,9 +342,10 @@ interface ComposerProps {
   onToggleWebSearch: () => void;
   toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean };
   onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean }) => void;
+  attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
 }
 
-const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences }) => {
+const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads }) => {
   const composer = useComposerRuntime();
 
   // Add attachments to the composer when files are attached
@@ -313,7 +367,10 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove
               type: "file-attachment",
               fileId: file.file_id!,
               fileName: file.name,
-              filePath: file.path
+                filePath: file.path,
+                ...(file.file_id && attachmentPayloads[file.file_id]
+                  ? { fileData: attachmentPayloads[file.file_id].fileData, mimeType: attachmentPayloads[file.file_id].mimeType }
+                  : {}),
             }
           ]
         });
@@ -322,7 +379,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove
       // Clear attachments when no files are attached
       composer.attachments.clear();
     }
-  }, [attachedFiles, composer.attachments]);
+  }, [attachedFiles, composer.attachments, attachmentPayloads]);
 
   return (
     <div className="relative mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 px-[var(--thread-padding-x)] pb-4 md:pb-6" style={{ backgroundColor: 'transparent' }}>
