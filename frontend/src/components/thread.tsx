@@ -9,7 +9,7 @@ import {
   useThreadRuntime,
 } from "@assistant-ui/react";
 import { motion } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   ArrowDownIcon,
   CopyIcon,
@@ -37,6 +37,7 @@ import { SheetAITool } from "./SheetAITool";
 import { FileSystemItem } from "../utils/fileTreeUtils";
 import { cn } from "../utils";
   import { ApiService } from "../services/apiService";
+import { ChatTiptapComposer } from "./ChatTiptapComposer";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -349,6 +350,7 @@ interface ComposerProps {
 
 const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads }) => {
   const composer = useComposerRuntime();
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Add attachments to the composer when files are attached
   useEffect(() => {
@@ -383,6 +385,71 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove
     }
   }, [attachedFiles, composer.attachments, attachmentPayloads]);
 
+  const handleSend = () => {
+    // Get the text directly from the Tiptap editor, including mentions
+    const proseMirrorElement = document.querySelector('.ProseMirror');
+    let text = '';
+    
+    // Extract text content from the DOM, which includes mentions
+    if (proseMirrorElement) {
+      text = proseMirrorElement.textContent || '';
+    }
+    
+    // If we still don't have text, try the hidden input
+    if (!text.trim()) {
+      const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement;
+      text = input?.value || '';
+    }
+    
+    console.log('Sending text:', text); // Debug log
+    console.log('Text length:', text.length); // Debug log
+    console.log('Composer state:', composer); // Debug composer
+    
+    if (text.trim().length > 0) {
+      // Try multiple approaches to get the text into the composer
+      const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement;
+      if (input) {
+        // Set the input value and trigger all possible events
+        input.value = text;
+        input.focus();
+        
+        // Trigger all possible events to ensure detection
+        ['input', 'change', 'keyup', 'keydown', 'focus', 'blur'].forEach(eventType => {
+          input.dispatchEvent(new Event(eventType, { bubbles: true }));
+        });
+        
+        // Use the composer's setText method directly
+        try {
+          if (composer && typeof composer.setText === 'function') {
+            composer.setText(text);
+            console.log('Set text directly on composer using setText');
+            
+            // Check the state after setting
+            const stateAfter = composer.getState();
+            console.log('Composer state after setText:', stateAfter);
+          }
+        } catch (e) {
+          console.log('Could not set text directly:', e);
+        }
+        
+        // Wait and then send
+        setTimeout(() => {
+          console.log('About to send, input value:', input.value);
+          composer.send();
+          
+          // Clear after sending
+          setTimeout(() => {
+            input.value = '';
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            if (proseMirrorElement) {
+              proseMirrorElement.innerHTML = '<p></p>';
+            }
+          }, 100);
+        }, 100);
+      }
+    }
+  };
+
   return (
     <div className="relative mx-auto flex w-full max-w-[var(--thread-max-width)] flex-col gap-4 px-[var(--thread-padding-x)] pb-4 md:pb-6" style={{ backgroundColor: 'transparent' }}>
       <ThreadScrollToBottom />
@@ -399,16 +466,29 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove
         )}
 
         <ComposerPrimitive.Root className="relative flex w-full flex-col rounded-2xl">
+          {/* Hidden native input to keep @assistant-ui runtime in sync */}
           <ComposerPrimitive.Input
             placeholder="Send a message..."
-            className={`bg-zinc-800 border-l border-r border-zinc-300 dark:border-zinc-600 focus:border-primary/30 placeholder:text-zinc-400 text-zinc-400 max-h-[calc(50dvh)] min-h-16 w-full resize-none px-4 pt-2 pb-3 text-base outline-none focus:outline-none ${
-              attachedFiles.length > 0 ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'
-            }`}
+            className="absolute opacity-0 pointer-events-none w-full h-full"
             rows={1}
-            autoFocus
             aria-label="Message input"
+            ref={inputRef as any}
+            autoComplete="off"
+            spellCheck="false"
           />
-          
+
+          {/* Visible Tiptap editor with @ mention for files */}
+          <div className={`bg-zinc-800 border-l border-r border-zinc-300 dark:border-zinc-600 ${attachedFiles.length > 0 ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'}`}>
+            <ChatTiptapComposer
+              hiddenInputRef={inputRef}
+              userInfo={userInfo}
+              onFileAttach={onFileAttach}
+              placeholder="Send a message..."
+              className="min-h-16"
+              onSend={handleSend}
+            />
+          </div>
+
           <ComposerAction 
             attachedFiles={attachedFiles}
             onFileAttach={onFileAttach}
@@ -440,6 +520,89 @@ interface ComposerActionProps {
 }
 
 const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences }) => {
+  const composer = useComposerRuntime();
+  const [hasText, setHasText] = useState(false);
+
+  // Check for text content in the hidden input
+  useEffect(() => {
+    const checkForText = () => {
+      const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement;
+      if (input) {
+        const text = input.value.trim();
+        setHasText(text.length > 0);
+      }
+    };
+
+    // Listen for custom tiptap update events
+    const handleTiptapUpdate = (event: CustomEvent) => {
+      const text = event.detail?.text || '';
+      setHasText(text.trim().length > 0);
+    };
+
+    // Check immediately
+    checkForText();
+
+    // Set up an interval to check for changes
+    const interval = setInterval(checkForText, 50); // Check more frequently
+
+    // Listen for tiptap update events
+    document.addEventListener('tiptap-update', handleTiptapUpdate as EventListener);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener('tiptap-update', handleTiptapUpdate as EventListener);
+    };
+  }, []);
+
+  const handleSendFromButton = () => {
+    // Get the text directly from the Tiptap editor, including mentions
+    const proseMirrorElement = document.querySelector('.ProseMirror');
+    let text = '';
+    
+    // Extract text content from the DOM, which includes mentions
+    if (proseMirrorElement) {
+      text = proseMirrorElement.textContent || '';
+    }
+    
+    // If we still don't have text, try the hidden input
+    if (!text.trim()) {
+      const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement;
+      text = input?.value || '';
+    }
+    
+    console.log('Button sending text:', text); // Debug log
+    console.log('Button text length:', text.length); // Debug log
+    
+    if (text.trim().length > 0) {
+      // Use the composer's setText method directly
+      try {
+        if (composer && typeof composer.setText === 'function') {
+          composer.setText(text);
+          console.log('Button: Set text directly on composer using setText');
+          
+          // Send immediately
+          setTimeout(() => {
+            composer.send();
+            
+            // Clear after sending
+            setTimeout(() => {
+              const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement;
+              if (input) {
+                input.value = '';
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+              if (proseMirrorElement) {
+                proseMirrorElement.innerHTML = '<p></p>';
+              }
+            }, 100);
+          }, 50);
+        }
+      } catch (e) {
+        console.log('Button: Could not set text directly:', e);
+      }
+    }
+  };
+
   return (
     <div className="bg-zinc-800 border-l border-r border-b border-zinc-300 dark:border-zinc-600 relative flex items-center justify-between rounded-b-2xl p-2">
       <div className="flex items-center gap-2">
@@ -514,17 +677,21 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, onFileAttach, 
       </div>
 
       <ThreadPrimitive.If running={false}>
-        <ComposerPrimitive.Send asChild>
-          <TooltipIconButton
-            tooltip="Send"
-            type="submit"
-            variant="default"
-            className="dark:border-muted-foreground/90 border-muted-foreground/60 hover:bg-primary/75 p-2 border border-zinc-300 dark:border-zinc-600 scale-100"
-            aria-label="Send message"
-          >
-            <ChevronRightIcon />
-          </TooltipIconButton>
-        </ComposerPrimitive.Send>
+        <TooltipIconButton
+          tooltip="Send"
+          type="button"
+          variant="default"
+          className={`dark:border-muted-foreground/90 border-muted-foreground/60 p-2 border border-zinc-300 dark:border-zinc-600 scale-100 ${
+            hasText 
+              ? 'hover:bg-primary/75 cursor-pointer' 
+              : 'opacity-50 cursor-not-allowed'
+          }`}
+          aria-label="Send message"
+          onClick={handleSendFromButton}
+          disabled={!hasText}
+        >
+          <ChevronRightIcon />
+        </TooltipIconButton>
       </ThreadPrimitive.If>
 
       <ThreadPrimitive.If running>

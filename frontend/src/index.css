@@ -168,3 +168,36 @@
   margin-left: 4rem; /* 64px to account for nav sidebar */
 }
 
+  /* Tiptap mention chips (global styles) */
+  .ProseMirror span[data-type="mention"],
+  .ProseMirror span.mention,
+  .ProseMirror span.file-mention,
+  .ProseMirror span.tiptap-mention-chip,
+  span[data-type="mention"],
+  span.mention,
+  span.file-mention,
+  span.tiptap-mention-chip,
+  .mention-chip-white {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    color: #ffffff !important;
+    border-radius: 0.3rem !important;
+    padding: 0.01rem 0.2rem !important;
+    text-decoration: none !important;
+    font-size: 0.8rem !important;
+    font-weight: 300 !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    display: inline-block !important;
+    box-decoration-break: clone !important;
+  }
+  .ProseMirror span[data-type="mention"]:hover,
+  .ProseMirror span.mention:hover,
+  .ProseMirror span.file-mention:hover,
+  .ProseMirror span.tiptap-mention-chip:hover,
+  span[data-type="mention"]:hover,
+  span.mention:hover,
+  span.file-mention:hover,
+  span.tiptap-mention-chip:hover,
+  .mention-chip-white:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+  }
+

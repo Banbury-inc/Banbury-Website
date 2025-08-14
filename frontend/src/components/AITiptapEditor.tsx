@@ -367,63 +367,6 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
           <div className={styles['toolbar-group']}>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={styles['toolbar-button']} title="AI Tools">
-                  <Wand2 size={16} />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-56">
-                <DropdownMenuLabel>AI Actions</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Editing
-                </DropdownMenuLabel>
-                {aiCommands
-                  .filter(cmd => cmd.category === 'editing')
-                  .map(command => (
-                    <DropdownMenuItem
-                      key={command.id}
-                      onClick={() => command.execute()}
-                      disabled={command.id.includes('selection') && !hasSelection}
-                    >
-                      {command.name}
-                    </DropdownMenuItem>
-                  ))}
-                
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Content
-                </DropdownMenuLabel>
-                {aiCommands
-                  .filter(cmd => cmd.category === 'content')
-                  .map(command => (
-                    <DropdownMenuItem
-                      key={command.id}
-                      onClick={() => command.execute()}
-                      disabled={command.id.includes('selection') && !hasSelection}
-                    >
-                      {command.name}
-                    </DropdownMenuItem>
-                  ))}
-                
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs text-muted-foreground">
-                  Analysis
-                </DropdownMenuLabel>
-                {aiCommands
-                  .filter(cmd => cmd.category === 'analysis')
-                  .map(command => (
-                    <DropdownMenuItem
-                      key={command.id}
-                      onClick={() => command.execute()}
-                    >
-                      {command.name}
-                    </DropdownMenuItem>
-                  ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
                 <button className={styles['toolbar-button']} title="More Tools">
                   <MoreHorizontal size={16} />
                 </button>
