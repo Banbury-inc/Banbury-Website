@@ -1,6 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
 import { CONFIG } from '../config/config';
+import { AUTH_CONFIG } from './authConfig';
 
 // Configure axios defaults
 axios.defaults.timeout = 10000; // 10 second timeout
@@ -150,7 +151,7 @@ export class ApiService {
         token?: string;
         user?: { username: string; email: string };
         error?: string;
-      }>(`/authentication/auth/callback/?code=${code}`);
+      }>(`/authentication/auth/callback/?code=${encodeURIComponent(code)}&redirect_uri=${encodeURIComponent(AUTH_CONFIG.getRedirectUri())}`);
 
       if (response.success && response.token && response.user) {
         // Set auth token globally
