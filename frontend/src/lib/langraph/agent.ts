@@ -176,6 +176,61 @@ const tiptapAiTool = tool(
   }
 );
 
+// Spreadsheet editing tool to apply AI-driven spreadsheet operations
+const sheetAiTool = tool(
+  async (input: {
+    action: string;
+    sheetName?: string;
+    operations?: Array<
+      | { type: 'setCell'; row: number; col: number; value: string | number }
+      | { type: 'setRange'; range: { startRow: number; startCol: number; endRow: number; endCol: number }; values: (string | number)[][] }
+      | { type: 'insertRows'; index: number; count?: number }
+      | { type: 'deleteRows'; index: number; count?: number }
+      | { type: 'insertCols'; index: number; count?: number }
+      | { type: 'deleteCols'; index: number; count?: number }
+    >;
+    csvContent?: string;
+    note?: string;
+  }) => {
+    // Return payload for the frontend spreadsheet editor to apply
+    return {
+      action: input.action,
+      sheetName: input.sheetName,
+      operations: input.operations || [],
+      csvContent: input.csvContent,
+      note: input.note,
+    };
+  },
+  {
+    name: 'sheet_ai',
+    description:
+      'Use this tool to deliver AI-generated spreadsheet edits. Provide either a list of operations (preferred) or full csvContent to replace the sheet.',
+    schema: z.object({
+      action: z.string().describe("Description of the action performed (e.g. 'Clean data', 'Normalize columns', 'Apply formula')"),
+      sheetName: z.string().optional().describe('Optional sheet name for multi-sheet contexts'),
+      operations: z
+        .array(
+          z.union([
+            z.object({ type: z.literal('setCell'), row: z.number(), col: z.number(), value: z.union([z.string(), z.number()]) }),
+            z.object({
+              type: z.literal('setRange'),
+              range: z.object({ startRow: z.number(), startCol: z.number(), endRow: z.number(), endCol: z.number() }),
+              values: z.array(z.array(z.union([z.string(), z.number()]))),
+            }),
+            z.object({ type: z.literal('insertRows'), index: z.number(), count: z.number().optional() }),
+            z.object({ type: z.literal('deleteRows'), index: z.number(), count: z.number().optional() }),
+            z.object({ type: z.literal('insertCols'), index: z.number(), count: z.number().optional() }),
+            z.object({ type: z.literal('deleteCols'), index: z.number(), count: z.number().optional() }),
+          ])
+        )
+        .optional()
+        .describe('List of spreadsheet operations to apply'),
+      csvContent: z.string().optional().describe('Optional full CSV content to replace the current sheet'),
+      note: z.string().optional().describe('Optional notes/instructions for the user'),
+    }),
+  }
+);
+
 // Memory management tools (simplified version since langmem isn't available in NPM)
 const memoryStore = new Map<string, Array<{ content: string; timestamp: number; type: string }>>();
 
@@ -351,7 +406,7 @@ const createFileTool = tool(
 );
 
 // Bind tools to the model and also prepare tools array for React agent
-const tools = [webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool, createFileTool];
+const tools = [webSearchTool, tiptapAiTool, sheetAiTool, createMemoryTool, searchMemoryTool, createFileTool];
 const modelWithTools = anthropicModel.bindTools(tools);
 
 // React-style agent that handles tool-calling loops internally
@@ -369,8 +424,9 @@ async function agentNode(state: AgentState): Promise<AgentState> {
     if (!hasSystemMessage) {
       const systemMessage = new SystemMessage(
         "You are Athena, a helpful AI assistant with advanced capabilities. " +
-        "You have access to web search, memory management, document editing, and file creation tools. " +
+        "You have access to web search, memory management, document editing, spreadsheet editing, and file creation tools. " +
         "When helping with document editing tasks, use the tiptap_ai tool to deliver your response. " +
+        "When helping with spreadsheet editing tasks (cleaning, transformations, formulas, row/column edits), use the sheet_ai tool to deliver structured operations. " +
         "To create a new file in the user's cloud workspace, use the create_file tool with file name, full path (including the file name), and content. " +
         "Store important information in memory for future reference using the store_memory tool. " +
         "Search your memories when relevant using the search_memory tool. " +
@@ -416,6 +472,9 @@ async function toolNode(state: AgentState): Promise<AgentState> {
         case "tiptap_ai":
           result = JSON.stringify(await tiptapAiTool.invoke(toolCall.args));
           break;
+          case "sheet_ai":
+            result = JSON.stringify(await sheetAiTool.invoke(toolCall.args));
+            break;
         case "store_memory":
           result = await createMemoryTool.invoke(toolCall.args);
           break;

@@ -32,6 +32,7 @@ import { WebSearchTool } from "./web-search-result";
 import { FileAttachment } from "./file-attachment";
 import { FileAttachmentDisplay } from "./file-attachment-display";
 import { TiptapAITool } from "./TiptapAITool";
+import { SheetAITool } from "./SheetAITool";
 import { FileSystemItem } from "../utils/fileTreeUtils";
 import { cn } from "../utils";
   import { ApiService } from "../services/apiService";
@@ -651,6 +652,7 @@ const AssistantMessage: FC = () => {
                 by_name: {
                   web_search: WebSearchTool,
                   tiptap_ai: TiptapAITool,
+                  sheet_ai: SheetAITool,
                 },
                 Fallback: ToolFallback 
               },

@@ -379,6 +379,102 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     }
   }, [containerHeight]);
 
+  // Listen for AI spreadsheet responses and apply to table
+  useEffect(() => {
+    const handler = (event: any) => {
+      const detail = event?.detail || {};
+      const { operations, csvContent } = detail as {
+        operations?: Array<
+          | { type: 'setCell'; row: number; col: number; value: string | number }
+          | { type: 'setRange'; range: { startRow: number; startCol: number; endRow: number; endCol: number }; values: (string | number)[][] }
+          | { type: 'insertRows'; index: number; count?: number }
+          | { type: 'deleteRows'; index: number; count?: number }
+          | { type: 'insertCols'; index: number; count?: number }
+          | { type: 'deleteCols'; index: number; count?: number }
+        >;
+        csvContent?: string;
+      };
+
+      const hot = hotTableRef.current?.hotInstance;
+      if (!hot) return;
+
+      try {
+        if (csvContent && csvContent.trim().length > 0) {
+          // Replace entire data with provided CSV
+          const parsed = parseCSV(csvContent);
+          hot.loadData(parsed);
+          setData(parsed);
+          onContentChange?.(parsed);
+          setHasChanges(true);
+          return;
+        }
+
+        if (operations && operations.length > 0) {
+          // Apply operations
+          operations.forEach((op) => {
+            switch (op.type) {
+              case 'setCell': {
+                const { row, col, value } = op as any;
+                if (row >= 0 && col >= 0) {
+                  hot.setDataAtCell(row, col, value);
+                }
+                break;
+              }
+              case 'setRange': {
+                const { range, values } = op as any;
+                const { startRow, startCol, endRow, endCol } = range;
+                let r = 0;
+                for (let i = startRow; i <= endRow; i++) {
+                  let c = 0;
+                  for (let j = startCol; j <= endCol; j++) {
+                    const v = values?.[r]?.[c];
+                    if (v !== undefined) hot.setDataAtCell(i, j, v);
+                    c++;
+                  }
+                  r++;
+                }
+                break;
+              }
+              case 'insertRows': {
+                const { index, count = 1 } = op as any;
+                hot.alter('insert_row', index, count);
+                break;
+              }
+              case 'deleteRows': {
+                const { index, count = 1 } = op as any;
+                hot.alter('remove_row', index, count);
+                break;
+              }
+              case 'insertCols': {
+                const { index, count = 1 } = op as any;
+                hot.alter('insert_col', index, count);
+                break;
+              }
+              case 'deleteCols': {
+                const { index, count = 1 } = op as any;
+                hot.alter('remove_col', index, count);
+                break;
+              }
+              default:
+                break;
+            }
+          });
+
+          // Sync internal state after operations
+          const currentData = hot.getData();
+          setData(currentData);
+          onContentChange?.(currentData);
+          setHasChanges(true);
+        }
+      } catch {
+        // Fail silently to avoid breaking user session
+      }
+    };
+
+    window.addEventListener('sheet-ai-response', handler as EventListener);
+    return () => window.removeEventListener('sheet-ai-response', handler as EventListener);
+  }, [onContentChange]);
+
   // Configure plugins after table initialization
   useEffect(() => {
     if (hotTableRef.current?.hotInstance) {

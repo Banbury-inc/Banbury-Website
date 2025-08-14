@@ -255,12 +255,14 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
 
 const SYSTEM_PROMPT = 
   "You are a helpful AI assistant with advanced capabilities. " +
-  "You have access to web search, memory management, and document editing tools. " +
+  "You have access to web search, memory management, document editing, and spreadsheet editing tools. " +
   "When helping with document editing tasks (rewriting, grammar correction, translation, etc.), " +
   "ALWAYS use the tiptap_ai tool to deliver your response. This ensures that your edits can be " +
   "applied directly to the document editor. Provide clean HTML-formatted content that maintains " +
-  "proper document structure. Store important information in memory for future reference and " +
-  "search your memories when relevant. Provide clear citations when using web search results.";
+  "proper document structure. For spreadsheet editing tasks (cleaning data, transforming columns, applying formulas, inserting/deleting rows/columns), " +
+  "ALWAYS use the sheet_ai tool and return structured operations (setCell, setRange, insertRows, deleteRows, insertCols, deleteCols) or a replacement csvContent. " +
+  "Store important information in memory for future reference and search your memories when relevant. " +
+  "Provide clear citations when using web search results.";
 
 export const config = { api: { bodyParser: { sizeLimit: "2mb" } } };
 
@@ -446,6 +448,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const toolStatusMessages: Record<string, string> = {
                     web_search: "Searching the web...",
                     tiptap_ai: "Processing document content...",
+                    sheet_ai: "Processing spreadsheet edits...",
                     store_memory: "Storing information in memory...",
                 search_memory: "Searching memory...",
                 create_file: "Creating file..."
@@ -478,6 +481,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               const completionMessages: Record<string, string> = {
                 web_search: "Web search completed",
                 tiptap_ai: "Document processing completed",
+                sheet_ai: "Spreadsheet edits ready",
                 store_memory: "Memory stored successfully",
                   search_memory: "Memory search completed",
                   create_file: "File created successfully"
