@@ -366,7 +366,7 @@ export default function AdminPage() {
                 <Card className="bg-zinc-900 border-zinc-700">
                   <CardHeader>
                     <CardTitle className="text-white">New API Key Generated</CardTitle>
-                    <CardDescription className="text-zinc-400">Copy this key now - it won't be shown again</CardDescription>
+                    <CardDescription className="text-zinc-400">Copy this key now - it won&apos;t be shown again</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <div className="flex items-center gap-2">
