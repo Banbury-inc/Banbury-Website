@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react'
 import { useRouter } from 'next/router'
-import { EmailService, GmailMessage, GmailMessageListResponse } from '../services/emailService'
+import { useEffect, useState } from 'react'
+
 import { NavSidebar } from '../components/nav-sidebar'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
+import { EmailService, GmailMessage, GmailMessageListResponse } from '../services/emailService'
 
 export default function EmailPage() {
   const router = useRouter()

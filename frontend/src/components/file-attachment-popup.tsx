@@ -1,11 +1,12 @@
+import { File, Search, ChevronRight, Check } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { File, Search, ChevronRight, Check } from 'lucide-react';
+
 import { Input } from './ui/input';
-import { FileSystemItem } from '../utils/fileTreeUtils';
 import { ApiService } from '../services/apiService';
-import { buildFileTree } from '../utils/fileTreeUtils';
 import { cn } from '../utils';
+import { FileSystemItem } from '../utils/fileTreeUtils';
+import { buildFileTree } from '../utils/fileTreeUtils';
 
 interface FileAttachmentPopupProps {
   onFileSelect: (file: FileSystemItem & { fileData?: string; mimeType?: string }) => void;

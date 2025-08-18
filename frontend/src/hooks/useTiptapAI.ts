@@ -1,4 +1,5 @@
 import { useRef, useCallback, useState } from 'react';
+
 import type { Editor } from '@tiptap/react';
 
 export interface TiptapAIAction {

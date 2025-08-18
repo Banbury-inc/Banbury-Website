@@ -10,13 +10,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
 import { AUTH_CONFIG } from '../services/authConfig';
 import { DebugService } from '../services/debugService';
-import { Button } from '../components/ui/button';
-import { Input } from '../components/ui/input';
-import { Label } from '../components/ui/label';
 
 const Login = (): JSX.Element => {
   const router = useRouter();

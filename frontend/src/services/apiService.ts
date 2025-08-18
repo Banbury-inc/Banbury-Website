@@ -1,7 +1,7 @@
 import axios, { AxiosError } from 'axios';
 
-import { CONFIG } from '../config/config';
 import { AUTH_CONFIG } from './authConfig';
+import { CONFIG } from '../config/config';
 
 // Configure axios defaults
 axios.defaults.timeout = 10000; // 10 second timeout

@@ -1,6 +1,5 @@
 import * as AssistantUI from "@assistant-ui/react";
 import { motion } from "framer-motion";
-import { useState, useEffect, useRef } from "react";
 import {
   ArrowDownIcon,
   CopyIcon,
@@ -18,21 +17,18 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 
-import { MarkdownText } from "./markdown-text";
-import { ToolFallback } from "./tool-fallback";
-import { TooltipIconButton } from "./tooltip-icon-button";
-import { Button } from "./ui/button";
-import { WebSearchTool } from "./web-search-result";
+import { ChatTiptapComposer } from "./ChatTiptapComposer";
 import { DocumentAITool } from "./DocumentAITool";
 import { FileAttachment } from "./file-attachment";
 import { FileAttachmentDisplay } from "./file-attachment-display";
-import { TiptapAITool } from "./TiptapAITool";
+import { MarkdownText } from "./markdown-text";
 import { SheetAITool } from "./SheetAITool";
-import { FileSystemItem } from "../utils/fileTreeUtils";
-import { cn } from "../utils";
-  import { ApiService } from "../services/apiService";
-import { ChatTiptapComposer } from "./ChatTiptapComposer";
+import { TiptapAITool } from "./TiptapAITool";
+import { ToolFallback } from "./tool-fallback";
+import { TooltipIconButton } from "./tooltip-icon-button";
+import { Button } from "./ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -41,9 +37,14 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "./ui/dropdown-menu";
+import { WebSearchTool } from "./web-search-result";
+  import { ApiService } from "../services/apiService";
+import styles from "../styles/scrollbar.module.css";
+import { cn } from "../utils";
+import { FileSystemItem } from "../utils/fileTreeUtils";
 
 import type { FC } from "react";
-import styles from "../styles/scrollbar.module.css";
+
 
 // Destructure Assistant UI primitives from namespace import to avoid named import type issues
 const {
@@ -69,7 +70,7 @@ interface ThreadProps {
 export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect }) => {
   const [attachedFiles, setAttachedFiles] = useState<FileSystemItem[]>([]);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(true);
-  const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean }>(() => {
+  const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean }>(() => {
     try {
       const saved = localStorage.getItem("toolPreferences");
       if (saved) {
@@ -78,7 +79,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
         return { ...parsed, langgraph_mode: true };
       }
     } catch {}
-    return { web_search: true, tiptap_ai: true, read_file: true, langgraph_mode: true };
+    return { web_search: true, tiptap_ai: true, read_file: true, gmail: true, langgraph_mode: true };
   });
 
   // Cache of pre-downloaded attachment payloads keyed by fileId
@@ -351,8 +352,8 @@ interface ComposerProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean }) => void;
+  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean };
+  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean }) => void;
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
 }
 
@@ -515,8 +516,8 @@ interface ComposerActionProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean }) => void;
+  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean };
+  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean }) => void;
 }
 
 const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences }) => {
@@ -706,6 +707,15 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, onFileAttach, 
               <div className="flex flex-col">
                 <span>Read File</span>
                 <span className="text-xs text-muted-foreground">Advanced file processing</span>
+              </div>
+            </DropdownMenuCheckboxItem>
+            <DropdownMenuCheckboxItem
+              checked={toolPreferences.gmail}
+              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, gmail: Boolean(checked) })}
+            >
+              <div className="flex flex-col">
+                <span>Gmail Integration</span>
+                <span className="text-xs text-muted-foreground">Read, search, and send emails</span>
               </div>
             </DropdownMenuCheckboxItem>
             <DropdownMenuCheckboxItem checked disabled>

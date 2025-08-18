@@ -476,7 +476,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   try {
-    const body = req.body as { messages: any[]; toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean } };
+    const body = req.body as { messages: any[]; toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean } };
     // Normalize: fold any message-level attachments into content as file-attachment parts
     const normalizedMessages: AssistantUiMessage[] = Array.isArray(body.messages)
       ? body.messages.map((msg: any) => {
@@ -566,7 +566,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })();
 
     const lcMessages = toLangChainMessages(messagesWithFileData);
-    const prefs = body.toolPreferences || { web_search: true, tiptap_ai: true, read_file: true };
+    const prefs = body.toolPreferences || { web_search: true, tiptap_ai: true, read_file: true, gmail: true };
     const messages: any[] = [new SystemMessage(SYSTEM_PROMPT), ...lcMessages];
 
     // Create readFile tool with access to req

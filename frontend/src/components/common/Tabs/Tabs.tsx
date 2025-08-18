@@ -1,11 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { X as CloseIcon, Plus as AddIcon } from 'lucide-react';
-import { draggable, monitorForElements, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import type { ElementDropTargetGetFeedbackArgs } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { combine } from '@atlaskit/pragmatic-drag-and-drop/combine';
+import { draggable, monitorForElements, dropTargetForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/types';
+import { X as CloseIcon, Plus as AddIcon } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+
+import type { ElementDropTargetGetFeedbackArgs } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/types';
 
 export interface Tab {
   id: string;

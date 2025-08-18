@@ -6,9 +6,10 @@ import { useTheme } from '@mui/material/styles';
 import Image from 'next/image';
 import NextLink from 'next/link';
 import { useState, useEffect } from 'react';
+
 import AppImage from '../assets/images/app_image.png';
-import { determineOS } from '../handlers/determineOS';
 import { Button } from '../components/ui/button';
+import { determineOS } from '../handlers/determineOS';
 
 const Home = (): JSX.Element => {
   const theme = useTheme();

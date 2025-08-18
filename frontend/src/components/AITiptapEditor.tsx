@@ -1,18 +1,17 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { EditorContent, useEditor } from '@tiptap/react';
-import { StarterKit } from '@tiptap/starter-kit';
 import { Highlight } from '@tiptap/extension-highlight';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
 import { Image } from '@tiptap/extension-image';
+import { Link } from '@tiptap/extension-link';
 import { TaskList } from '@tiptap/extension-list';
 import { TaskItem } from '@tiptap/extension-list';
+import { Placeholder } from '@tiptap/extension-placeholder';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
-import { Link } from '@tiptap/extension-link';
-import { Placeholder } from '@tiptap/extension-placeholder';
+import { EditorContent, useEditor } from '@tiptap/react';
+import { StarterKit } from '@tiptap/starter-kit';
 import {
   Bold,
   Italic,
@@ -40,8 +39,10 @@ import {
   Save,
   Download
 } from 'lucide-react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 
-import { useTiptapAIContext } from '../contexts/TiptapAIContext';
+
+import styles from './SimpleTiptapEditor.module.css';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,9 +51,8 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel
 } from './ui/dropdown-menu';
+import { useTiptapAIContext } from '../contexts/TiptapAIContext';
 import { cn } from '../utils';
-
-import styles from './SimpleTiptapEditor.module.css';
 
 interface AITiptapEditorProps {
   initialContent?: string;

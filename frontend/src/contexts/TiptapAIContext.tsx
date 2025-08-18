@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
-import type { Editor } from '@tiptap/react';
+
 import { useTiptapAI, type TiptapAIAction, type TiptapAIBridge } from '../hooks/useTiptapAI';
+
+import type { Editor } from '@tiptap/react';
 
 interface TiptapAIContextType {
   editor: Editor | null;

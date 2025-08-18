@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
 import { AssistantRuntimeProvider } from '@assistant-ui/react';
 import { useVercelUseChatRuntime } from '@assistant-ui/react-ai-sdk';
+import React, { useEffect, useState } from 'react';
 
 interface AssistantProviderProps {
   children: React.ReactNode;
@@ -19,7 +19,7 @@ export const AssistantProvider: React.FC<AssistantProviderProps> = ({
       const saved = localStorage.getItem("toolPreferences");
       if (saved) return JSON.parse(saved);
     } catch {}
-    return { web_search: true, tiptap_ai: true, read_file: true, langgraph_mode: false };
+    return { web_search: true, tiptap_ai: true, read_file: true, gmail: true, langgraph_mode: false };
   });
 
   // Listen for localStorage changes to sync tool preferences

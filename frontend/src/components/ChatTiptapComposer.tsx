@@ -2,18 +2,21 @@ import React, { useEffect, useMemo } from 'react';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import Mention from '@tiptap/extension-mention';
+
 // Using SuggestionOptions shape directly via Mention.configure
-import type { SuggestionOptions } from '@tiptap/suggestion';
 import { Placeholder } from '@tiptap/extension-placeholder';
-import tippy, { Instance as TippyInstance } from 'tippy.js';
+
 import 'tippy.js/dist/tippy.css';
-import type { Editor } from '@tiptap/core';
 import { Extension } from '@tiptap/core';
-import { Decoration, DecorationSet } from 'prosemirror-view';
 import { Plugin, PluginKey } from 'prosemirror-state';
+import { Decoration, DecorationSet } from 'prosemirror-view';
+import tippy, { Instance as TippyInstance } from 'tippy.js';
 
 import { ApiService } from '../services/apiService';
 import { buildFileTree, flattenFileTree, FileSystemItem } from '../utils/fileTreeUtils';
+
+import type { Editor } from '@tiptap/core';
+import type { SuggestionOptions } from '@tiptap/suggestion';
 
 type ChatTiptapComposerProps = {
   hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;

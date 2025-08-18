@@ -1,9 +1,3 @@
-import React, { useState, useEffect } from 'react';
-import { AssistantSidebar } from '../components/assistant-sidebar';
-import { AITiptapEditor } from '../components/AITiptapEditor';
-import { TiptapAIProvider } from '../contexts/TiptapAIContext';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { 
   Download, 
   Upload, 
@@ -14,6 +8,13 @@ import {
   Wand2,
   MessageSquare
 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
+import { AITiptapEditor } from '../components/AITiptapEditor';
+import { AssistantSidebar } from '../components/assistant-sidebar';
+import { Button } from '../components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
+import { TiptapAIProvider } from '../contexts/TiptapAIContext';
 import { cn } from '../utils';
 
 interface DocumentStats {

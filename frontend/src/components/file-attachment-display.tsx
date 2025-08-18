@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
 import { File, ChevronDown, ChevronRight, X } from 'lucide-react';
+import React, { useState } from 'react';
+
 import { Button } from './ui/button';
-import { FileSystemItem } from '../utils/fileTreeUtils';
 import { cn } from '../utils';
+import { FileSystemItem } from '../utils/fileTreeUtils';
 
 interface FileAttachmentDisplayProps {
   files: FileSystemItem[];

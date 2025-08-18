@@ -5,6 +5,14 @@ import { ChatAnthropic } from "@langchain/anthropic";
 import { StateGraph, MessagesAnnotation } from "@langchain/langgraph";
 import { ToolNode } from "@langchain/langgraph/prebuilt";
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage, BaseMessage } from "@langchain/core/messages";
+import { 
+  gmailSearch, 
+  gmailGetRecent, 
+  gmailGetUnread, 
+  gmailGetEmail, 
+  gmailSendEmail, 
+  gmailGetFromSender 
+} from "../../../lib/gmail-tools";
 
 type AssistantUiMessagePart =
   | { type: "text"; text: string }
@@ -60,10 +68,6 @@ const anthropicModel = new ChatAnthropic({
   temperature: 0.2,
 });
 
-const tools = [webSearch];
-const modelWithTools = anthropicModel.bindTools(tools);
-const toolsNode = new ToolNode(tools);
-
 function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
   const lc: BaseMessage[] = [];
 
@@ -103,28 +107,49 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
   return lc;
 }
 
-const callModel = async (state: typeof MessagesAnnotation.State) => {
-  const ai = await modelWithTools.invoke(state.messages);
-  return { messages: [ai] };
-};
-
 const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   const last = state.messages[state.messages.length - 1] as AIMessage | undefined;
   const pendingToolCalls = (last?.additional_kwargs as any)?.tool_calls || (last as any)?.tool_calls;
   return Array.isArray(pendingToolCalls) && pendingToolCalls.length > 0 ? "tools" : "__end__";
 };
 
-const graph = new StateGraph(MessagesAnnotation)
-  .addNode("agent", callModel)
-  .addNode("tools", toolsNode)
-  .addEdge("tools", "agent")
-  .addConditionalEdges("agent", shouldContinue, { tools: "tools", __end__: "__end__" });
-
-const app = graph.compile();
-
 export async function POST(req: NextRequest) {
   try {
-    const body = (await req.json()) as { messages: AssistantUiMessage[] };
+    const body = (await req.json()) as { messages: AssistantUiMessage[]; toolPreferences?: any };
+
+    // Get tool preferences from the request, defaulting to all enabled
+    const toolPreferences = body.toolPreferences || { gmail: true };
+    
+    // Dynamically build tools array based on preferences
+    const availableTools = [webSearch];
+    
+    // Add Gmail tools if enabled
+    if (toolPreferences.gmail !== false) {
+      availableTools.push(
+        gmailSearch,
+        gmailGetRecent,
+        gmailGetUnread,
+        gmailGetEmail,
+        gmailSendEmail,
+        gmailGetFromSender
+      );
+    }
+    
+    // Create model and tools node with dynamic tools
+    const modelWithTools = anthropicModel.bindTools(availableTools);
+    const toolsNode = new ToolNode(availableTools);
+    
+    // Create graph with dynamic tools
+    const graph = new StateGraph(MessagesAnnotation)
+      .addNode("agent", async (state: typeof MessagesAnnotation.State) => {
+        const ai = await modelWithTools.invoke(state.messages);
+        return { messages: [ai] };
+      })
+      .addNode("tools", toolsNode)
+      .addEdge("tools", "agent")
+      .addConditionalEdges("agent", shouldContinue, { tools: "tools", __end__: "__end__" });
+
+    const app = graph.compile();
 
     const lcMessages = toLangChainMessages(body.messages);
     const result = await app.invoke({ messages: lcMessages });

@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react"
-import { Button } from "./ui/button"
 import { ArrowLeft, Reply, Forward, Trash2, Archive, Star, Clock, User, Mail, Paperclip, Download } from "lucide-react"
-import { extractEmailContent, hasAttachments, formatFileSize, cleanHtmlContent } from "../utils/emailUtils"
+import { useEffect, useMemo, useState } from "react"
+
+import { Button } from "./ui/button"
 import { EmailService } from "../services/emailService"
+import { extractEmailContent, hasAttachments, formatFileSize, cleanHtmlContent } from "../utils/emailUtils"
 
 interface EmailViewerProps {
   email: any

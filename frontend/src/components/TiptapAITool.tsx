@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Wand2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { handleAIResponse } from '../contexts/TiptapAIContext';
 
 interface TiptapAIToolProps {

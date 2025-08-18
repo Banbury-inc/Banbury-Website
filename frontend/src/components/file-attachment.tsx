@@ -1,12 +1,13 @@
-import React, { useState, useEffect } from 'react';
 import { File, X, Paperclip, Search } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from './ui/dropdown-menu';
-import { FileSystemItem } from '../utils/fileTreeUtils';
+import { Input } from './ui/input';
 import { ApiService } from '../services/apiService';
-import { buildFileTree } from '../utils/fileTreeUtils';
 import { cn } from '../utils';
+import { FileSystemItem } from '../utils/fileTreeUtils';
+import { buildFileTree } from '../utils/fileTreeUtils';
 
 interface FileAttachmentProps {
   onFileAttach: (file: FileSystemItem) => void;

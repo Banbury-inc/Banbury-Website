@@ -1,4 +1,3 @@
-import { useState, useCallback } from 'react'
 import { 
   Send, 
   X, 
@@ -6,10 +5,12 @@ import {
   Save,
   ArrowLeft
 } from 'lucide-react'
+import { useState, useCallback } from 'react'
+
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { EmailService } from '../services/emailService'
 import { useToast } from './ui/use-toast'
+import { EmailService } from '../services/emailService'
 
 interface EmailComposerProps {
   onBack?: () => void

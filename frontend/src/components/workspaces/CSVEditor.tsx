@@ -3,7 +3,6 @@ import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 import { textRenderer, registerRenderer } from 'handsontable/renderers';
 import 'handsontable/dist/handsontable.full.css';
-import { Box, Typography, Alert, CircularProgress, Button, Toolbar, IconButton, Divider, Menu, MenuItem, TextField } from '@mui/material';
 import {
   Add,
   ViewColumn,
@@ -43,6 +42,7 @@ import {
   Save,
   Download,
 } from '@mui/icons-material';
+import { Box, Typography, Alert, CircularProgress, Button, Toolbar, IconButton, Divider, Menu, MenuItem, TextField } from '@mui/material';
 // Register all Handsontable modules
 registerAllModules();
 

@@ -1,12 +1,12 @@
 import * as ContextMenu from "@radix-ui/react-context-menu"
 import { ChevronDown, ChevronRight, File, Folder, RefreshCw, Edit2, Trash2, FolderPlus, Mail } from "lucide-react"
-import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/router'
+import { useState, useEffect, useCallback, useRef } from 'react'
 
+import { EmailTab } from "./EmailTab"
 import { Button } from "./ui/button"
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
-import { EmailTab } from "./EmailTab"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'

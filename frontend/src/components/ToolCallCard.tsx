@@ -1,12 +1,14 @@
 import { useMemo, useState } from "react";
+
 import { Button } from "./ui/button";
-import type { ReactNode, SVGProps } from "react";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
 } from "./ui/dropdown-menu";
+
+import type { ReactNode, SVGProps } from "react";
 
 const Wrench = (props: SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" width="1em" height="1em" {...props}>
@@ -122,6 +124,42 @@ export const ToolCallCard = ({
             <>
               <Check className="h-3 w-3 text-green-600" />
             </>
+          )}
+        </div>
+        <div className="ml-auto flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            title={isCollapsed ? "Expand" : "Collapse"}
+          >
+            {isCollapsed ? (
+              <ChevronDown className="h-3 w-3" />
+            ) : (
+              <ChevronUp className="h-3 w-3" />
+            )}
+          </Button>
+          {!isCollapsed && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                >
+                  <DotsHorizontal className="h-3 w-3" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuItem onClick={() => setActiveTab("args")}>
+                  Arguments
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setActiveTab("result")}>
+                  Result
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
       </div>

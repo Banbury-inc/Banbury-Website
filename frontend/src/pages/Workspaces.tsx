@@ -1,23 +1,27 @@
 
+import { Allotment } from 'allotment';
 import { useState, useEffect, useCallback } from 'react';
 // Using lucide-react icons instead of @mui/icons-material to avoid import issues
  
-import { DocumentViewer } from '../components/DocumentViewer';
-import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
-import { FileSystemItem } from '../utils/fileTreeUtils';
-import { Allotment } from 'allotment';
-import 'allotment/dist/style.css';
-import { Thread } from '../components/thread';
-import { UploadIcon, X, Plus, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet } from 'lucide-react';
-import { useRouter } from 'next/router';
 import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
-import OlympusTabs, { Tab as OlympusTab } from '../components/common/Tabs/Tabs';
-import { dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
-import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-import { TiptapAIProvider } from '../contexts/TiptapAIContext';
 import { AppSidebar } from "../components/app-sidebar";
+import OlympusTabs, { Tab as OlympusTab } from '../components/common/Tabs/Tabs';
+import { DocumentViewer } from '../components/DocumentViewer';
+import { EmailComposer } from '../components/EmailComposer';
+import { EmailViewer } from '../components/EmailViewer';
 import { ImageViewer } from '../components/ImageViewer';
 import { NavSidebar } from "../components/nav-sidebar";
+import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
+import { FileSystemItem } from '../utils/fileTreeUtils';
+import 'allotment/dist/style.css';
+import { Thread } from '../components/thread';
+
+import { UploadIcon, X, Plus, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet } from 'lucide-react';
+import { useRouter } from 'next/router';
+import { dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
+import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
+
+import { TiptapAIProvider } from '../contexts/TiptapAIContext';
 import { PDFViewer } from '../components/PDFViewer';
 import { Button } from '../components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
@@ -26,8 +30,6 @@ import { Toaster } from "../components/ui/toaster";
 import { useToast } from "../components/ui/use-toast";
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
-import { EmailViewer } from '../components/EmailViewer';
-import { EmailComposer } from '../components/EmailComposer';
 
 
 

@@ -1,11 +1,12 @@
-import { Box, Button, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
+import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ChatIcon from '@mui/icons-material/Chat';
 import FolderIcon from '@mui/icons-material/Folder';
-import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
-import SearchIcon from '@mui/icons-material/Search';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
+import SearchIcon from '@mui/icons-material/Search';
+import { Box, Button, Card, CardMedia, Container, Grid, Typography } from '@mui/material';
 import axios from 'axios';
 import { useState, useEffect } from 'react';
+
 import { determineOS } from '../handlers/determineOS';
 
 

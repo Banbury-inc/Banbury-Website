@@ -1,6 +1,7 @@
 import React from 'react';
-import { Thread } from '../components/thread';
+
 import { AssistantProvider } from '../components/AssistantProvider';
+import { Thread } from '../components/thread';
 
 interface ThreadWithLangGraphProps {
   userInfo: {

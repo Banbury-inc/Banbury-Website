@@ -1,6 +1,8 @@
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
-import { ApiService } from "../services/apiService";
 import { useEffect } from "react";
+
+import { ApiService } from "../services/apiService";
+
 import type { FC, PropsWithChildren } from "react";
 
 export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
@@ -66,10 +68,11 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         : options.messages;
 
       // Read tool preferences from localStorage (defaults if missing)
-      let toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; langgraph_mode: boolean } = {
+      let toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean } = {
         web_search: true,
         tiptap_ai: true,
         read_file: true,
+        gmail: true,
         langgraph_mode: true, // Always use LangGraph mode
       };
       try {

@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import React, { useMemo, useState } from 'react';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 
 type DocumentOperation =
   | { type: 'setContent'; html: string }

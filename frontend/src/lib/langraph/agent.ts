@@ -1,12 +1,15 @@
 import { ChatAnthropic } from "@langchain/anthropic";
 import { HumanMessage, SystemMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { tool } from "@langchain/core/tools";
-import { z } from "zod";
 import { StateGraph, START, END, MessagesAnnotation } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
-import type { BaseMessage } from "@langchain/core/messages";
-import { getServerContextValue } from "../serverContext";
+import { z } from "zod";
+
+
 import { CONFIG } from "../../config/config";
+import { getServerContextValue } from "../serverContext";
+
+import type { BaseMessage } from "@langchain/core/messages";
 
 // Define our agent state
 interface AgentState {
@@ -405,8 +408,267 @@ const createFileTool = tool(
   }
 );
 
+// Gmail tools (proxy to Banbury API). Respects user toolPreferences via server context
+const gmailGetRecentTool = tool(
+  async (input: { maxResults?: number; labelIds?: string[] }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean };
+    if (prefs.gmail === false) {
+      return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const maxResults = Number(input?.maxResults || 20);
+    const labelIds = (input?.labelIds && input.labelIds.length > 0 ? input.labelIds : ["INBOX"]).join(",");
+
+    // First, get the list of message IDs
+    const listUrl = `${apiBase}/authentication/gmail/list_messages/?labelIds=${encodeURIComponent(labelIds)}&maxResults=${encodeURIComponent(String(maxResults))}`;
+    const listResp = await fetch(listUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+    if (!listResp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${listResp.status}: ${listResp.statusText}` });
+    }
+    const listData = await listResp.json();
+    
+    if (!listData.messages || !Array.isArray(listData.messages)) {
+      return JSON.stringify({ success: false, error: "No messages found or invalid response format" });
+    }
+
+    // Then, fetch full message content for each message ID
+    const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+      try {
+        const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+        const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+        if (getResp.ok) {
+          const messageData = await getResp.json();
+          return {
+            id: msg.id,
+            threadId: msg.threadId,
+            ...messageData
+          };
+        } else {
+          return {
+            id: msg.id,
+            threadId: msg.threadId,
+            error: `Failed to fetch message: ${getResp.status}`
+          };
+        }
+      } catch (error) {
+        return {
+          id: msg.id,
+          threadId: msg.threadId,
+          error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
+        };
+      }
+    });
+
+    const messages = await Promise.allSettled(messagePromises);
+    const successfulMessages = messages
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map(result => result.value);
+
+    return JSON.stringify({ 
+      success: true, 
+      messages: successfulMessages,
+      totalCount: listData.resultSizeEstimate || successfulMessages.length,
+      nextPageToken: listData.nextPageToken
+    });
+  },
+  {
+    name: "gmail_get_recent",
+    description: "Get recent Gmail messages with full content (subject, sender, body, timestamp, attachments) from the INBOX",
+    schema: z.object({
+      maxResults: z.number().optional().describe("Maximum number of results to return (default 20)"),
+      labelIds: z.array(z.string()).optional().describe("Optional Gmail labelIds (default ['INBOX'])"),
+    }),
+  }
+);
+
+const gmailSearchTool = tool(
+  async (input: { query: string; maxResults?: number }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean };
+    if (prefs.gmail === false) {
+      return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const maxResults = Number(input?.maxResults || 20);
+    // Backend supports Gmail-style q param if implemented; pass-through
+    const listUrl = `${apiBase}/authentication/gmail/list_messages/?labelIds=${encodeURIComponent("INBOX")}&maxResults=${encodeURIComponent(String(maxResults))}&q=${encodeURIComponent(input.query)}`;
+    const listResp = await fetch(listUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+    if (!listResp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${listResp.status}: ${listResp.statusText}` });
+    }
+    const listData = await listResp.json();
+    
+    if (!listData.messages || !Array.isArray(listData.messages)) {
+      return JSON.stringify({ success: false, error: "No messages found or invalid response format", query: input.query });
+    }
+
+    // Then, fetch full message content for each message ID
+    const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+      try {
+        const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+        const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+        if (getResp.ok) {
+          const messageData = await getResp.json();
+          return {
+            id: msg.id,
+            threadId: msg.threadId,
+            ...messageData
+          };
+        } else {
+          return {
+            id: msg.id,
+            threadId: msg.threadId,
+            error: `Failed to fetch message: ${getResp.status}`
+          };
+        }
+      } catch (error) {
+        return {
+          id: msg.id,
+          threadId: msg.threadId,
+          error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
+        };
+      }
+    });
+
+    const messages = await Promise.allSettled(messagePromises);
+    const successfulMessages = messages
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .map(result => result.value);
+
+    return JSON.stringify({ 
+      success: true, 
+      messages: successfulMessages,
+      query: input.query,
+      totalCount: listData.resultSizeEstimate || successfulMessages.length,
+      nextPageToken: listData.nextPageToken
+    });
+  },
+  {
+    name: "gmail_search",
+    description: "Search Gmail INBOX using Gmail query syntax and return full message content (subject, sender, body, timestamp, attachments)",
+    schema: z.object({
+      query: z.string().describe("Gmail search query, e.g., 'from:john@example.com is:unread'"),
+      maxResults: z.number().optional().describe("Maximum number of results to return (default 20)"),
+    }),
+  }
+);
+
+const gmailGetMessageTool = tool(
+  async (input: { messageId: string }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean };
+    if (prefs.gmail === false) {
+      return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(input.messageId)}/`;
+    const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+    if (!getResp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${getResp.status}: ${getResp.statusText}` });
+    }
+    const messageData = await getResp.json();
+    
+    return JSON.stringify({ 
+      success: true, 
+      message: {
+        id: input.messageId,
+        ...messageData
+      }
+    });
+  },
+  {
+    name: "gmail_get_message",
+    description: "Get a specific Gmail message by ID with full content (subject, sender, body, timestamp, attachments)",
+    schema: z.object({
+      messageId: z.string().describe("The Gmail message ID to retrieve"),
+    }),
+  }
+);
+
+const gmailSendMessageTool = tool(
+  async (input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean };
+    if (prefs.gmail === false) {
+      return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const sendUrl = `${apiBase}/authentication/gmail/send_message/`;
+    const sendResp = await fetch(sendUrl, { 
+      method: "POST", 
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        to: input.to,
+        subject: input.subject,
+        body: input.body,
+        cc: input.cc,
+        bcc: input.bcc,
+        isDraft: input.isDraft || false
+      })
+    });
+    
+    if (!sendResp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${sendResp.status}: ${sendResp.statusText}` });
+    }
+    const sendData = await sendResp.json();
+    
+    return JSON.stringify({ 
+      success: true, 
+      result: sendData,
+      message: input.isDraft ? "Draft created successfully" : "Email sent successfully"
+    });
+  },
+  {
+    name: "gmail_send_message",
+    description: "Send a new email or create a draft in Gmail",
+    schema: z.object({
+      to: z.string().describe("Recipient email address"),
+      subject: z.string().describe("Email subject"),
+      body: z.string().describe("Email body content (HTML supported)"),
+      cc: z.string().optional().describe("CC recipient(s)"),
+      bcc: z.string().optional().describe("BCC recipient(s)"),
+      isDraft: z.boolean().optional().describe("Create as draft instead of sending (default: false)"),
+    }),
+  }
+);
+
 // Bind tools to the model and also prepare tools array for React agent
-const tools = [webSearchTool, tiptapAiTool, sheetAiTool, createMemoryTool, searchMemoryTool, createFileTool];
+const tools = [
+  webSearchTool,
+  tiptapAiTool,
+  sheetAiTool,
+  createMemoryTool,
+  searchMemoryTool,
+  createFileTool,
+  gmailGetRecentTool,
+  gmailSearchTool,
+  gmailGetMessageTool,
+  gmailSendMessageTool,
+];
 const modelWithTools = anthropicModel.bindTools(tools);
 
 // React-style agent that handles tool-calling loops internally
@@ -483,6 +745,18 @@ async function toolNode(state: AgentState): Promise<AgentState> {
           break;
         case "create_file":
           result = await createFileTool.invoke(toolCall.args);
+          break;
+        case "gmail_get_recent":
+          result = await gmailGetRecentTool.invoke(toolCall.args);
+          break;
+        case "gmail_search":
+          result = await gmailSearchTool.invoke(toolCall.args);
+          break;
+        case "gmail_get_message":
+          result = await gmailGetMessageTool.invoke(toolCall.args);
+          break;
+        case "gmail_send_message":
+          result = await gmailSendMessageTool.invoke(toolCall.args);
           break;
         default:
           result = `Unknown tool: ${toolCall.name}`;

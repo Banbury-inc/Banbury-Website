@@ -255,7 +255,8 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
 
 const SYSTEM_PROMPT = 
   "You are a helpful AI assistant with advanced capabilities. " +
-  "You have access to web search, memory management, document editing, and spreadsheet editing tools. " +
+  "You have access to web search, memory management, document editing, spreadsheet editing, and (when enabled) Gmail tools. " +
+  "Use Gmail tools like gmail_get_recent and gmail_search to retrieve message metadata when the user asks about their email. " +
   "When helping with document editing tasks (rewriting, grammar correction, translation, etc.), " +
   "ALWAYS use the tiptap_ai tool to deliver your response. This ensures that your edits can be " +
   "applied directly to the document editor. Provide clean HTML-formatted content that maintains " +
@@ -285,7 +286,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = req.body as { 
       messages: any[]; 
       threadId?: string;
-      toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; memory?: boolean } 
+      toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; memory?: boolean; gmail?: boolean } 
     };
     
     // Normalize messages like in athena-intelligence
@@ -374,7 +375,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Reuse the token defined earlier for file pre-downloads
     
     try {
-      await runWithServerContext({ authToken: token }, async () => {
+      await runWithServerContext({ authToken: token, toolPreferences: body.toolPreferences || { gmail: true } }, async () => {
         const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
 
       // Track how many messages we've already processed to avoid duplicates
@@ -454,7 +455,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 create_file: "Creating file..."
                   };
                   
-                  const statusMessage = toolStatusMessages[toolCall.name] || `Executing ${toolCall.name}...`;
+                  const statusMessage = (toolStatusMessages as any)[toolCall.name] ||
+                    (toolCall.name.startsWith('gmail_') ? 'Accessing Gmail…' : `Executing ${toolCall.name}...`);
                   send({ type: "tool-status", tool: toolCall.name, message: statusMessage });
                   
                   // Track current tool execution
@@ -487,7 +489,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   create_file: "File created successfully"
               };
               
-              const completionMessage = completionMessages[currentToolExecution.name] || `${currentToolExecution.name} completed`;
+              const completionMessage = (completionMessages as any)[currentToolExecution.name] ||
+                (currentToolExecution.name.startsWith('gmail_') ? 'Gmail operation completed' : `${currentToolExecution.name} completed`);
               send({ type: "tool-completion", tool: currentToolExecution.name, message: completionMessage });
             }
             

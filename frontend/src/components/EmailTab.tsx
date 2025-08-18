@@ -1,4 +1,3 @@
-import { useState, useEffect, useCallback } from 'react'
 import { 
   Mail, 
   Send, 
@@ -10,10 +9,12 @@ import {
   ChevronRight,
   Paperclip
 } from 'lucide-react'
-import { EmailService, GmailMessage, GmailMessageListResponse } from '../services/emailService'
+import { useState, useEffect, useCallback } from 'react'
+
+import { EmailViewer } from './EmailViewer'
 import { Button } from './ui/button'
 import { Input } from './ui/input'
-import { EmailViewer } from './EmailViewer'
+import { EmailService, GmailMessage, GmailMessageListResponse } from '../services/emailService'
 
 interface EmailTabProps {
   onOpenEmailApp?: () => void
