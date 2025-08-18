@@ -108,7 +108,7 @@ export default function Settings() {
             <CardHeader>
               <CardTitle>Update Profile Information</CardTitle>
               <CardDescription>
-                Update your account information. Leave password fields empty if you don't want to change your password.
+                Update your account information. Leave password fields empty if you don&apos;t want to change your password.
               </CardDescription>
             </CardHeader>
             <CardContent>
