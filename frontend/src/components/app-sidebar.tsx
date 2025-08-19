@@ -682,48 +682,48 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   return (
     <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10">
       {/* Header with Tabs */}
-      <div className="border-b border-zinc-300 dark:border-zinc-600">
-        {/* Tab Navigation */}
-        <div className="flex px-2 pt-2">
-          <button
-            onClick={() => setActiveTab('files')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
-              activeTab === 'files'
-                ? 'text-white bg-zinc-800 shadow-sm'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-900/50'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Folder className="h-4 w-4" />
-              Files
-            </div>
-          </button>
-          <button
-            onClick={() => setActiveTab('email')}
-            className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
-              activeTab === 'email'
-                ? 'text-white bg-zinc-800 shadow-sm'
-                : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-900/50'
-            }`}
-          >
-            <div className="flex items-center justify-center gap-2">
-              <Mail className="h-4 w-4" />
-              Email
-            </div>
-          </button>
-        </div>
-        
-        {/* Tab Content Header */}
-        {activeTab === 'files' && (
-          <div className="flex items-center justify-between px-4 py-3 bg-zinc-800/30">
-            <h2 className="text-gray-200 text-sm font-medium">Files</h2>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
-              onClick={fetchUserFiles}
-              disabled={loading}
+      <div>
+                 {/* Tab Navigation */}
+         <div className="flex px-2 pt-2">
+                       <button
+              onClick={() => setActiveTab('files')}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                activeTab === 'files'
+                  ? 'text-white bg-zinc-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
+              }`}
             >
+             <div className="flex items-center justify-center gap-2">
+               <Folder className="h-4 w-4" />
+               Files
+             </div>
+           </button>
+                       <button
+              onClick={() => setActiveTab('email')}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                activeTab === 'email'
+                  ? 'text-white bg-zinc-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
+              }`}
+            >
+             <div className="flex items-center justify-center gap-2">
+               <Mail className="h-4 w-4" />
+               Email
+             </div>
+           </button>
+         </div>
+        
+                 {/* Tab Content Header */}
+         {activeTab === 'files' && (
+           <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
+             <h2 className="text-gray-200 text-sm font-medium">Files</h2>
+             <Button
+               variant="ghost"
+               size="sm"
+               className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
+               onClick={fetchUserFiles}
+               disabled={loading}
+             >
               <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
