@@ -486,7 +486,6 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
                   : 'text-gray-300 hover:text-white hover:bg-zinc-800'
               }`}
             >
-              <Star className="h-3 w-3 mr-1" />
               Starred
             </button>
           </div>

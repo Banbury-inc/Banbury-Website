@@ -450,6 +450,36 @@ const truncateGmailResponse = (messages: any[], maxTokensPerMessage: number = 20
   };
 };
 
+// Helper function to extract only essential email data
+const extractEssentialEmailData = (messageData: any, messageId: string, threadId?: string) => {
+  // Extract headers from Gmail API response
+  const headers = messageData.payload?.headers || [];
+  const getHeader = (name: string) => headers.find((h: any) => h.name.toLowerCase() === name.toLowerCase())?.value || '';
+  
+  // Extract body content
+  let body = '';
+  if (messageData.payload?.body?.data) {
+    body = Buffer.from(messageData.payload.body.data, 'base64').toString('utf-8');
+  } else if (messageData.payload?.parts) {
+    const textPart = messageData.payload.parts.find((part: any) => part.mimeType === 'text/plain');
+    if (textPart?.body?.data) {
+      body = Buffer.from(textPart.body.data, 'base64').toString('utf-8');
+    }
+  }
+  
+  // Return only essential data
+  return {
+    id: messageId,
+    threadId: threadId || messageData.threadId,
+    subject: getHeader('subject') || '(No Subject)',
+    from: getHeader('from') || 'Unknown',
+    to: getHeader('to') || '',
+    date: getHeader('date') || '',
+    snippet: messageData.snippet || '',
+    body: body
+  };
+};
+
 // Gmail tools (proxy to Banbury API). Respects user toolPreferences via server context
 const gmailGetRecentTool = tool(
   async (input: { maxResults?: number; labelIds?: string[] }) => {
@@ -486,11 +516,7 @@ const gmailGetRecentTool = tool(
         const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
         if (getResp.ok) {
           const messageData = await getResp.json();
-          return {
-            id: msg.id,
-            threadId: msg.threadId,
-            ...messageData
-          };
+          return extractEssentialEmailData(messageData, msg.id, msg.threadId);
         } else {
           return {
             id: msg.id,
@@ -554,7 +580,7 @@ const gmailSearchTool = tool(
     const listData = await listResp.json();
     
     if (!listData.messages || !Array.isArray(listData.messages)) {
-      return JSON.stringify({ success: false, error: "No messages found or invalid response format", query: input.query });
+      return JSON.stringify({ success: false, error: "No messages found or invalid response format" });
     }
 
     // Then, fetch full message content for each message ID
@@ -564,11 +590,7 @@ const gmailSearchTool = tool(
         const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
         if (getResp.ok) {
           const messageData = await getResp.json();
-          return {
-            id: msg.id,
-            threadId: msg.threadId,
-            ...messageData
-          };
+          return extractEssentialEmailData(messageData, msg.id, msg.threadId);
         } else {
           return {
             id: msg.id,
@@ -602,7 +624,8 @@ const gmailSearchTool = tool(
   },
   {
     name: "gmail_search",
-    description: "Search Gmail INBOX using Gmail query syntax and return message content (subject, sender, body, timestamp, attachments). Long messages are automatically truncated to prevent token limit issues.",
+    description:
+      "Search Gmail messages using Gmail search syntax. Examples: 'from:john@example.com', 'subject:meeting', 'is:unread', 'after:2024/01/01'. Returns message metadata and content.",
     schema: z.object({
       query: z.string().describe("Gmail search query, e.g., 'from:john@example.com is:unread'"),
       maxResults: z.number().optional().describe("Maximum number of results to return (default 20, max 10 to prevent token limits)"),
@@ -630,8 +653,11 @@ const gmailGetMessageTool = tool(
     }
     const messageData = await getResp.json();
     
+    // Extract only essential data
+    const essentialData = extractEssentialEmailData(messageData, input.messageId);
+    
     // Truncate single message content if it's too long
-    const truncatedMessage = truncateGmailResponse([{ id: input.messageId, ...messageData }], 5000, 1);
+    const truncatedMessage = truncateGmailResponse([essentialData], 5000, 1);
     
     return JSON.stringify({ 
       success: true, 
@@ -643,9 +669,9 @@ const gmailGetMessageTool = tool(
   },
   {
     name: "gmail_get_message",
-    description: "Get a specific Gmail message by ID with content (subject, sender, body, timestamp, attachments). Very long messages are automatically truncated to prevent token limit issues.",
+    description: "Get a specific Gmail message by its ID with full content. Use this to get complete message details after finding messages with gmail_get_recent or gmail_search.",
     schema: z.object({
-      messageId: z.string().describe("The Gmail message ID to retrieve"),
+      messageId: z.string().describe("The Gmail message ID"),
     }),
   }
 );

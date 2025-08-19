@@ -405,6 +405,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     try {
       await runWithServerContext({ authToken: token, toolPreferences: body.toolPreferences || { gmail: true } }, async () => {
+        // Use a custom streaming approach for character-by-character updates
         const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
 
       // Track how many messages we've already processed to avoid duplicates
@@ -415,6 +416,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       let currentToolExecution: any = null;
       // Track processed tool calls to avoid duplicates
       let processedToolCalls = new Set<string>();
+      // Track the current AI message being streamed
+      let currentAiMessage: any = null;
+      let currentTextContent = "";
 
         for await (const chunk of stream) {
         finalResult = chunk;
@@ -452,9 +456,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   ? content.map((c: any) => (typeof c === "string" ? c : c?.text || "")).join("")
                   : "";
               
-              // Send the complete text content for this NEW AI message
+              // Stream the text character by character for better UX
               if (fullText && fullText.trim()) {
-                send({ type: "text-delta", text: fullText.trim() });
+                const textToStream = fullText.trim();
+                
+                // Stream in small chunks (words or phrases) for more natural flow
+                const words = textToStream.split(' ');
+                let currentChunk = '';
+                
+                for (let i = 0; i < words.length; i++) {
+                  const word = words[i];
+                  const space = i < words.length - 1 ? ' ' : '';
+                  const chunk = word + space;
+                  
+                  // Send the chunk immediately for real-time streaming
+                  send({ type: "text-delta", text: chunk });
+                  
+                  // Small delay between chunks for natural reading pace
+                  if (i < words.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 20)); // 20ms delay between words
+                  }
+                }
               }
 
               // Stream tool calls (avoid duplicates)
@@ -475,13 +497,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                   });
                   
                   // Stream tool-specific status messages
-              const toolStatusMessages: Record<string, string> = {
+                  const toolStatusMessages: Record<string, string> = {
                     web_search: "Searching the web...",
                     tiptap_ai: "Processing document content...",
                     sheet_ai: "Processing spreadsheet edits...",
                     store_memory: "Storing information in memory...",
-                search_memory: "Searching memory...",
-                create_file: "Creating file..."
+                    search_memory: "Searching memory...",
+                    create_file: "Creating file..."
                   };
                   
                   const statusMessage = (toolStatusMessages as any)[toolCall.name] ||
@@ -501,21 +523,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               type: "tool-result",
               part: {
                 type: "tool-result",
-                toolCallId: toolMessage.tool_call_id,
-                result: toolMessage.content,
+                toolCallId: toolMessage.tool_call_id || "",
                 toolName: currentToolExecution?.name || "unknown",
+                result: toolMessage.content,
               },
             });
             
             // Stream tool completion status
-              if (currentToolExecution?.name) {
+            if (currentToolExecution?.name) {
               const completionMessages: Record<string, string> = {
                 web_search: "Web search completed",
                 tiptap_ai: "Document processing completed",
                 sheet_ai: "Spreadsheet edits ready",
                 store_memory: "Memory stored successfully",
-                  search_memory: "Memory search completed",
-                  create_file: "File created successfully"
+                search_memory: "Memory search completed",
+                create_file: "File created successfully"
               };
               
               const completionMessage = (completionMessages as any)[currentToolExecution.name] ||
@@ -528,7 +550,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           }
         }
       }
-      
     });
     } catch (graphError) {
       // LangGraph execution error
