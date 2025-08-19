@@ -44,7 +44,17 @@ import {
   FileVolume2,
   FileMusic,
   FilePlay,
+  FileList,
+  FileGrid,
+  FileColumns,
+  FileRows,
+  FileTable,
   FileBarChart2,
+  FileBarChart3,
+  FileBarChart4,
+  FilePieChart2,
+  FilePieChart3,
+  FilePieChart4,
   FileScatter,
   FileTrendingUp,
   FileTrendingDown,
@@ -255,25 +265,25 @@ const isViewableFile = (fileName: string): boolean => {
   return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName) || isVideoFile(fileName) || isAudioFile(fileName)
 }
 
-// Function to get the appropriate icon component and color for a file type
-const getFileIcon = (fileName: string): { icon: any, color: string } => {
-  if (isImageFile(fileName)) return { icon: FileImage, color: 'text-green-400' }
-  if (isVideoFile(fileName)) return { icon: FileVideo, color: 'text-red-400' }
-  if (isAudioFile(fileName)) return { icon: FileAudio, color: 'text-blue-400' }
-  if (isPdfFile(fileName)) return { icon: FileText, color: 'text-red-400' }
-  if (isDocumentFile(fileName)) return { icon: FileText, color: 'text-blue-500' }
-  if (isSpreadsheetFile(fileName)) return { icon: FileSpreadsheet, color: 'text-green-500' }
-  if (isPresentationFile(fileName)) return { icon: FileBarChart, color: 'text-orange-400' }
-  if (isCodeFile(fileName)) return { icon: FileCode, color: 'text-yellow-400' }
-  if (isArchiveFile(fileName)) return { icon: FileArchive, color: 'text-gray-400' }
-  if (isDataFile(fileName)) return { icon: FileJson, color: 'text-indigo-400' }
-  if (isExecutableFile(fileName)) return { icon: FileCog, color: 'text-red-500' }
-  if (isFontFile(fileName)) return { icon: FileType, color: 'text-pink-400' }
-  if (is3DFile(fileName)) return { icon: FileCube, color: 'text-cyan-400' }
-  if (isVectorFile(fileName)) return { icon: FileImage, color: 'text-emerald-400' }
+// Function to get the appropriate icon component for a file type
+const getFileIcon = (fileName: string) => {
+  if (isImageFile(fileName)) return FileImage
+  if (isVideoFile(fileName)) return FileVideo
+  if (isAudioFile(fileName)) return FileAudio
+  if (isPdfFile(fileName)) return FileText
+  if (isDocumentFile(fileName)) return FileText
+  if (isSpreadsheetFile(fileName)) return FileSpreadsheet
+  if (isPresentationFile(fileName)) return FileBarChart
+  if (isCodeFile(fileName)) return FileCode
+  if (isArchiveFile(fileName)) return FileArchive
+  if (isDataFile(fileName)) return FileJson
+  if (isExecutableFile(fileName)) return FileCog
+  if (isFontFile(fileName)) return FileType
+  if (is3DFile(fileName)) return FileCube
+  if (isVectorFile(fileName)) return FileImage
   
   // Default file icon
-  return { icon: File, color: 'text-gray-400' }
+  return File
 }
 
 // File Context Menu Component
@@ -375,9 +385,8 @@ function FileTreeItem({
   const isDragged = dragState.draggedItem?.id === item.id
   const isDropTarget = dragState.dragOverTarget === item.id && item.type === 'folder'
   
-  // Get the appropriate icon and color for this file
-  const fileIconData = item.type === 'folder' ? { icon: Folder, color: 'text-yellow-400' } : getFileIcon(item.name)
-  const FileIconComponent = fileIconData.icon
+  // Get the appropriate icon for this file
+  const FileIconComponent = item.type === 'folder' ? Folder : getFileIcon(item.name)
   
   // Drag event handlers
   const handleDragStart = (e: React.DragEvent) => {
@@ -512,7 +521,7 @@ function FileTreeItem({
   const buttonContent = (
     isRenaming ? (
       <div
-        className={`w-full flex items-center gap-2 text-left px-3 py-2 min-w-0 ${
+        className={`w-full flex items-center gap-2 text-left px-3 py-2 ${
           isSelected ? 'bg-zinc-800 text-white' : 'text-zinc-300'
         }`}
         style={{ paddingLeft: `${(level * 12) + 12}px` }}
@@ -523,7 +532,7 @@ function FileTreeItem({
             <ChevronRight className="h-3 w-3" />
         )}
         {!hasChildren && <div className="w-3" />}
-        <FileIconComponent className={`h-4 w-4 flex-shrink-0 ${fileIconData.color}`} />
+        <FileIconComponent className="h-4 w-4" />
         <input
           type="text"
           value={newName}
@@ -546,7 +555,7 @@ function FileTreeItem({
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`w-full flex items-center gap-2 text-left px-3 py-2 min-w-0 hover:bg-zinc-800 hover:text-white transition-colors ${
+        className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-zinc-800 hover:text-white transition-colors ${
           isSelected ? 'bg-zinc-800 text-white' : 'text-zinc-300'
         } ${isDragged ? 'opacity-50' : ''} ${isDropTarget ? 'bg-zinc-700 ring-2 ring-blue-500' : ''}`}
         style={{ paddingLeft: `${(level * 12) + 12}px` }}
@@ -557,8 +566,8 @@ function FileTreeItem({
             <ChevronRight className="h-3 w-3" />
         )}
         {!hasChildren && <div className="w-3" />}
-        <FileIconComponent className={`h-4 w-4 flex-shrink-0 ${fileIconData.color}`} />
-        <span className="text-sm truncate min-w-0 flex-1">{item.name}</span>
+        <FileIconComponent className="h-4 w-4" />
+        <span className="text-sm truncate">{item.name}</span>
       </button>
     )
   )

@@ -12,6 +12,7 @@ import { EmailViewer } from '../components/EmailViewer';
 import { ImageViewer } from '../components/ImageViewer';
 import { NavSidebar } from "../components/nav-sidebar";
 import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
+import { VideoViewer } from '../components/VideoViewer';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import 'allotment/dist/style.css';
 import { Thread } from '../components/thread';
@@ -158,8 +159,14 @@ const Workspaces = (): JSX.Element => {
     return spreadsheetExtensions.includes(extension)
   };
 
+  const isVideoFile = (fileName: string): boolean => {
+    const videoExtensions = ['.mp4', '.avi', '.mov', '.wmv', '.flv', '.webm', '.mkv', '.m4v', '.3gp', '.ogv']
+    const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'))
+    return videoExtensions.includes(extension)
+  };
+
   const isViewableFile = (fileName: string): boolean => {
-    return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName) || isSpreadsheetFile(fileName)
+    return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName) || isSpreadsheetFile(fileName) || isVideoFile(fileName)
   };
 
   // Handle file selection from sidebar - now opens in tabs
@@ -764,6 +771,8 @@ const Workspaces = (): JSX.Element => {
                       onSaveComplete={triggerSidebarRefresh}
                     />
                   );
+                } else if (isVideoFile(file.name)) {
+                  return <VideoViewer file={file} userInfo={userInfo} />;
                 } else {
                   return (
                     <div className="h-full flex items-center justify-center">
@@ -796,7 +805,7 @@ const Workspaces = (): JSX.Element => {
         </div>
       </div>
     );
-  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, isSpreadsheetFile, dragState, replyToEmail, handleReplyToEmail]);
+  }, [activePanelId, handleTabChange, handleTabContextMenu, handleCloseTab, handleTabMouseDown, splitPanel, userInfo, triggerSidebarRefresh, isImageFile, isPdfFile, isDocumentFile, isSpreadsheetFile, isVideoFile, dragState, replyToEmail, handleReplyToEmail]);
   
   // Render panel group (recursive for nested splits)
   const renderPanelGroup = useCallback((group: PanelGroup): React.ReactNode => {
