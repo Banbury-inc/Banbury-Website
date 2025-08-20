@@ -218,7 +218,7 @@ const FileSearchModal: React.FC<FileSearchProps> = ({ onFileSelect, onClose }) =
 
           {!loading && query.trim() && results.length === 0 && (
             <div className="p-4 text-center text-zinc-400">
-              No files found matching "{query}"
+              No files found matching &quot;{query}&quot;
             </div>
           )}
 

@@ -393,7 +393,7 @@ const InlineFileSearch: React.FC<InlineFileSearchProps> = ({ onFileSelect, onEma
 
           {!loading && !loadingEmails && fileResults.length === 0 && emailResults.length === 0 && query.trim() && (
             <div className="p-4 text-center text-zinc-400">
-              No files or emails found matching "{query}"
+              No files or emails found matching &quot;{query}&quot;
             </div>
           )}
 

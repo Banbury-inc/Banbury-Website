@@ -293,7 +293,6 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
     
     try {
       // Get current messages from the thread runtime
-      const runtime = useThreadRuntime();
       const messages = runtime.messages || [];
       
       // Check if we have any messages to save
