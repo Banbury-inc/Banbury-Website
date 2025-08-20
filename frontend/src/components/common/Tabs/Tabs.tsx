@@ -57,7 +57,7 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
       ${isActive ? 'tab--active' : ''}
               ${isNew ? 'animate-tab-enter opacity-0' : ''}
         ${isClosing ? 'animate-tab-exit' : ''}
-        mt-4
+        mt-3.5
         pl-2  
       h-8
       px-3 
@@ -73,7 +73,7 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
       gap-2
       ${isActive 
         ? 'text-white bg-[#171717] before:absolute before:top-0 before:left-0 before:right-0 before:h-[0px] before:bg-white' 
-        : 'text-white/70 hover:bg-[#2a2a2a] hover:h-7 hover:rounded-[5px_5px_5px_5px]'}
+        : 'text-white/70 hover:bg-[#2a2a2a] hover:h-6 hover:rounded-[5px_5px_5px_5px]'}
       hover:text-white 
       focus:outline-none
       z-[9999]
@@ -295,7 +295,7 @@ export const Tabs: React.FC<TabsProps> = ({
         <button
           onClick={() => onTabAdd?.()}
           data-testid="new-tab-button"
-          className="h-7 mt-4 px-3 ml-1 text-white/70 hover:text-white hover:bg-[#2a2a2a] rounded-[5px_5px_0_0] transition-colors z-[9999]"
+          className="h-6 mt-2 px-3 ml-1 text-white/70 hover:text-white hover:bg-[#2a2a2a] rounded-[5px_5px_0_0] transition-colors z-[9999]"
         >
           <AddIcon size={14} />
         </button>

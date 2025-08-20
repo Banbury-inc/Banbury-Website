@@ -16,8 +16,10 @@ import { VideoViewer } from '../components/VideoViewer';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import 'allotment/dist/style.css';
 import { Thread } from '../components/thread';
+import { motion } from "framer-motion";
 
-import { UploadIcon, X, Plus, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet } from 'lucide-react';
+
+import { X, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet, Save, FolderOpen, Trash2, Edit3, Search, ChevronDown, Plus, TimerReset } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
@@ -25,13 +27,21 @@ import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-
 import { TiptapAIProvider } from '../contexts/TiptapAIContext';
 import { PDFViewer } from '../components/PDFViewer';
 import { Button } from '../components/ui/button';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '../components/ui/dropdown-menu';
+
 import { TooltipProvider } from "../components/ui/tooltip";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "../components/ui/dropdown-menu";
 import { Toaster } from "../components/ui/toaster";
 import { useToast } from "../components/ui/use-toast";
 import { CONFIG } from '../config/config';
 import { ApiService } from '../services/apiService';
 import { extractEmailContent } from '../utils/emailUtils';
+import { ConversationService } from '../services/conversationService';
 
 
 
@@ -92,6 +102,15 @@ const Workspaces = (): JSX.Element => {
   const [uploading, setUploading] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [folderCreationTrigger, setFolderCreationTrigger] = useState<boolean>(false);
+  
+
+  
+  // Conversation management state
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [showConversationDialog, setShowConversationDialog] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [conversationTitle, setConversationTitle] = useState("");
   
   // Multi-panel state management
   const [panelLayout, setPanelLayout] = useState<PanelGroup>({
@@ -167,6 +186,103 @@ const Workspaces = (): JSX.Element => {
 
   const isViewableFile = (fileName: string): boolean => {
     return isImageFile(fileName) || isPdfFile(fileName) || isDocumentFile(fileName) || isSpreadsheetFile(fileName) || isVideoFile(fileName)
+  };
+
+  // Conversation management functions
+  const loadConversations = async () => {
+    if (!userInfo?.username) return;
+    
+    setIsLoadingConversations(true);
+    try {
+      const result = await ConversationService.getConversations();
+      if (result.success && result.conversations) {
+        setConversations(result.conversations);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  const saveCurrentConversation = async () => {
+    if (!userInfo?.username || !conversationTitle.trim()) return;
+    
+    try {
+      // Check if we have any messages to save
+      // Since this is the Workspaces component, we don't have direct access to thread messages
+      // We'll create a placeholder message to satisfy the backend requirement
+      const placeholderMessage = {
+        id: `placeholder-${Date.now()}`,
+        role: 'user',
+        content: [{ type: 'text', text: 'Conversation started in Workspaces' }],
+        createdAt: new Date().toISOString()
+      };
+      
+      const result = await ConversationService.saveConversation({
+        title: conversationTitle,
+        messages: [placeholderMessage],
+        metadata: {
+          workspace: 'workspaces',
+          timestamp: new Date().toISOString(),
+          note: 'This conversation was created in Workspaces. Actual messages will be available when opened in the Thread component.'
+        }
+      });
+      
+      if (result.success) {
+        setSaveDialogOpen(false);
+        setConversationTitle("");
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to save conversation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      const result = await ConversationService.getConversation(conversationId);
+      if (result.success && result.conversation) {
+        // Use the thread component's own loading mechanism
+        // This will set the loadedMessagesBuffer and handle the loading properly
+        const rawMessages = Array.isArray(result.conversation.messages) ? result.conversation.messages : [];
+        const sanitized = rawMessages.map((msg: any, i: number) => ({
+          id: msg.id || `msg-${i}-${Date.now()}`,
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: Array.isArray(msg.content)
+            ? msg.content
+            : (typeof msg.content === 'string' && msg.content.length > 0 ? [{ type: 'text', text: msg.content }] : []),
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+        }));
+        
+        // Dispatch to thread component's event handler
+        window.dispatchEvent(new CustomEvent('assistant-load-conversation', { detail: { messages: sanitized } }));
+        setShowConversationDialog(false);
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load conversation",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const result = await ConversationService.deleteConversation(conversationId);
+      if (result.success) {
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
   };
 
   // Handle file selection from sidebar - now opens in tabs
@@ -791,7 +907,12 @@ const Workspaces = (): JSX.Element => {
             })()
           ) : (
             <div className="h-full flex items-center justify-center">
-              <div className="text-center max-w-md">
+              <div className="text-center max-w-md"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                transition={{ delay: 0.5 }}
+              >
                 <h2 className="text-2xl font-bold text-white mb-4">Welcome to Workspaces</h2>
                 <p className="text-gray-300 mb-4">
                   This panel is ready for files. Select a file from the sidebar to open it here.
@@ -1358,6 +1479,13 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
     checkAuthAndFetchUser();
   }, [router]);
   
+  // Load conversations on mount
+  useEffect(() => {
+    if (userInfo?.username) {
+      loadConversations();
+    }
+  }, [userInfo?.username]);
+  
   // Apply global drag styles
   useEffect(() => {
     if (dragState.isDragging) {
@@ -1453,7 +1581,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
 
         // Split the target panel with the dragged tab
         const direction: SplitDirection = edge === 'left' || edge === 'right' ? 'horizontal' : 'vertical';
-        splitPanel(targetPanelId, direction, draggedTab);
+        splitPanel(targetPanelId, direction, draggedTab as any);
 
         // Reset state
         setDragState({
@@ -1506,74 +1634,6 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
           
           {/* Main Content Area with Resizable Panels */}
           <div className="flex flex-1 ml-16 flex-col">
-            {/* Toolbar */}
-            <div className="bg-black border-b border-zinc-700 px-4 py-2 flex items-center justify-start gap-2 relative">
-              {/* Add Dropdown Menu */}
-              <div className="relative group">
-                                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button 
-                       className="h-10 w-10 text-white
-                        hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300
-                       dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-                       disabled={uploading}
-                     >
-                       <Plus className="h-4 w-4" />
-                     </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="start"
-                    side="bottom"
-                    sideOffset={8}
-                    avoidCollisions={true}
-                    sticky="always"
-                    className="bg-zinc-800 border-zinc-600 text-white shadow-xl min-w-[160px]"
-                    style={{ zIndex: 999999 }}
-                  >
-                    <DropdownMenuItem 
-                      onSelect={handleCreateWordDocument}
-                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
-                    >
-                      <FileText size={20} className="mr-2" />
-                      Document
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onSelect={handleCreateSpreadsheet}
-                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
-                    >
-                      <FileSpreadsheet size={20} className="mr-2" />
-                      Spreadsheet
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onSelect={handleCreateFolder}
-                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
-                    >
-                      <Folder size={20} className="mr-2" />
-                      Folder
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                {/* Custom CSS tooltip */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                  Add New
-                </div>
-              </div>
-
-              <div className="relative group">
-                <button
-                  onClick={handleFileUpload}
-                  disabled={uploading}
-                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <UploadIcon className="h-4 w-4" />
-                </button>
-                {/* Custom CSS tooltip */}
-                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
-                  Upload File
-                </div>
-              </div>
-            </div>
-
             {/* Resizable Panels */}
             <div className="flex flex-1">
               <Allotment>
@@ -1593,6 +1653,9 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                     triggerRootFolderCreation={folderCreationTrigger}
                     onEmailSelect={handleEmailSelect}
                     onComposeEmail={handleComposeEmail}
+                    onCreateDocument={handleCreateWordDocument}
+                    onCreateSpreadsheet={handleCreateSpreadsheet}
+                    onCreateFolder={handleCreateFolder}
                   />
                 </Allotment.Pane>
                 
@@ -1605,12 +1668,81 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                 
                 {/* Assistant Panel */}
                 <Allotment.Pane minSize={300} preferredSize={400} maxSize={600}>
-                      <div className="h-full bg-black border-l border-gray-800">
-                        <Thread 
-                          userInfo={userInfo} 
-                          selectedFile={selectedFile} 
-                          onEmailSelect={handleEmailSelect}
-                        />
+                      <div className="h-full bg-black border-l border-gray-800 flex flex-col">
+                        {/* Conversation Management Dropdown */}
+                        <div className="bg-black px-4 py-2 flex items-center justify-end gap-2">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button className="h-8 px-3 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black">
+                                <TimerReset className="h-3 w-3" />
+                                <ChevronDown className="h-3 w-3" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" className="w-64 max-h-96 overflow-y-auto">
+                              {isLoadingConversations ? (
+                                <div className="px-2 py-2 text-sm text-gray-400 text-center">
+                                  Loading conversations...
+                                </div>
+                              ) : conversations.length === 0 ? (
+                                <div className="px-2 py-2 text-sm text-gray-400 text-center">
+                                  No saved conversations
+                                </div>
+                              ) : (
+                                <>
+                                  <div className="px-2 py-1 text-xs font-medium text-gray-500 tracking-wide">
+                                    Saved Conversations
+                                  </div>
+                                  {conversations.map((conversation) => (
+                                    <DropdownMenuItem 
+                                      key={conversation._id}
+                                      onClick={() => loadConversation(conversation._id)}
+                                      className="flex items-center justify-between group"
+                                    >
+                                      <div className="flex-1 min-w-0">
+                                        <div className="text-sm truncate">{conversation.title}</div>
+                                      </div>
+                                      <button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          deleteConversation(conversation._id);
+                                        }}
+                                        className="opacity-0 group-hover:opacity-100 ml-2 p-1 text-red-400 hover:text-red-300 transition-opacity"
+                                        title="Delete conversation"
+                                      >
+                                        <Trash2 className="h-3 w-3" />
+                                      </button>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </>
+                              )}
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                          
+                          <div className="relative group">
+                            <button
+                              onClick={() => {
+                                // Clear the current conversation and start fresh
+                                // Dispatch an event to clear the conversation and show welcome message
+                                window.dispatchEvent(new CustomEvent('clear-conversation', {}));
+                              }}
+                              className="h-8 w-8 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
+                            >
+                              <Plus className="h-3 w-3" />
+                            </button>
+                            {/* Custom CSS tooltip */}
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                              Clear Conversation
+                            </div>
+                          </div>
+                        </div>
+                        {/* Thread Component */}
+                        <div className="flex-1 min-h-0 overflow-hidden">
+                          <Thread 
+                            userInfo={userInfo} 
+                            selectedFile={selectedFile} 
+                            onEmailSelect={handleEmailSelect}
+                          />
+                        </div>
                       </div>
                 </Allotment.Pane>
               </Allotment>
@@ -1652,6 +1784,93 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
 
         </div>
         
+        {/* Conversation Dialogs */}
+        {saveDialogOpen && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-96">
+              <h3 className="text-lg font-semibold text-white mb-4">Save Conversation</h3>
+              <input
+                type="text"
+                placeholder="Enter conversation title..."
+                value={conversationTitle}
+                onChange={(e) => setConversationTitle(e.target.value)}
+                className="w-full p-2 bg-zinc-800 border border-zinc-600 rounded text-white mb-4"
+              />
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => {
+                    setSaveDialogOpen(false);
+                    setConversationTitle("");
+                  }}
+                  className="px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={saveCurrentConversation}
+                  disabled={!conversationTitle.trim()}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {showConversationDialog && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-zinc-900 border border-zinc-700 rounded-lg p-6 w-96 max-h-96 overflow-y-auto">
+              <h3 className="text-lg font-semibold text-white mb-4">Load Conversation</h3>
+              {isLoadingConversations ? (
+                <div className="text-white text-center py-4">Loading conversations...</div>
+              ) : conversations.length === 0 ? (
+                <div className="text-white text-center py-4">No saved conversations found.</div>
+              ) : (
+                <div className="space-y-2">
+                  {conversations.map((conversation) => (
+                    <div
+                      key={conversation._id}
+                      className="flex items-center justify-between p-3 bg-zinc-800 rounded border border-zinc-700"
+                    >
+                      <div className="flex-1">
+                        <div className="text-white font-medium">{conversation.title}</div>
+                        <div className="text-zinc-400 text-sm">
+                          {new Date(conversation.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => loadConversation(conversation._id)}
+                          className="p-1 text-blue-400 hover:text-blue-300"
+                          title="Load conversation"
+                        >
+                          <FolderOpen className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteConversation(conversation._id)}
+                          className="p-1 text-red-400 hover:text-red-300"
+                          title="Delete conversation"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex justify-end mt-4">
+                <button
+                  onClick={() => setShowConversationDialog(false)}
+                  className="px-4 py-2 bg-zinc-700 text-white rounded hover:bg-zinc-600"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Drag Preview */}
         {dragState.isDragging && dragState.currentPosition && (
           <div 
@@ -1685,6 +1904,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
           </div>
         )}
         
+
 
 
         {/* Global Drag Styles */}

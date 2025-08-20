@@ -45,67 +45,18 @@ import {
   FileMusic,
   FilePlay,
   FileBarChart2,
-  FileScatter,
-  FileTrendingUp,
-  FileTrendingDown,
-  FileActivity,
-  FileTimer,
-  FileCalendar,
-  FileClock2,
-  FileMap,
-  FileMapPin,
-  FileNavigation,
-  FileNavigation2,
-  FileCompass,
-  FileGlobe,
-  FileGlobe2,
-  FileWorld,
-  FileEarth,
-  FileSun,
-  FileMoon,
-  FileCloud,
-  FileCloudRain,
-  FileCloudSnow,
-  FileCloudLightning,
-  FileCloudFog,
-  FileCloudOff,
-  FileCloudDrizzle,
-  FileCloudHail,
-  FileCloudSleet,
-  FileCloudWind,
-  FileCloudy,
-  FileCloudSun,
-  FileCloudMoon,
-  FileCloudSunRain,
-  FileCloudMoonRain,
-  FileCloudSnowRain,
-  FileCloudLightningRain,
-  FileCloudFogRain,
-  FileCloudOffRain,
-  FileCloudDrizzleRain,
-  FileCloudHailRain,
-  FileCloudSleetRain,
-  FileCloudWindRain,
-  FileCloudyRain,
-  FileCloudSunRain2,
-  FileCloudMoonRain2,
-  FileCloudSnowRain2,
-  FileCloudLightningRain2,
-  FileCloudFogRain2,
-  FileCloudOffRain2,
-  FileCloudDrizzleRain2,
-  FileCloudHailRain2,
-  FileCloudSleetRain2,
-  FileCloudWindRain2,
-  FileCloudyRain2
+  Upload,
+  Plus,
 } from "lucide-react"
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 import { EmailTab } from "./EmailTab"
 import { Button } from "./ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
+import InlineFileSearch from "./InlineFileSearch"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
@@ -125,6 +76,9 @@ interface AppSidebarProps {
   triggerRootFolderCreation?: boolean
   onEmailSelect?: (email: any) => void
   onComposeEmail?: () => void
+  onCreateDocument?: () => void
+  onCreateSpreadsheet?: () => void
+  onCreateFolder?: () => void
 }
 
 // Drag and drop state interfaces
@@ -146,6 +100,8 @@ interface FileTreeItemProps {
   onFileRenamed?: (oldPath: string, newPath: string) => void
   onFolderCreated?: (folderPath: string) => void
   onFolderRenamed?: (oldPath: string, newPath: string) => void
+  onUploadFile?: () => void
+  onUploadFolder?: () => void
   userInfo?: {
     username: string
     email?: string
@@ -269,7 +225,7 @@ const getFileIcon = (fileName: string): { icon: any, color: string } => {
   if (isDataFile(fileName)) return { icon: FileJson, color: 'text-indigo-400' }
   if (isExecutableFile(fileName)) return { icon: FileCog, color: 'text-red-500' }
   if (isFontFile(fileName)) return { icon: FileType, color: 'text-pink-400' }
-  if (is3DFile(fileName)) return { icon: FileCube, color: 'text-cyan-400' }
+  if (is3DFile(fileName)) return { icon: FileCog, color: 'text-cyan-400' }
   if (isVectorFile(fileName)) return { icon: FileImage, color: 'text-emerald-400' }
   
   // Default file icon
@@ -282,10 +238,12 @@ interface FileContextMenuProps {
   onRename: () => void
   onDelete?: () => void
   onNewFolder?: () => void
+  onUploadFile?: () => void
+  onUploadFolder?: () => void
   isFolder?: boolean
 }
 
-function FileContextMenu({ children, onRename, onDelete, onNewFolder, isFolder }: FileContextMenuProps) {
+function FileContextMenu({ children, onRename, onDelete, onNewFolder, onUploadFile, onUploadFolder, isFolder }: FileContextMenuProps) {
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
@@ -293,6 +251,24 @@ function FileContextMenu({ children, onRename, onDelete, onNewFolder, isFolder }
       </ContextMenu.Trigger>
       <ContextMenu.Portal>
         <ContextMenu.Content className="min-w-[160px] bg-zinc-800 rounded-md p-1 shadow-lg border border-zinc-700 z-50">
+          {onUploadFile && (
+            <ContextMenu.Item 
+              className="flex items-center gap-2 px-2 py-1.5 text-sm text-white hover:bg-zinc-700 rounded cursor-pointer outline-none"
+              onSelect={onUploadFile}
+            >
+              <FilePlus className="w-4 h-4" />
+              Upload File
+            </ContextMenu.Item>
+          )}
+          {onUploadFolder && (
+            <ContextMenu.Item 
+              className="flex items-center gap-2 px-2 py-1.5 text-sm text-white hover:bg-zinc-700 rounded cursor-pointer outline-none"
+              onSelect={onUploadFolder}
+            >
+              <FolderPlus className="w-4 h-4" />
+              Upload Folder
+            </ContextMenu.Item>
+          )}
           {isFolder && onNewFolder && (
             <ContextMenu.Item 
               className="flex items-center gap-2 px-2 py-1.5 text-sm text-white hover:bg-zinc-700 rounded cursor-pointer outline-none"
@@ -335,6 +311,8 @@ function FileTreeItem({
   onFileRenamed, 
   onFolderCreated, 
   onFolderRenamed, 
+  onUploadFile, 
+  onUploadFolder, 
   userInfo, 
   dragState, 
   onDragStart, 
@@ -571,6 +549,8 @@ function FileTreeItem({
             onRename={handleRename} 
             onDelete={item.type === 'file' && item.file_id ? handleDelete : undefined} 
             onNewFolder={item.type === 'folder' ? handleCreateFolder : undefined}
+            onUploadFile={onUploadFile}
+            onUploadFolder={onUploadFolder}
             isFolder={item.type === 'folder'}
           >
             {buttonContent}
@@ -619,6 +599,8 @@ function FileTreeItem({
               onFileRenamed={onFileRenamed}
               onFolderCreated={onFolderCreated}
               onFolderRenamed={onFolderRenamed}
+              onUploadFile={onUploadFile}
+              onUploadFolder={onUploadFolder}
               userInfo={userInfo}
               dragState={dragState}
               onDragStart={onDragStart}
@@ -634,7 +616,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail }: AppSidebarProps) {
+export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -643,6 +625,10 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   const [newRootFolderName, setNewRootFolderName] = useState('New Folder')
   const rootFolderInputRef = useRef<HTMLInputElement | null>(null)
   const [activeTab, setActiveTab] = useState<'files' | 'email'>('files')
+  const [uploadingFolder, setUploadingFolder] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
+  const folderInputRef = useRef<HTMLInputElement | null>(null)
+  const [isDragOver, setIsDragOver] = useState(false)
   
   // Drag and drop state
   const [dragState, setDragState] = useState<DragState>({
@@ -867,11 +853,77 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
       setNewRootFolderName('New Folder')
     }
   }
+
+  // Handle file upload
+  const handleFileUpload = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click()
+    }
+  }
+
+  // Handle folder upload
+  const handleFolderUpload = () => {
+    if (folderInputRef.current) {
+      folderInputRef.current.click()
+    }
+  }
+
+  // Handle file input change
+  const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !userInfo?.username) return
+
+    setUploadingFolder(true)
+    try {
+      const fileArray = Array.from(files)
+      await ApiService.uploadToS3(fileArray[0], fileArray[0].name, 'web-editor', `uploads/${fileArray[0].name}`, 'uploads')
+      fetchUserFiles()
+    } catch (error) {
+      alert('Failed to upload file. Please try again.')
+    } finally {
+      setUploadingFolder(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ''
+      }
+    }
+  }
+
+  // Handle folder input change
+  const handleFolderInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0 || !userInfo?.username) return
+
+    setUploadingFolder(true)
+    try {
+      const fileArray = Array.from(files)
+      
+      // Extract folder name from the first file's path
+      const firstFile = fileArray[0]
+      const folderName = firstFile.webkitRelativePath.split('/')[0]
+      
+      await ApiService.uploadFolder(fileArray, folderName, 'web-editor', 'uploads')
+      fetchUserFiles()
+    } catch (error) {
+      alert('Failed to upload folder. Please try again.')
+    } finally {
+      setUploadingFolder(false)
+      if (folderInputRef.current) {
+        folderInputRef.current.value = ''
+      }
+    }
+  }
   
   const router = useRouter()
 
   return (
     <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10">
+      {/* Search Bar - Above tabs */}
+      {onFileSelect && (
+        <div className="px-4 py-2 bg-black border-zinc-700">
+          <InlineFileSearch onFileSelect={onFileSelect} onEmailSelect={onEmailSelect} />
+        </div>
+      )}
+      
       {/* Header with Tabs */}
       <div>
                  {/* Tab Navigation */}
@@ -908,26 +960,178 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
          {activeTab === 'files' && (
            <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
              <h2 className="text-gray-200 text-sm font-medium">Files</h2>
-             <Button
-               variant="ghost"
-               size="sm"
-               className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
-               onClick={fetchUserFiles}
-               disabled={loading}
-             >
-              <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-            </Button>
-          </div>
-        )}
+             <div className="flex items-center gap-2">
+               <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button
+                     variant="ghost"
+                     size="sm"
+                     className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
+                     title="Add New"
+                   >
+                     <Plus className="h-3 w-3" />
+                   </Button>
+                 </DropdownMenuTrigger>
+                 <DropdownMenuContent
+                   align="start"
+                   side="bottom"
+                   sideOffset={8}
+                   avoidCollisions={true}
+                   sticky="always"
+                   className="bg-zinc-800 border-zinc-600 text-white shadow-xl min-w-[160px]"
+                   style={{ zIndex: 999999 }}
+                 >
+                   <DropdownMenuItem 
+                     onSelect={handleFileUpload}
+                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   >
+                     <FilePlus size={20} className="mr-2" />
+                     Upload File
+                   </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onSelect={handleFolderUpload}
+                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   >
+                     <FolderPlus size={20} className="mr-2" />
+                     Upload Folder
+                   </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onSelect={onCreateDocument}
+                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   >
+                     <FileText size={20} className="mr-2" />
+                     Document
+                   </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onSelect={onCreateSpreadsheet}
+                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   >
+                     <FileSpreadsheet size={20} className="mr-2" />
+                     Spreadsheet
+                   </DropdownMenuItem>
+                   <DropdownMenuItem 
+                     onSelect={onCreateFolder}
+                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
+                   >
+                     <Folder size={20} className="mr-2" />
+                     Folder
+                   </DropdownMenuItem>
+                 </DropdownMenuContent>
+               </DropdownMenu>
+               <Button
+                 variant="ghost"
+                 size="sm"
+                 className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
+                 onClick={fetchUserFiles}
+                 disabled={loading}
+                 title="Refresh"
+               >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+               </Button>
+             </div>
+           </div>
+         )}
       </div>
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto">
         {activeTab === 'files' && (
-          <div onContextMenu={(e) => {
-            e.preventDefault()
-            // You could add a root-level context menu here for creating folders at the root
-          }}>
+          <div 
+            onContextMenu={(e) => {
+              e.preventDefault()
+              // You could add a root-level context menu here for creating folders at the root
+            }}
+            onDragOver={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              setIsDragOver(true)
+            }}
+            onDragLeave={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                setIsDragOver(false)
+              }
+            }}
+            onDrop={async (e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              
+              if (!userInfo?.username) return
+              
+              const items = Array.from(e.dataTransfer.items)
+              const files: File[] = []
+              const folders: File[] = []
+              
+              for (const item of items) {
+                if (item.kind === 'file') {
+                  const entry = item.webkitGetAsEntry?.()
+                  if (entry) {
+                    if (entry.isFile) {
+                      const file = item.getAsFile()
+                      if (file) files.push(file)
+                                         } else if (entry.isDirectory) {
+                       // Handle directory
+                       const dirReader = (entry as any).createReader()
+                       const readEntries = (): Promise<File[]> => {
+                         return new Promise((resolve) => {
+                           dirReader.readEntries(async (entries: any[]) => {
+                             const folderFiles: File[] = []
+                             for (const entry of entries) {
+                               if (entry.isFile) {
+                                 const file = await new Promise<File>((resolve) => {
+                                   (entry as any).file(resolve)
+                                 })
+                                 folderFiles.push(file)
+                               }
+                             }
+                             resolve(folderFiles)
+                           })
+                         })
+                       }
+                       
+                       const folderFiles = await readEntries()
+                       folders.push(...folderFiles)
+                     }
+                  }
+                }
+              }
+              
+              setIsDragOver(false)
+              
+              if (files.length > 0 || folders.length > 0) {
+                setUploadingFolder(true)
+                try {
+                  // Upload individual files
+                  for (const file of files) {
+                    await ApiService.uploadToS3(file, file.name, 'web-editor', `uploads/${file.name}`, 'uploads')
+                  }
+                  
+                  // Upload folder contents
+                  if (folders.length > 0) {
+                    const folderName = `uploaded_folder_${Date.now()}`
+                    await ApiService.uploadFolder(folders, folderName, 'web-editor', 'uploads')
+                  }
+                  
+                  fetchUserFiles()
+                } catch (error) {
+                  alert('Failed to upload items. Please try again.')
+                } finally {
+                  setUploadingFolder(false)
+                }
+              }
+            }}
+          >
+            {/* Drag over indicator */}
+            {isDragOver && (
+              <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center">
+                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  <span>Drop files or folders here to upload</span>
+                </div>
+              </div>
+            )}
+            
             {loading && !fileSystem.length && (
               <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -941,7 +1145,14 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
               </div>
             )}
             
-            {!loading && !error && fileSystem.length === 0 && (
+            {uploadingFolder && (
+              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                Uploading folder...
+              </div>
+            )}
+            
+            {!loading && !error && fileSystem.length === 0 && !uploadingFolder && (
               <div className="px-3 py-2 text-sm text-gray-400">
                 No files found
               </div>
@@ -980,6 +1191,8 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
                 onFileRenamed={onFileRenamed}
                 onFolderCreated={handleFolderCreated}
                 onFolderRenamed={handleFolderRenamed}
+                onUploadFile={handleFileUpload}
+                onUploadFolder={handleFolderUpload}
                 userInfo={userInfo}
                 dragState={dragState}
                 onDragStart={handleDragStart}
@@ -1000,6 +1213,23 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
            />
          )}
       </div>
+      
+      {/* Hidden file inputs */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        multiple={false}
+        onChange={handleFileInputChange}
+        style={{ display: 'none' }}
+      />
+      <input
+        ref={folderInputRef}
+        type="file"
+        multiple={true}
+        onChange={handleFolderInputChange}
+        style={{ display: 'none' }}
+        {...({ webkitdirectory: '' } as any)}
+      />
     </div>
   )
 }

@@ -16,6 +16,10 @@ import {
   MicOff,
   Volume2,
   VolumeX,
+  Save,
+  FolderOpen,
+  Trash2,
+  Edit3,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -36,9 +40,12 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
+  DropdownMenuItem,
 } from "./ui/dropdown-menu";
 import { WebSearchTool } from "./web-search-result";
-  import { ApiService } from "../services/apiService";
+import { ApiService } from "../services/apiService";
+import { ConversationService } from "../services/conversationService";
+import { useToast } from "./ui/use-toast";
 import styles from "../styles/scrollbar.module.css";
 import { cn } from "../utils";
 import { FileSystemItem } from "../utils/fileTreeUtils";
@@ -68,6 +75,7 @@ interface ThreadProps {
 }
 
 export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect }) => {
+  const { toast } = useToast();
   const [attachedFiles, setAttachedFiles] = useState<FileSystemItem[]>([]);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(true);
   const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean }>(() => {
@@ -84,6 +92,19 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
 
   // Cache of pre-downloaded attachment payloads keyed by fileId
   const [attachmentPayloads, setAttachmentPayloads] = useState<Record<string, { fileData: string; mimeType: string }>>({});
+  // Force rebind of thread UI when loading external conversations
+  const [threadKey, setThreadKey] = useState<number>(0);
+  // Fallback render buffer shown with Assistant UI primitives if runtime won't hydrate
+  const [loadedMessagesBuffer, setLoadedMessagesBuffer] = useState<any[] | null>(null);
+
+  // Conversation management state
+  const [conversations, setConversations] = useState<any[]>([]);
+  const [isLoadingConversations, setIsLoadingConversations] = useState(false);
+  const [showConversationDialog, setShowConversationDialog] = useState(false);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [conversationTitle, setConversationTitle] = useState("");
+  
+  // (removed custom loaded conversation state)
 
   const handleFileAttach = (file: FileSystemItem) => {
     setAttachedFiles(prev => [...prev, file]);
@@ -96,6 +117,307 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
   const toggleWebSearch = () => {
     setIsWebSearchEnabled(prev => !prev);
     setToolPreferences(prev => ({ ...prev, web_search: !prev.web_search }));
+  };
+
+  // Conversation management functions
+  const tryApplyMessagesToRuntime = async (rt: any, msgs: any[]): Promise<{ ok: boolean; path: string; count: number }> => {
+    const pause = (ms: number) => new Promise(r => setTimeout(r, ms));
+    const check = (): number => {
+      try {
+        const s1 = Array.isArray(rt?.messages) ? rt.messages.length : 0;
+        const s2 = Array.isArray(rt?._threadBinding?.getState?.()?.messages) ? rt._threadBinding.getState().messages.length : 0;
+        const s3 = Array.isArray(rt?.getState?.()?.messages) ? rt.getState().messages.length : 0;
+        return Math.max(s1, s2, s3);
+      } catch { return 0; }
+    };
+
+    // Disable runtime to prevent auto-runs while importing history
+    let didDisable = false;
+    let originalState: any = undefined;
+    try {
+      if (rt?._threadBinding?.getState && rt?._threadBinding?.setState) {
+        originalState = rt._threadBinding.getState();
+        rt._threadBinding.setState({ ...originalState, isDisabled: true, isLoading: false });
+        didDisable = true;
+      }
+    } catch {}
+
+    // Attempt 1: export snapshot → replace → import
+    try {
+      const snapshot = rt.export ? await rt.export() : {};
+      if (snapshot?.thread && Array.isArray(snapshot.thread.messages)) {
+        snapshot.thread.messages = msgs;
+      } else {
+        snapshot.messages = msgs;
+      }
+      if (rt.import) {
+        await rt.import(snapshot);
+        await pause(50);
+        const cnt = check();
+        if (cnt > 0) {
+          try { rt.cancelRun?.(); } catch {}
+          // restore disabled state before returning
+          try {
+            if (didDisable && rt?._threadBinding?.setState) {
+              const prevNow = rt?._threadBinding?.getState?.() || {};
+              const restoreDisabled = originalState?.isDisabled ?? false;
+              rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+            }
+          } catch {}
+          return { ok: true, path: 'export/import', count: cnt };
+        }
+      }
+    } catch {}
+
+    // Attempt 2: simple import with messages
+    try {
+      if (rt.import) {
+        await rt.import({ messages: msgs });
+        await pause(50);
+        const cnt = check();
+        if (cnt > 0) {
+          try { rt.cancelRun?.(); } catch {}
+          try {
+            if (didDisable && rt?._threadBinding?.setState) {
+              const prevNow = rt?._threadBinding?.getState?.() || {};
+              const restoreDisabled = originalState?.isDisabled ?? false;
+              rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+            }
+          } catch {}
+          return { ok: true, path: 'import(messages)', count: cnt };
+        }
+      }
+    } catch {}
+
+    // Attempt 3: threadBinding import
+    try {
+      if (rt._threadBinding?.import) {
+        await rt._threadBinding.import({ messages: msgs });
+        await pause(50);
+        const cnt = check();
+        if (cnt > 0) {
+          try { rt.cancelRun?.(); } catch {}
+          try {
+            if (didDisable && rt?._threadBinding?.setState) {
+              const prevNow = rt?._threadBinding?.getState?.() || {};
+              const restoreDisabled = originalState?.isDisabled ?? false;
+              rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+            }
+          } catch {}
+          return { ok: true, path: '_threadBinding.import', count: cnt };
+        }
+      }
+    } catch {}
+
+    // Attempt 4: setState on threadBinding
+    try {
+      if (rt._threadBinding?.setState) {
+        const prev = rt._threadBinding.getState?.() || {};
+        rt._threadBinding.setState({ ...prev, messages: msgs });
+        await pause(50);
+        const cnt = check();
+        if (cnt > 0) {
+          try { rt.cancelRun?.(); } catch {}
+          try {
+            if (didDisable && rt?._threadBinding?.setState) {
+              const prevNow = rt?._threadBinding?.getState?.() || {};
+              const restoreDisabled = originalState?.isDisabled ?? false;
+              rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+            }
+          } catch {}
+          return { ok: true, path: '_threadBinding.setState', count: cnt };
+        }
+      }
+    } catch {}
+
+    // Attempt 5: temporarily disable runtime, append one-by-one (best-effort)
+    try {
+      if (rt.append) {
+        try {
+          // Disable runtime actions to avoid triggering runs while reconstructing history
+          const prev = rt._threadBinding?.getState?.() || {};
+          rt._threadBinding?.setState?.({ ...prev, isDisabled: true, isLoading: false });
+        } catch {}
+        for (const m of msgs) {
+          try { await rt.append(m); } catch {}
+        }
+        try {
+          const prev2 = rt._threadBinding?.getState?.() || {};
+          rt._threadBinding?.setState?.({ ...prev2, isDisabled: false, isLoading: false });
+        } catch {}
+        await pause(50);
+        const cnt = check();
+        if (cnt > 0) {
+          try { rt.cancelRun?.(); } catch {}
+          try {
+            if (didDisable && rt?._threadBinding?.setState) {
+              const prevNow = rt?._threadBinding?.getState?.() || {};
+              const restoreDisabled = originalState?.isDisabled ?? false;
+              rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+            }
+          } catch {}
+          return { ok: true, path: 'append(each)', count: cnt };
+        }
+      }
+    } catch {}
+
+    // Restore runtime disabled state
+    try {
+      if (didDisable && rt?._threadBinding?.setState) {
+        const prevNow = rt?._threadBinding?.getState?.() || {};
+        const restoreDisabled = originalState?.isDisabled ?? false;
+        rt._threadBinding.setState({ ...prevNow, isDisabled: restoreDisabled, isLoading: false, isRunning: false });
+      }
+    } catch {}
+
+    return { ok: false, path: 'failed', count: 0 };
+  };
+  const loadConversations = async () => {
+    if (!userInfo?.username) return;
+    
+    setIsLoadingConversations(true);
+    try {
+      const result = await ConversationService.getConversations();
+      if (result.success && result.conversations) {
+        setConversations(result.conversations);
+      }
+    } catch (error) {
+      console.error('Error loading conversations:', error);
+    } finally {
+      setIsLoadingConversations(false);
+    }
+  };
+
+  const saveCurrentConversation = async () => {
+    if (!userInfo?.username || !conversationTitle.trim()) return;
+    
+    try {
+      // Get current messages from the thread runtime
+      const runtime = useThreadRuntime();
+      const messages = runtime.messages || [];
+      
+      // Check if we have any messages to save
+      if (messages.length === 0) {
+        return;
+      }
+      
+      const result = await ConversationService.saveConversation({
+        title: conversationTitle,
+        messages: messages,
+        metadata: {
+          attachedFiles: attachedFiles.map(f => ({ id: f.file_id, name: f.name })),
+          toolPreferences,
+        }
+      });
+      
+      if (result.success) {
+        setSaveDialogOpen(false);
+        setConversationTitle("");
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error saving conversation:', error);
+    }
+  };
+
+  const loadConversation = async (conversationId: string) => {
+    try {
+      const result = await ConversationService.getConversation(conversationId);
+      if (!result.success || !result.conversation) return;
+
+      const conversation = result.conversation;
+      console.log('Loading conversation:', conversation);
+
+      // Prepare attachments and tool preferences
+      if (conversation.metadata?.attachedFiles) {
+        const files = conversation.metadata.attachedFiles;
+        const fileItems: FileSystemItem[] = files.map((file: any) => ({
+          id: file.id,
+          file_id: file.id,
+          name: file.name,
+          path: '',
+          type: 'file',
+          size: 0,
+          modified: new Date(),
+          s3_url: ''
+        }));
+        setAttachedFiles(fileItems);
+      }
+      if (conversation.metadata?.toolPreferences) {
+        setToolPreferences(conversation.metadata.toolPreferences);
+      }
+
+      if (!runtime) return;
+
+      // Reset runtime before applying messages
+      runtime.reset();
+
+      const rawMessages = Array.isArray(conversation.messages) ? conversation.messages : [];
+
+      const sanitizedMessages = rawMessages.map((msg: any, index: number) => {
+        const baseId = msg.id || `msg-${index}-${Date.now()}`;
+        const parts = Array.isArray(msg.content)
+          ? msg.content
+          : (typeof msg.content === 'string' && msg.content.length > 0
+              ? [{ type: 'text', text: msg.content }]
+              : []);
+        return {
+          id: baseId,
+          role: msg.role === 'assistant' ? 'assistant' : 'user',
+          content: parts,
+          createdAt: msg.createdAt ? new Date(msg.createdAt) : new Date(),
+        };
+      });
+
+      // Pre-set buffer so user sees messages even if runtime import lags
+      setLoadedMessagesBuffer(sanitizedMessages);
+
+      // Dispatch an event to the runtime provider to ensure we import within its context
+      try {
+        window.dispatchEvent(new CustomEvent('assistant-load-conversation', { detail: { messages: sanitizedMessages } }));
+        // Give the runtime a moment and then verify
+        setTimeout(() => {
+          const count = Array.isArray((runtime as any)?.messages) ? (runtime as any).messages.length : 0;
+          if (count > 0) {
+            setThreadKey(Date.now());
+            setLoadedMessagesBuffer(null);
+            setShowConversationDialog(false);
+          } else {
+            // Fallback to direct application if provider path didn’t stick
+            tryApplyMessagesToRuntime(runtime as any, sanitizedMessages as any).then((applied) => {
+              if (applied.ok) {
+                setThreadKey(Date.now());
+                setLoadedMessagesBuffer(null);
+                setShowConversationDialog(false);
+              } else {
+              }
+            });
+          }
+        }, 150);
+      } catch (e) {
+        // If dispatch fails, fallback immediately
+        const applied = await tryApplyMessagesToRuntime(runtime as any, sanitizedMessages as any);
+        if (applied.ok) {
+          setThreadKey(Date.now());
+          setLoadedMessagesBuffer(null);
+          setShowConversationDialog(false);
+        } else {
+        }
+      }
+    } catch (error) {
+      console.error('Error loading conversation:', error);
+    }
+  };
+
+  const deleteConversation = async (conversationId: string) => {
+    try {
+      const result = await ConversationService.deleteConversation(conversationId);
+      if (result.success) {
+        await loadConversations();
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
   };
 
   // Auto-attach the selected file from Workspaces
@@ -120,6 +442,196 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
       }
     }
   }, [selectedFile, attachedFiles]);
+
+  // Get the thread runtime at the component level
+  const runtime = useThreadRuntime();
+
+  // Auto-save conversation when langgraph stream completes
+  useEffect(() => {
+    if (!runtime || !userInfo?.username) {
+      return;
+    }
+    
+    const handleRunEnd = async () => {
+      console.log('🔄 Auto-save triggered');
+      
+      // Wait a bit for messages to be processed and added to runtime
+      const waitForMessages = async (maxAttempts = 10) => {
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          // Try different ways to access messages
+          const messages1 = runtime.messages || [];
+          const messages2 = runtime?._threadBinding?.getState?.()?.messages || [];
+          const messages3 = runtime?.getState?.()?.messages || [];
+          
+          const messages = messages1.length > 0 ? messages1 : messages2.length > 0 ? messages2 : messages3;
+          
+          if (messages.length > 0) {
+            return messages;
+          }
+          
+          // Wait 500ms before next attempt
+          await new Promise(resolve => setTimeout(resolve, 500));
+        }
+        return [];
+      };
+      
+      try {
+        const messages = await waitForMessages();
+        
+        // Only auto-save if we have messages
+        if (messages.length === 0) {
+          console.log('❌ No messages to save');
+          return;
+        }
+        
+        // Find the first user message to use as title
+        const firstUserMessage = messages.find((msg: any) => msg.role === 'user');
+        console.log('👤 First user message found:', !!firstUserMessage);
+        if (!firstUserMessage) {
+          console.log('❌ No user message found');
+          return;
+        }
+        
+        // Extract text content from the first user message
+        let title = 'New Conversation';
+        if (firstUserMessage.content && Array.isArray(firstUserMessage.content)) {
+          const textContent = firstUserMessage.content
+            .filter((part: any) => part.type === 'text')
+            .map((part: any) => part.text)
+            .join(' ')
+            .trim();
+          
+          if (textContent) {
+            // Truncate title to reasonable length
+            title = textContent.length > 50 ? textContent.substring(0, 50) + '...' : textContent;
+          }
+        }
+        
+        // Check if this conversation already exists (by comparing first user message)
+        const existingConversation = conversations.find(conv => {
+          if (!conv.messages || conv.messages.length === 0) return false;
+          const convFirstUserMsg = conv.messages.find((msg: any) => msg.role === 'user');
+          if (!convFirstUserMsg) return false;
+          
+          // Compare the first user message content
+          const convTextContent = convFirstUserMsg.content
+            ?.filter((part: any) => part.type === 'text')
+            ?.map((part: any) => part.text)
+            ?.join(' ')
+            ?.trim();
+          
+          const currentTextContent = firstUserMessage.content
+            ?.filter((part: any) => part.type === 'text')
+            ?.map((part: any) => part.text)
+            ?.join(' ')
+            ?.trim();
+          
+          return convTextContent === currentTextContent;
+        });
+        
+        console.log('🔍 Checking for existing conversation...');
+        if (existingConversation) {
+          console.log('📝 Updating existing conversation:', existingConversation._id);
+          // Update existing conversation
+          const result = await ConversationService.updateConversation(existingConversation._id, {
+            title,
+            messages,
+            metadata: {
+              attachedFiles: attachedFiles.map(f => ({ id: f.file_id, name: f.name })),
+              toolPreferences,
+              lastUpdated: new Date().toISOString()
+            }
+          });
+          
+          if (result.success) {
+            console.log('Conversation auto-updated:', existingConversation._id);
+          }
+        } else {
+          console.log('🆕 Creating new conversation');
+          // Create new conversation
+          const result = await ConversationService.saveConversation({
+            title,
+            messages,
+            metadata: {
+              attachedFiles: attachedFiles.map(f => ({ id: f.file_id, name: f.name })),
+              toolPreferences,
+              createdAt: new Date().toISOString()
+            }
+          });
+          
+          if (result.success) {
+            console.log('Conversation auto-saved:', result.conversation_id);
+            await loadConversations();
+          }
+        }
+      } catch (error) {
+        console.error('Error auto-saving conversation:', error);
+      }
+    };
+    
+    // Try multiple event names that might indicate completion
+    const unsubscribe1 = runtime.unstable_on('run-end', handleRunEnd);
+    const unsubscribe2 = runtime.unstable_on('run-complete', handleRunEnd);
+    const unsubscribe3 = runtime.unstable_on('message-end', handleRunEnd);
+    
+    return () => {
+      unsubscribe1();
+      unsubscribe2();
+      unsubscribe3();
+    };
+  }, [runtime, userInfo?.username, conversations, attachedFiles, toolPreferences]);
+
+  // Listen for global assistant-load-conversation events to show fallback buffer immediately
+  useEffect(() => {
+    const handler = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const msgs = customEvent.detail?.messages;
+      if (!Array.isArray(msgs)) return;
+
+      // Optimistic UI: show messages immediately while importing
+      setLoadedMessagesBuffer(msgs);
+
+      try {
+        // Reset runtime and try to import messages via robust helper
+        try { (runtime as any)?.reset?.(); } catch {}
+        const applied = await tryApplyMessagesToRuntime(runtime as any, msgs as any);
+        if (applied.ok) {
+          // Force rebind and clear buffer once runtime is hydrated
+          setThreadKey(Date.now());
+          setLoadedMessagesBuffer(null);
+          return;
+        }
+      } catch {}
+
+      // If import failed, keep buffer visible as a fallback
+      setLoadedMessagesBuffer(msgs);
+    };
+    window.addEventListener('assistant-load-conversation', handler);
+    return () => window.removeEventListener('assistant-load-conversation', handler);
+  }, [runtime]);
+
+  // Listen for clear-conversation events to reset the conversation
+  useEffect(() => {
+    const handler = (event: Event) => {
+      // Clear the loaded messages buffer to show welcome message
+      setLoadedMessagesBuffer(null);
+      // Reset the runtime if available
+      if (runtime && runtime.reset) {
+        runtime.reset();
+      }
+      // Force a re-render by updating the thread key
+      setThreadKey(Date.now());
+    };
+    window.addEventListener('clear-conversation', handler);
+    return () => window.removeEventListener('clear-conversation', handler);
+  }, [runtime]);
+
+  // Load conversations on mount
+  useEffect(() => {
+    if (userInfo?.username) {
+      loadConversations();
+    }
+  }, [userInfo?.username]);
 
   // Keep a copy of attachments in localStorage so the runtime can inject them
   useEffect(() => {
@@ -196,15 +708,47 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
 
   return (
     <ThreadPrimitive.Root
-      className="flex h-full flex-col"
+      key={threadKey}
+      className="flex h-full flex-col min-h-0"
       style={{
         ["--thread-max-width" as string]: "48rem",
         ["--thread-padding-x" as string]: "1rem",
         backgroundColor: 'transparent',
       }}
     >
-      <ThreadPrimitive.Viewport className={cn(styles.darkScrollbar, "relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto") }>
-        <ThreadWelcome />
+      <ThreadPrimitive.Viewport className={cn(styles.darkScrollbar, "relative flex min-w-0 flex-1 flex-col gap-6 overflow-y-auto min-h-0") } style={{ height: '100%', maxHeight: '100%' }}>
+        {loadedMessagesBuffer ? null : <ThreadWelcome />}
+
+        {/* Fallback buffer messages (shown only if runtime hasn't hydrated yet) */}
+        {loadedMessagesBuffer && (
+          <div className="space-y-4">
+            {loadedMessagesBuffer.map((message: any, index: number) => (
+              <div key={message.id || index} className="mx-auto max-w-[var(--thread-max-width)] px-[var(--thread-padding-x)]">
+                {message.role === 'user' ? (
+                  <div className="mx-auto grid w-full max-w-[var(--thread-max-width)] auto-rows-auto text-sm grid-cols-[minmax(72px,1fr)_auto] gap-y-1 py-4 [&:where(>*)]:col-start-2">
+                    <div className="bg-muted text-foreground col-start-2 rounded-3xl px-5 py-2.5 break-words">
+                      <div className="whitespace-pre-wrap">
+                        {Array.isArray(message.content)
+                          ? message.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                          : ''}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="relative mx-auto grid w-full max-w-[var(--thread-max-width)] grid-cols-[1fr] grid-rows-[auto_1fr] py-1">
+                    <div className="text-white col-start-1 row-start-1 leading-none break-words text-sm">
+                      <div className="whitespace-pre-wrap">
+                        {Array.isArray(message.content)
+                          ? message.content.map((part: any) => part.type === 'text' ? part.text : '').join('')
+                          : ''}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
 
         <ThreadPrimitive.Messages
           components={{
@@ -232,6 +776,23 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, onEmailSelect 
         onUpdateToolPreferences={setToolPreferences}
         attachmentPayloads={attachmentPayloads}
       />
+
+      {/* Conversation Dialogs */}
+      <SaveConversationDialog
+        open={saveDialogOpen}
+        onClose={() => setSaveDialogOpen(false)}
+        onSave={saveCurrentConversation}
+        title={conversationTitle}
+        onTitleChange={setConversationTitle}
+      />
+      
+      <LoadConversationDialog
+        open={showConversationDialog}
+        onClose={() => setShowConversationDialog(false)}
+        conversations={conversations}
+        onLoadConversation={loadConversation}
+        onDeleteConversation={deleteConversation}
+      />
     </ThreadPrimitive.Root>
   );
 };
@@ -242,7 +803,7 @@ const ThreadScrollToBottom: FC = () => {
       <TooltipIconButton
         tooltip="Scroll to bottom"
         variant="outline"
-        className="dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible"
+        className="dark:bg-background dark:hover:bg-accent absolute -top-12 z-10 self-center rounded-full p-4 disabled:invisible pointer-events-auto"
       >
         <ArrowDownIcon />
       </TooltipIconButton>
@@ -355,9 +916,10 @@ interface ComposerProps {
   toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean };
   onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean }) => void;
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
+  onSend?: () => void;
 }
 
-const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads }) => {
+const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads, onSend }) => {
   const composer = useComposerRuntime();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -446,6 +1008,11 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, onFileAttach, onFileRemove
         // Wait and then send
         setTimeout(() => {
           composer.send();
+          
+          // Call the onSend callback if provided
+          if (onSend) {
+            onSend();
+          }
           
           // Clear after sending
           setTimeout(() => {
@@ -1081,3 +1648,138 @@ const StarIcon = ({ size = 14 }: { size?: number }) => (
     />
   </svg>
 );
+
+// Conversation Management Components
+interface ConversationButtonsProps {
+  onSave: () => void;
+  onLoad: () => void;
+  conversations: any[];
+  isLoading: boolean;
+}
+
+interface SaveConversationDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSave: () => void;
+  title: string;
+  onTitleChange: (title: string) => void;
+}
+
+const SaveConversationDialog: FC<SaveConversationDialogProps> = ({ 
+  open, 
+  onClose, 
+  onSave, 
+  title, 
+  onTitleChange 
+}) => {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-md mx-4">
+        <h3 className="text-lg font-semibold mb-4">Save Conversation</h3>
+        <input
+          type="text"
+          placeholder="Enter conversation title..."
+          value={title}
+          onChange={(e) => onTitleChange(e.target.value)}
+          className="w-full p-2 bg-zinc-700 border border-zinc-600 rounded text-white mb-4"
+          autoFocus
+        />
+        <div className="flex justify-end gap-2">
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={onSave} disabled={!title.trim()}>
+            Save
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface LoadConversationDialogProps {
+  open: boolean;
+  onClose: () => void;
+  conversations: any[];
+  onLoadConversation: (id: string) => void;
+  onDeleteConversation: (id: string) => void;
+}
+
+const LoadConversationDialog: FC<LoadConversationDialogProps> = ({ 
+  open, 
+  onClose, 
+  conversations, 
+  onLoadConversation, 
+  onDeleteConversation 
+}) => {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="bg-zinc-800 rounded-lg p-6 w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+        <h3 className="text-lg font-semibold mb-4">Load Conversation</h3>
+        
+        <div className="flex-1 overflow-y-auto">
+          {conversations.length === 0 ? (
+            <p className="text-zinc-400 text-center py-8">No saved conversations found.</p>
+          ) : (
+            <div className="space-y-2">
+              {conversations.map((conversation) => (
+                <div
+                  key={conversation._id}
+                  className="flex items-center justify-between p-3 bg-zinc-700 rounded hover:bg-zinc-600"
+                >
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium truncate">{conversation.title}</h4>
+                    <p className="text-sm text-zinc-400">
+                      {new Date(conversation.updated_at).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div className="flex gap-2 ml-4">
+                    <TooltipIconButton
+                      tooltip="Load conversation"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onLoadConversation(conversation._id)}
+                    >
+                      <FolderOpen className="h-4 w-4" />
+                    </TooltipIconButton>
+                    <TooltipIconButton
+                      tooltip="Refresh conversation display"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        // Force a refresh by reloading the conversation
+                        onLoadConversation(conversation._id);
+                      }}
+                      className="text-blue-400 hover:text-blue-300"
+                    >
+                      <RefreshCwIcon className="h-4 w-4" />
+                    </TooltipIconButton>
+                    <TooltipIconButton
+                      tooltip="Delete conversation"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => onDeleteConversation(conversation._id)}
+                      className="text-red-400 hover:text-red-300"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </TooltipIconButton>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+        
+        <div className="flex justify-end mt-4">
+          <Button variant="ghost" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};

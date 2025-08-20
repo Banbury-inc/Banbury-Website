@@ -509,34 +509,86 @@ const gmailGetRecentTool = tool(
       return JSON.stringify({ success: false, error: "No messages found or invalid response format" });
     }
 
-    // Then, fetch full message content for each message ID
-    const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
-      try {
-        const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
-        const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
-        if (getResp.ok) {
-          const messageData = await getResp.json();
-          return extractEssentialEmailData(messageData, msg.id, msg.threadId);
-        } else {
+    // Extract message IDs and fetch full message content using batch endpoint
+    const messageIds = listData.messages.slice(0, maxResults).map((msg: any) => msg.id);
+    let successfulMessages: any[] = [];
+    
+    try {
+      const batchUrl = `${apiBase}/authentication/gmail/messages/batch`;
+      const batchResp = await fetch(batchUrl, { 
+        method: "POST", 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageIds })
+      });
+      
+      if (batchResp.ok) {
+        const batchData = await batchResp.json();
+        successfulMessages = (batchData.messages || []).map((messageData: any) => 
+          extractEssentialEmailData(messageData, messageData.id, messageData.threadId)
+        );
+      } else {
+        // Fallback to individual requests if batch fails
+        const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+          try {
+            const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+            const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+            if (getResp.ok) {
+              const messageData = await getResp.json();
+              return extractEssentialEmailData(messageData, msg.id, msg.threadId);
+            } else {
+              return {
+                id: msg.id,
+                threadId: msg.threadId,
+                error: `Failed to fetch message: ${getResp.status}`
+              };
+            }
+          } catch (error) {
+            return {
+              id: msg.id,
+              threadId: msg.threadId,
+              error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
+            };
+          }
+        });
+
+        const messages = await Promise.allSettled(messagePromises);
+        successfulMessages = messages
+          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+          .map(result => result.value);
+      }
+    } catch (error) {
+      // Fallback to individual requests if batch fails
+      const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+        try {
+          const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+          const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+          if (getResp.ok) {
+            const messageData = await getResp.json();
+            return extractEssentialEmailData(messageData, msg.id, msg.threadId);
+          } else {
+            return {
+              id: msg.id,
+              threadId: msg.threadId,
+              error: `Failed to fetch message: ${getResp.status}`
+            };
+          }
+        } catch (error) {
           return {
             id: msg.id,
             threadId: msg.threadId,
-            error: `Failed to fetch message: ${getResp.status}`
+            error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
           };
         }
-      } catch (error) {
-        return {
-          id: msg.id,
-          threadId: msg.threadId,
-          error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
-        };
-      }
-    });
+      });
 
-    const messages = await Promise.allSettled(messagePromises);
-    const successfulMessages = messages
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-      .map(result => result.value);
+      const messages = await Promise.allSettled(messagePromises);
+      successfulMessages = messages
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map(result => result.value);
+    }
 
     // Truncate the response to prevent token limit issues
     const truncatedResponse = truncateGmailResponse(successfulMessages);
@@ -583,34 +635,86 @@ const gmailSearchTool = tool(
       return JSON.stringify({ success: false, error: "No messages found or invalid response format" });
     }
 
-    // Then, fetch full message content for each message ID
-    const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
-      try {
-        const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
-        const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
-        if (getResp.ok) {
-          const messageData = await getResp.json();
-          return extractEssentialEmailData(messageData, msg.id, msg.threadId);
-        } else {
+    // Extract message IDs and fetch full message content using batch endpoint
+    const messageIds = listData.messages.slice(0, maxResults).map((msg: any) => msg.id);
+    let successfulMessages: any[] = [];
+    
+    try {
+      const batchUrl = `${apiBase}/authentication/gmail/messages/batch`;
+      const batchResp = await fetch(batchUrl, { 
+        method: "POST", 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ messageIds })
+      });
+      
+      if (batchResp.ok) {
+        const batchData = await batchResp.json();
+        successfulMessages = (batchData.messages || []).map((messageData: any) => 
+          extractEssentialEmailData(messageData, messageData.id, messageData.threadId)
+        );
+      } else {
+        // Fallback to individual requests if batch fails
+        const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+          try {
+            const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+            const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+            if (getResp.ok) {
+              const messageData = await getResp.json();
+              return extractEssentialEmailData(messageData, msg.id, msg.threadId);
+            } else {
+              return {
+                id: msg.id,
+                threadId: msg.threadId,
+                error: `Failed to fetch message: ${getResp.status}`
+              };
+            }
+          } catch (error) {
+            return {
+              id: msg.id,
+              threadId: msg.threadId,
+              error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
+            };
+          }
+        });
+
+        const messages = await Promise.allSettled(messagePromises);
+        successfulMessages = messages
+          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+          .map(result => result.value);
+      }
+    } catch (error) {
+      // Fallback to individual requests if batch fails
+      const messagePromises = listData.messages.slice(0, maxResults).map(async (msg: any) => {
+        try {
+          const getUrl = `${apiBase}/authentication/gmail/messages/${encodeURIComponent(msg.id)}/`;
+          const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+          if (getResp.ok) {
+            const messageData = await getResp.json();
+            return extractEssentialEmailData(messageData, msg.id, msg.threadId);
+          } else {
+            return {
+              id: msg.id,
+              threadId: msg.threadId,
+              error: `Failed to fetch message: ${getResp.status}`
+            };
+          }
+        } catch (error) {
           return {
             id: msg.id,
             threadId: msg.threadId,
-            error: `Failed to fetch message: ${getResp.status}`
+            error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
           };
         }
-      } catch (error) {
-        return {
-          id: msg.id,
-          threadId: msg.threadId,
-          error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
-        };
-      }
-    });
+      });
 
-    const messages = await Promise.allSettled(messagePromises);
-    const successfulMessages = messages
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-      .map(result => result.value);
+      const messages = await Promise.allSettled(messagePromises);
+      successfulMessages = messages
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map(result => result.value);
+    }
 
     // Truncate the response to prevent token limit issues
     const truncatedResponse = truncateGmailResponse(successfulMessages);

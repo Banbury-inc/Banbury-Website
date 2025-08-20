@@ -1,6 +1,9 @@
 .darkScrollbar {
   /* Ensure consistent thin scrollbar even outside dark mode, colors applied conditionally below */
   scrollbar-width: thin;
+  /* Ensure scrolling is enabled */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 @media (prefers-color-scheme: dark) {

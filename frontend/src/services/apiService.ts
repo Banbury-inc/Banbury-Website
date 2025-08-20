@@ -94,6 +94,19 @@ export class ApiService {
   }
 
   /**
+   * Generic PUT request
+   */
+  static async put<T>(endpoint: string, data?: any): Promise<T> {
+    try {
+      const response = await axios.put<T>(`${this.baseURL}${endpoint}`, data);
+      return response.data;
+    } catch (error) {
+      this.handleError(error, `PUT ${endpoint}`);
+      throw error;
+    }
+  }
+
+  /**
    * Authentication specific requests
    */
   static async login(username: string, password: string) {
@@ -662,6 +675,42 @@ export class ApiService {
   }
 
   /**
+   * Upload a folder with all its contents to S3
+   */
+  static async uploadFolder(files: File[], folderName: string, deviceName: string = 'web-editor', parentPath: string = '') {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      const uploadPromises = files.map(async (file) => {
+        // Calculate the relative path within the folder
+        const relativePath = file.webkitRelativePath || file.name;
+        const filePath = parentPath ? `${parentPath}/${folderName}/${relativePath}` : `${folderName}/${relativePath}`;
+        const fileParent = parentPath ? `${parentPath}/${folderName}` : folderName;
+        
+        return this.uploadToS3(file, file.name, deviceName, filePath, fileParent);
+      });
+
+      const results = await Promise.all(uploadPromises);
+      
+      // Check if all uploads were successful
+      const failedUploads = results.filter(result => !result.success);
+      if (failedUploads.length > 0) {
+        throw new Error(`${failedUploads.length} files failed to upload`);
+      }
+
+      return {
+        success: true,
+        uploadedFiles: results.length,
+        message: `Folder "${folderName}" uploaded successfully with ${results.length} files`
+      };
+    } catch (error) {
+      console.error('uploadFolder error:', error);
+      throw this.enhanceError(error, 'Failed to upload folder');
+    }
+  }
+
+  /**
    * Enhanced error handling
    */
   private static enhanceError(error: unknown, context: string): Error {
@@ -728,6 +777,64 @@ export class ApiService {
   }
 
   /**
+   * Search S3 files by query
+   */
+  static async searchS3Files(query: string): Promise<any> {
+    try {
+      const response = await this.post('/files/search_s3_files/', { query });
+      return response;
+    } catch (error) {
+      this.handleError(error, `Search S3 files with query: ${query}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Search emails by query
+   */
+  static async searchEmails(query: string): Promise<any> {
+    try {
+      console.log('Searching emails with query:', query);
+      
+      // First get the message list (basic metadata)
+      const listResponse = await this.get<any>(`/authentication/gmail/list_messages/?q=${encodeURIComponent(query)}&maxResults=10`);
+      
+      console.log('Gmail API response:', listResponse);
+      
+      if (!listResponse.messages || listResponse.messages.length === 0) {
+        console.log('No messages found in response');
+        return { messages: [] };
+      }
+
+      console.log('Found messages:', listResponse.messages.length);
+      
+      // Extract message IDs and get full details using batch endpoint
+      const messageIds = listResponse.messages.map((msg: any) => msg.id);
+      console.log('Fetching full details for message IDs:', messageIds);
+      
+      const batchResponse = await this.post<any>('/authentication/gmail/messages/batch', {
+        messageIds: messageIds
+      });
+      
+      console.log('Batch response:', batchResponse);
+      
+      // Convert the batch response format to match expected format
+      const fullMessages = Object.values(batchResponse.messages || {});
+      console.log('Successfully fetched full details for:', fullMessages.length, 'messages');
+      
+      return {
+        messages: fullMessages,
+        nextPageToken: listResponse.nextPageToken,
+        resultSizeEstimate: listResponse.resultSizeEstimate
+      };
+    } catch (error) {
+      console.error('Gmail search error:', error);
+      this.handleError(error, `Search emails with query: ${query}`);
+      throw error;
+    }
+  }
+
+  /**
    * Generic error handler
    */
   private static handleError(error: unknown, context: string) {
@@ -755,7 +862,9 @@ axios.interceptors.request.use((config) => {
   if (!existingAuth && typeof window !== 'undefined' && window.localStorage) {
     const token = localStorage.getItem('authToken');
     if (token) {
-      (config.headers ||= {});
+      if (!config.headers) {
+        config.headers = {} as any;
+      }
       config.headers['Authorization'] = `Bearer ${token}`;
     }
   }
