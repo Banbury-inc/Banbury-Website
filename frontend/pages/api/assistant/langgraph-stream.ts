@@ -277,7 +277,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache, no-transform");
-  res.setHeader("Connection", "keep-alive");
+  // Do not set "Connection" header on HTTP/2; it causes protocol errors
 
   const send = (event: any) => {
     res.write(`data: ${JSON.stringify(event)}\n\n`);
@@ -409,8 +409,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Use a custom streaming approach for character-by-character updates
         const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
 
-      // Track how many messages we've already processed to avoid duplicates
-      let prevMessageCount = allMessages.length;
       // Track processed content to avoid sending duplicate text
       let processedAiMessages = new Set<string>();
       // Track tool execution status
@@ -418,8 +416,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Track processed tool calls to avoid duplicates
       let processedToolCalls = new Set<string>();
       // Track the current AI message being streamed
-      let currentAiMessage: any = null;
-      let currentTextContent = "";
+      // (unused) removed to satisfy lint rules
 
         for await (const chunk of stream) {
         finalResult = chunk;
