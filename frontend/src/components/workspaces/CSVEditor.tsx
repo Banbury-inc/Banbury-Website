@@ -42,8 +42,9 @@ import {
   Save,
   Download,
   MoreVert,
+  Help,
 } from '@mui/icons-material';
-import { Box, Typography, Alert, CircularProgress, Button, Toolbar, IconButton, Divider, Menu, MenuItem, TextField } from '@mui/material';
+import { Box, Typography, Alert, CircularProgress, Button, Toolbar, IconButton, Divider, Menu, MenuItem, TextField, Dialog, DialogTitle, DialogContent, DialogActions, List, ListItem, ListItemText } from '@mui/material';
 // Register all Handsontable modules
 registerAllModules();
 
@@ -135,7 +136,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasChanges, setHasChanges] = useState(false);
-  const [containerHeight, setContainerHeight] = useState(400);
+  const [containerHeight, setContainerHeight] = useState(600);
   const [alignmentAnchorEl, setAlignmentAnchorEl] = useState<null | HTMLElement>(null);
   const [fontSize, setFontSize] = useState<number>(12);
   const hotTableRef = useRef<any>(null);
@@ -323,62 +324,31 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     loadCSVContent();
   }, [src, srcBlob]);
 
-  // Calculate container height dynamically
+  // Calculate container height to use full viewport
   useEffect(() => {
     const calculateHeight = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const availableHeight = rect.height;
-        if (availableHeight > 100) {
-          setContainerHeight(availableHeight);
-        } else {
-          // Fallback: try to get parent height
-          const parent = containerRef.current.parentElement;
-          if (parent) {
-            const parentRect = parent.getBoundingClientRect();
-            const calculatedHeight = Math.max(400, parentRect.height - 100); // Account for toolbar
-            setContainerHeight(calculatedHeight);
-          }
-        }
-      }
+      // Use viewport height minus toolbar height and some padding
+      const viewportHeight = window.innerHeight;
+      const toolbarHeight = 40; // Height of the toolbar
+      const padding = 20; // Some padding for margins
+      const calculatedHeight = Math.max(600, viewportHeight - toolbarHeight - padding);
+      setContainerHeight(calculatedHeight);
     };
 
-    // Initial calculation with a slight delay to ensure DOM is ready
-    const initialTimer = setTimeout(calculateHeight, 100);
+    // Initial calculation
+    calculateHeight();
 
     // Recalculate on window resize
     const handleResize = () => {
-      setTimeout(calculateHeight, 100);
+      calculateHeight();
     };
 
     window.addEventListener('resize', handleResize);
     
-    // Use ResizeObserver for more accurate container size changes
-    let resizeObserver: ResizeObserver;
-    if (containerRef.current && window.ResizeObserver) {
-      resizeObserver = new ResizeObserver(() => {
-        setTimeout(calculateHeight, 100);
-      });
-      resizeObserver.observe(containerRef.current);
-    }
-
     return () => {
-      clearTimeout(initialTimer);
       window.removeEventListener('resize', handleResize);
-      if (resizeObserver) {
-        resizeObserver.disconnect();
-      }
     };
   }, []);
-
-  // Force HotTable refresh when height changes
-  useEffect(() => {
-    if (hotTableRef.current?.hotInstance && containerHeight > 100) {
-      setTimeout(() => {
-        hotTableRef.current.hotInstance.render();
-      }, 50);
-    }
-  }, [containerHeight]);
 
   // Listen for AI spreadsheet responses and apply to table
   useEffect(() => {
@@ -967,6 +937,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   // Responsive toolbar state
   const [visibleButtons, setVisibleButtons] = useState<string[]>([]);
   const [overflowAnchorEl, setOverflowAnchorEl] = useState<null | HTMLElement>(null);
+  const [helpDialogOpen, setHelpDialogOpen] = useState(false);
   const toolbarRef = useRef<HTMLDivElement>(null);
   // Register a stable renderer to apply meta.className and meta.style as per docs
   useEffect(() => {
@@ -1474,22 +1445,22 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
   // Define all toolbar buttons with their handlers and icons
   const toolbarButtons = [
-    { id: 'undo', handler: () => handleUndo(), icon: <Undo sx={{ fontSize: 16 }} />, title: 'Undo' },
-    { id: 'redo', handler: () => handleRedo(), icon: <Redo sx={{ fontSize: 16 }} />, title: 'Redo' },
+    { id: 'undo', handler: () => handleUndo(), icon: <Undo sx={{ fontSize: 16 }} />, title: 'Undo (Ctrl+Z)' },
+    { id: 'redo', handler: () => handleRedo(), icon: <Redo sx={{ fontSize: 16 }} />, title: 'Redo (Ctrl+Y)' },
     { id: 'currency', handler: () => handleCurrencyFormat(), icon: <AttachMoney sx={{ fontSize: 16 }} />, title: 'Currency Format' },
     { id: 'date', handler: () => handleDateFormat(), icon: <CalendarToday sx={{ fontSize: 16 }} />, title: 'Date Format' },
     { id: 'percentage', handler: () => handlePercentageFormat(), icon: <Percent sx={{ fontSize: 16 }} />, title: 'Percentage Format' },
     { id: 'number', handler: () => handleNumberFormat(), icon: <Numbers sx={{ fontSize: 16 }} />, title: 'Number Format' },
     { id: 'text', handler: () => handleTextFormat(), icon: <TextFormat sx={{ fontSize: 16 }} />, title: 'Text Format' },
-    { id: 'bold', handler: () => handleBold(), icon: <FormatBold sx={{ fontSize: 16 }} />, title: 'Bold' },
-    { id: 'italic', handler: () => handleItalic(), icon: <FormatItalic sx={{ fontSize: 16 }} />, title: 'Italic' },
-    { id: 'underline', handler: () => handleUnderline(), icon: <FormatUnderlined sx={{ fontSize: 16 }} />, title: 'Underline' },
+    { id: 'bold', handler: () => handleBold(), icon: <FormatBold sx={{ fontSize: 16 }} />, title: 'Bold (Ctrl+B)' },
+    { id: 'italic', handler: () => handleItalic(), icon: <FormatItalic sx={{ fontSize: 16 }} />, title: 'Italic (Ctrl+I)' },
+    { id: 'underline', handler: () => handleUnderline(), icon: <FormatUnderlined sx={{ fontSize: 16 }} />, title: 'Underline (Ctrl+U)' },
     { id: 'textColor', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleTextColorClick(e) : handleTextColorClick({} as any), icon: <TextColorIcon sx={{ fontSize: 16 }} />, title: 'Text Color' },
     { id: 'fillColor', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleBackgroundColorClick(e) : handleBackgroundColorClick({} as any), icon: <FillColorIcon sx={{ fontSize: 16 }} />, title: 'Fill Color' },
     { id: 'borders', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleBorderClick(e) : handleBorderClick({} as any), icon: <BorderAll sx={{ fontSize: 16 }} />, title: 'Borders' },
     { id: 'merge', handler: () => handleMergeCells(), icon: <MergeCellsIcon sx={{ fontSize: 16 }} />, title: 'Merge Selected Cells' },
     { id: 'alignment', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleAlignmentClick(e) : handleAlignmentClick({} as any), icon: <><FormatAlignLeft sx={{ fontSize: 16 }} /><KeyboardArrowDown sx={{ fontSize: 12, ml: 0.5 }} /></>, title: 'Text Alignment' },
-    { id: 'filters', handler: () => handleToggleFilters(), icon: <FilterList sx={{ fontSize: 16 }} />, title: 'Toggle Filters' },
+    { id: 'filters', handler: () => handleToggleFilters(), icon: <FilterList sx={{ fontSize: 16 }} />, title: 'Toggle Filters (Ctrl+K)' },
   ];
 
   // Calculate which buttons should be visible based on available space
@@ -1622,6 +1593,164 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     };
   }, []);
 
+  // Add keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Only handle shortcuts when the editor is focused and not in an input field
+      const activeElement = document.activeElement;
+      if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
+        return;
+      }
+
+      const isCtrl = event.ctrlKey || event.metaKey; // Support both Ctrl and Cmd (Mac)
+      const isShift = event.shiftKey;
+      const key = event.key.toLowerCase();
+
+      // Prevent default behavior for our shortcuts
+      if (isCtrl) {
+        switch (key) {
+          case 'b':
+            event.preventDefault();
+            handleBold();
+            break;
+          case 'i':
+            event.preventDefault();
+            handleItalic();
+            break;
+          case 'u':
+            event.preventDefault();
+            handleUnderline();
+            break;
+          case 's':
+            event.preventDefault();
+            if (onSaveDocument) {
+              handleSaveXlsx();
+            } else {
+              handleSave();
+            }
+            break;
+          case 'z':
+            event.preventDefault();
+            if (isShift) {
+              handleRedo();
+            } else {
+              handleUndo();
+            }
+            break;
+          case 'y':
+            event.preventDefault();
+            handleRedo();
+            break;
+          case 'c':
+            event.preventDefault();
+            handleCopy();
+            break;
+          case 'v':
+            event.preventDefault();
+            handlePaste();
+            break;
+          case 'x':
+            event.preventDefault();
+            handleCut();
+            break;
+          case 'a':
+            event.preventDefault();
+            handleSelectAll();
+            break;
+          case 'f':
+            event.preventDefault();
+            handleSearch();
+            break;
+          case 'k':
+            event.preventDefault();
+            handleToggleFilters();
+            break;
+          case 'enter':
+            if (isShift) {
+              event.preventDefault();
+              handleAddRow();
+            }
+            break;
+          case '=':
+            if (isShift) {
+              event.preventDefault();
+              handleAddColumn();
+            }
+            break;
+        }
+      }
+
+      // Handle other shortcuts
+      switch (key) {
+        case 'delete':
+        case 'backspace':
+          if (!isCtrl) {
+            event.preventDefault();
+            handleClear();
+          }
+          break;
+        case 'f2':
+          event.preventDefault();
+          // F2 to edit cell (this is handled by Handsontable by default)
+          break;
+        case 'escape':
+          event.preventDefault();
+          // Escape to cancel editing (this is handled by Handsontable by default)
+          break;
+        case 'enter':
+          if (!isCtrl) {
+            // Enter to move to next cell (this is handled by Handsontable by default)
+            break;
+          }
+          break;
+        case 'tab':
+          if (!isCtrl) {
+            // Tab to move to next cell (this is handled by Handsontable by default)
+            break;
+          }
+          break;
+        case 'insert':
+          event.preventDefault();
+          handleAddRow();
+          break;
+        case 'f1':
+          event.preventDefault();
+          setHelpDialogOpen(true);
+          break;
+      }
+    };
+
+    // Add event listener
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [onSaveDocument, onSave]); // Dependencies for the handlers
+
+  // Keyboard shortcuts help data
+  const keyboardShortcuts = [
+    { shortcut: 'Ctrl+B', description: 'Bold text' },
+    { shortcut: 'Ctrl+I', description: 'Italic text' },
+    { shortcut: 'Ctrl+U', description: 'Underline text' },
+    { shortcut: 'Ctrl+S', description: 'Save document' },
+    { shortcut: 'Ctrl+Z', description: 'Undo' },
+    { shortcut: 'Ctrl+Y', description: 'Redo' },
+    { shortcut: 'Ctrl+C', description: 'Copy' },
+    { shortcut: 'Ctrl+V', description: 'Paste' },
+    { shortcut: 'Ctrl+X', description: 'Cut' },
+    { shortcut: 'Ctrl+A', description: 'Select all' },
+    { shortcut: 'Ctrl+F', description: 'Search' },
+    { shortcut: 'Ctrl+K', description: 'Toggle filters' },
+    { shortcut: 'Shift+Enter', description: 'Add row' },
+    { shortcut: 'Shift+=', description: 'Add column' },
+    { shortcut: 'Insert', description: 'Add row' },
+    { shortcut: 'Delete', description: 'Clear selected cells' },
+    { shortcut: 'F2', description: 'Edit cell' },
+    { shortcut: 'Escape', description: 'Cancel editing' },
+  ];
+
   if (loading) {
     return (
       <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
@@ -1632,7 +1761,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
 
       {error && (
         <Alert severity="warning" sx={{ m: 1 }}>
@@ -1824,7 +1953,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                   size="small"
                   onClick={handleSaveXlsx}
                   disabled={saving || !canSave}
-                  title="Save as XLSX"
+                  title="Save as XLSX (Ctrl+S)"
                   sx={{
                     width: 32,
                     height: 32,
@@ -1861,6 +1990,23 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                   <Download sx={{ fontSize: 16 }} />
                 </IconButton>
               )}
+              <IconButton
+                size="small"
+                onClick={() => setHelpDialogOpen(true)}
+                title="Keyboard shortcuts (F1)"
+                sx={{
+                  width: 32,
+                  height: 32,
+                  color: '#64748b',
+                  borderRadius: '4px',
+                  '&:hover': {
+                    backgroundColor: '#e2e8f0',
+                    color: '#475569',
+                  },
+                }}
+              >
+                <Help sx={{ fontSize: 16 }} />
+              </IconButton>
             </Box>
           </>
         )}
@@ -2071,7 +2217,8 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           flex: 1,
           position: 'relative',
           backgroundColor: '#ffffff',
-          overflow: 'hidden'
+          overflow: 'hidden',
+          minHeight: 0 // Allow flex item to shrink below content size
         }}
       >
         <div 
@@ -2080,7 +2227,8 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             height: '100%', 
             position: 'relative',
             display: 'flex',
-            flexDirection: 'column'
+            flexDirection: 'column',
+            minHeight: 0
           }}
           className="handsontable-container-full"
         >
@@ -2102,6 +2250,11 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             afterSelectionEnd={(r,c,r2,c2) => { lastSelectionRef.current = [r,c,r2,c2]; }}
             stretchH="all"
             customBorders={customBordersDefs.length ? customBordersDefs : undefined}
+            minRows={Math.max(1000, data.length)}
+            rowHeights={26}
+            autoWrapRow={false}
+            viewportRowRenderingOffset={50}
+            viewportColumnRenderingOffset={50}
             cells={(row: number, col: number) => {
               return {
                 renderer: (instance: any, td: HTMLTableCellElement, r: number, c: number, prop: any, value: any, cellProperties: any) => {
@@ -2124,6 +2277,43 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
         </div>
       </Box>
+
+      {/* Keyboard Shortcuts Help Dialog */}
+      <Dialog
+        open={helpDialogOpen}
+        onClose={() => setHelpDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          Keyboard Shortcuts
+        </DialogTitle>
+        <DialogContent>
+          <List>
+            {keyboardShortcuts.map((item, index) => (
+              <ListItem key={index} sx={{ py: 0.5 }}>
+                <ListItemText
+                  primary={
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                        {item.shortcut}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {item.description}
+                      </Typography>
+                    </Box>
+                  }
+                />
+              </ListItem>
+            ))}
+          </List>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setHelpDialogOpen(false)}>
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

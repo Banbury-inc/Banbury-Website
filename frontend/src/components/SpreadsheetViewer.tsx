@@ -347,9 +347,9 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
   }
 
   return (
-    <div className="h-full flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background">
       {/* Spreadsheet display area with CSVEditor */}
-      <div className="flex-1 overflow-hidden h-full">
+      <div className="flex-1 overflow-hidden">
         {documentUrl ? (
           <div className="h-full">
             <CSVEditor
