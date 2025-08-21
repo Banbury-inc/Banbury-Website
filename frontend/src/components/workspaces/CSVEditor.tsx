@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
-import { textRenderer, registerRenderer } from 'handsontable/renderers';
+import { textRenderer, registerRenderer, checkboxRenderer } from 'handsontable/renderers';
 import 'handsontable/dist/handsontable.full.css';
 import {
   Add,
@@ -35,6 +35,7 @@ import {
   KeyboardArrowDown,
   Remove,
   TextFormat,
+  CheckBoxOutlineBlank,
   BorderTop,
   BorderRight,
   BorderBottom,
@@ -143,7 +144,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const lastSelectionRef = useRef<[number, number, number, number] | null>(null);
 
-  // Helper function to parse CSV content
+  // Pending meta captured from CSV/XLSX load to apply after table renders
+  const pendingCellMetaRef = useRef<Record<string, { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[] }> | null>(null);
+
+  // Helper function to parse CSV content, capturing meta header if present
   const parseCSV = (csvContent: string): any[][] => {
     if (!csvContent.trim()) {
       return [
@@ -153,8 +157,25 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         ['', '', '', '']
       ];
     }
-    
-    const lines = csvContent.split('\n');
+    const linesRaw = csvContent.split('\n');
+    // Detect and parse metadata header line
+    let meta: Record<string, any> | null = null;
+    const lines: string[] = [];
+    for (let i = 0; i < linesRaw.length; i++) {
+      const line = linesRaw[i];
+      if (i === 0 && line.startsWith('##BANBURY_META=')) {
+        try {
+          const encoded = line.slice('##BANBURY_META='.length).trim();
+          const json = atob(encoded);
+          meta = JSON.parse(json);
+        } catch {}
+        continue; // skip meta line from data
+      }
+      lines.push(line);
+    }
+    if (meta && meta.cells && typeof meta.cells === 'object') {
+      pendingCellMetaRef.current = meta.cells;
+    }
     const parsed = lines.map(line => 
       line.split(',').map(cell => cell.trim().replace(/^"|"$/g, '')) // Remove quotes
     ).filter(row => row.some(cell => cell !== '')); // Remove empty rows
@@ -182,6 +203,33 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         return value;
       }).join(',')
     ).join('\n');
+  };
+
+  // Convert to CSV with metadata header for dropdown/checkbox types
+  const convertToCSVWithMeta = (data: any[][]): string => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    const cellsMeta: Record<string, any> = {};
+    if (hotInstance) {
+      const numRows = data.length;
+      const numCols = Math.max(0, ...data.map(r => r.length));
+      for (let r = 0; r < numRows; r++) {
+        for (let c = 0; c < numCols; c++) {
+          try {
+            const meta = hotInstance.getCellMeta(r, c) || {};
+            if (meta.type === 'checkbox') {
+              cellsMeta[`${r}-${c}`] = { type: 'checkbox' };
+            } else if (meta.type === 'dropdown' && Array.isArray(meta.source) && meta.source.length > 0) {
+              cellsMeta[`${r}-${c}`] = { type: 'dropdown', source: meta.source };
+            }
+          } catch {}
+        }
+      }
+    }
+    const baseCsv = convertToCSV(data);
+    if (Object.keys(cellsMeta).length === 0) return baseCsv;
+    const metaObj = { cells: cellsMeta };
+    const encoded = btoa(JSON.stringify(metaObj));
+    return `##BANBURY_META=${encoded}\n` + baseCsv;
   };
 
   // Load CSV/XLSX content (only when src changes)
@@ -213,6 +261,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           const maxRow = ws.actualRowCount || ws.rowCount || 0;
           const maxCol = ws.actualColumnCount || (ws.columns ? ws.columns.length : 0) || 0;
           const nextData: any[][] = [];
+          const nextMeta: {[k:string]: { type: 'dropdown' | 'checkbox'; source?: string[] }} = {};
           const nextFormats: {[k:string]: {className?: string}} = {};
           const nextStyles: {[k:string]: React.CSSProperties} = {};
           const argbToCss = (argb?: string) => {
@@ -231,6 +280,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                 if (value.text != null) value = value.text; else if (value.result != null) value = value.result; else if (value.richText) value = value.richText.map((t:any)=>t.text).join('');
               }
               if (value instanceof Date) value = value.toISOString();
+              // Capture checkbox if boolean
+              if (typeof value === 'boolean') {
+                nextMeta[`${r-1}-${c-1}`] = { type: 'checkbox' };
+              }
               rowArr.push(value == null ? '' : value);
 
               const key = `${r-1}-${c-1}`;
@@ -254,6 +307,16 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
               if (b.right) styles.borderRight = cssFor(b.right) as any;
               if (b.bottom) styles.borderBottom = cssFor(b.bottom) as any;
               if (b.left) styles.borderLeft = cssFor(b.left) as any;
+              // Capture dropdown data validation if present and literal list
+              const dv = (cell as any).dataValidation;
+              if (dv && dv.type === 'list' && Array.isArray(dv.formulae) && typeof dv.formulae[0] === 'string') {
+                const f = String(dv.formulae[0]);
+                const m = f.match(/^"([\s\S]*)"$/);
+                if (m) {
+                  const options = m[1].split(',').map((s) => s.trim()).filter(Boolean);
+                  if (options.length > 0) nextMeta[key] = { type: 'dropdown', source: options };
+                }
+              }
               if (classes.length) nextFormats[key] = { className: classes.join(' ') };
               if (Object.keys(styles).length) nextStyles[key] = styles;
             }
@@ -262,6 +325,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           setData(nextData);
           setCellFormats(nextFormats);
           setCellStyles(nextStyles);
+          if (Object.keys(nextMeta).length) pendingCellMetaRef.current = nextMeta;
         };
 
         const needsXlsx = async (name: string, blob?: Blob) => {
@@ -349,6 +413,34 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Apply any pending cell meta (e.g., from CSV/XLSX import) after data load
+  useEffect(() => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) return;
+    const pending = pendingCellMetaRef.current;
+    if (!pending) return;
+    try {
+      const entries = Object.entries(pending);
+      for (const [key, meta] of entries) {
+        const [rs, cs] = key.split('-');
+        const r = parseInt(rs, 10);
+        const c = parseInt(cs, 10);
+        if (Number.isNaN(r) || Number.isNaN(c)) continue;
+        hotInstance.setCellMeta(r, c, 'type', meta.type);
+        if (meta.type === 'dropdown' && Array.isArray(meta.source)) {
+          hotInstance.setCellMeta(r, c, 'source', meta.source);
+        }
+        // Clean numeric/date format if switching from them
+        if (meta.type === 'dropdown' || meta.type === 'checkbox') {
+          hotInstance.removeCellMeta(r, c, 'numericFormat');
+          hotInstance.removeCellMeta(r, c, 'dateFormat');
+        }
+      }
+      hotInstance.render();
+    } catch {}
+    pendingCellMetaRef.current = null;
+  }, [data]);
 
   // Listen for AI spreadsheet responses and apply to table
   useEffect(() => {
@@ -502,36 +594,11 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   }, [onContentChange]);
 
   const handleSave = useCallback(() => {
-    const hotInstance = hotTableRef.current?.hotInstance;
-    if (hotInstance?.getPlugin) {
-      const exportFile = hotInstance.getPlugin('exportFile');
-      if (exportFile && exportFile.isEnabled && exportFile.isEnabled()) {
-        try {
-          const csvContent = exportFile.exportAsString('csv', {
-            bom: false,
-            columnDelimiter: ',',
-            columnHeaders: false,
-            exportHiddenColumns: true,
-            exportHiddenRows: true,
-            fileExtension: 'csv',
-            filename: (fileName ? fileName.replace(/\.[^/.]+$/, '') : 'export') + '_[YYYY]-[MM]-[DD]',
-            mimeType: 'text/csv',
-            rowDelimiter: '\r\n',
-            rowHeaders: true,
-          });
-          onSave?.(csvContent);
-          setHasChanges(false);
-          return;
-        } catch {
-          // Fallback below
-        }
-      }
-    }
-    // Fallback: manual CSV generation
-    const csvContent = convertToCSV(data);
+    // Manual CSV generation with metadata header for types
+    const csvContent = convertToCSVWithMeta(data);
     onSave?.(csvContent);
     setHasChanges(false);
-  }, [data, fileName, onSave]);
+  }, [data, onSave]);
 
   // Spreadsheet actions
   const handleAddRow = () => {
@@ -654,33 +721,17 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   // Export to CSV - using documented API
   const handleExport = () => {
     const hotInstance = hotTableRef.current?.hotInstance;
-    if (hotInstance?.getPlugin) {
-      const exportFile = hotInstance.getPlugin('exportFile');
-      if (exportFile && exportFile.isEnabled()) {
-        exportFile.downloadFile('csv', {
-          filename: fileName ? fileName.replace(/\.[^/.]+$/, '') : 'export',
-        });
-      } else {
-        // Fallback: manual CSV export
-        const data = hotInstance.getData();
-        const csvContent = data.map((row: any[]) => 
-          row.map((cell: any) => {
-            const value = String(cell || '');
-            if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-              return `"${value.replace(/"/g, '""')}"`;
-            }
-            return value;
-          }).join(',')
-        ).join('\n');
-        
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName ? fileName.replace(/\.[^/.]+$/, '.csv') : 'export.csv';
-        a.click();
-        URL.revokeObjectURL(url);
-      }
+    // Manual export to ensure metadata header is included
+    if (hotInstance) {
+      const currentData = hotInstance.getData();
+      const csvContent = convertToCSVWithMeta(currentData);
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName ? fileName.replace(/\.[^/.]+$/, '.csv') : 'export.csv';
+      a.click();
+      URL.revokeObjectURL(url);
     }
   };
 
@@ -1056,6 +1107,27 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         try {
           const meta = hotInstance.getCellMeta(r, c) as any;
           if (meta) {
+            // Apply dropdown validation
+            if (meta.type === 'dropdown' && Array.isArray(meta.source) && meta.source.length > 0) {
+              const joined = meta.source.map((s: string) => String(s).replace(/"/g, '""')).join(',');
+              (cell as any).dataValidation = {
+                type: 'list',
+                allowBlank: true,
+                formulae: [`"${joined}"`],
+              } as any;
+            }
+            // Convert checkbox values to booleans in Excel
+            if (meta.type === 'checkbox') {
+              const v = tableData?.[r]?.[c];
+              const toBool = (val: any) => {
+                if (typeof val === 'boolean') return val;
+                if (typeof val === 'number') return val !== 0;
+                const s = String(val).trim().toLowerCase();
+                return s === 'true' || s === '1' || s === 'yes' || s === 'y' || s === 'x';
+              };
+              (cell as any).value = toBool(v);
+            }
+            // Numeric/date formatting
             if (meta.type === 'numeric' && meta.numericFormat?.pattern) {
               const fmtPattern = numeralToExcelNumFmt(meta.numericFormat.pattern);
               if (fmtPattern) (cell as any).numFmt = fmtPattern;
@@ -1419,6 +1491,98 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     }
   };
 
+  // New: Dropdown (handsontable "dropdown" type) and Checkbox cell types
+  const handleDropdownFormat = () => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) return;
+    const selected = hotInstance.getSelected();
+    if (!selected || selected.length === 0) return;
+    const optionsInput = prompt('Enter dropdown options (comma-separated):', 'Option 1, Option 2, Option 3');
+    if (optionsInput == null) return;
+    const source = optionsInput
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    const [startRow, startCol, endRow, endCol] = selected[0];
+    for (let row = startRow; row <= endRow; row++) {
+      for (let col = startCol; col <= endCol; col++) {
+        hotInstance.setCellMeta(row, col, 'type', 'dropdown');
+        hotInstance.setCellMeta(row, col, 'source', source);
+        // Clean other formatting that conflicts
+        hotInstance.removeCellMeta(row, col, 'numericFormat');
+        hotInstance.removeCellMeta(row, col, 'dateFormat');
+      }
+    }
+    hotInstance.render();
+    setHasChanges(true);
+  };
+
+  const handleCheckboxFormat = () => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) return;
+    const selected = hotInstance.getSelected();
+    if (!selected || selected.length === 0) return;
+    const [startRow, startCol, endRow, endCol] = selected[0];
+    for (let row = startRow; row <= endRow; row++) {
+      for (let col = startCol; col <= endCol; col++) {
+        hotInstance.setCellMeta(row, col, 'type', 'checkbox');
+        // Optional: you can preset checkedTemplate/uncheckedTemplate if needed
+        hotInstance.removeCellMeta(row, col, 'numericFormat');
+        hotInstance.removeCellMeta(row, col, 'dateFormat');
+      }
+    }
+    hotInstance.render();
+    setHasChanges(true);
+  };
+
+  // Edit dropdown options for selected cells (prefills current options when possible)
+  const handleEditDropdownOptions = () => {
+    const hotInstance = hotTableRef.current?.hotInstance;
+    if (!hotInstance) return;
+    const selected = hotInstance.getSelected();
+    if (!selected || selected.length === 0) return;
+    const [startRow, startCol, endRow, endCol] = selected[0];
+    // Prefill from first cell if it has dropdown source
+    let prefill: string | undefined;
+    try {
+      const meta = hotInstance.getCellMeta(startRow, startCol) || {};
+      if (meta.type === 'dropdown' && Array.isArray(meta.source) && meta.source.length > 0) {
+        prefill = meta.source.join(', ');
+      }
+    } catch {}
+    const input = prompt('Enter dropdown options (comma-separated):', prefill || '');
+    if (input == null) return;
+    const source = input
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+    for (let row = startRow; row <= endRow; row++) {
+      for (let col = startCol; col <= endCol; col++) {
+        hotInstance.setCellMeta(row, col, 'type', 'dropdown');
+        hotInstance.setCellMeta(row, col, 'source', source);
+        hotInstance.removeCellMeta(row, col, 'numericFormat');
+        hotInstance.removeCellMeta(row, col, 'dateFormat');
+      }
+    }
+    hotInstance.render();
+    setHasChanges(true);
+  };
+
+  // Handsontable context menu configuration with custom items
+  const contextMenuConfig = useMemo(() => ({
+    items: {
+      row_above: {},
+      row_below: {},
+      col_left: {},
+      col_right: {},
+      remove_row: {},
+      remove_col: {},
+      undo: {},
+      redo: {},
+      clear_column: {},
+    }
+  }), [handleEditDropdownOptions]);
+
   // Alignment dropdown handlers
   const handleAlignmentClick = (event: React.MouseEvent<HTMLElement>) => {
     setAlignmentAnchorEl(event.currentTarget);
@@ -1470,8 +1634,11 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     const toolbar = toolbarRef.current;
     const toolbarWidth = toolbar.offsetWidth;
     
-    // If toolbar width is 0, it's not rendered yet
-    if (toolbarWidth === 0) return;
+    // If toolbar width is 0, it's not rendered yet - show all buttons as fallback
+    if (toolbarWidth === 0) {
+      setVisibleButtons(toolbarButtons.map(btn => btn.id));
+      return;
+    }
     
     const buttonWidth = 32; // Width of each button
     const dividerWidth = 16; // Width of dividers
@@ -1510,14 +1677,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       setVisibleButtons(visible);
     }
     
-    // Debug log to help understand the calculation
-    console.log('Toolbar calculation:', {
-      toolbarWidth,
-      availableWidth,
-      visibleButtons: visible.length,
-      totalButtons: toolbarButtons.length
-    });
-  }, [toolbarButtons]);
+  }, []);
 
   // Handle overflow menu
   const handleOverflowClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -1530,6 +1690,9 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
   // Recalculate visible buttons on resize and after mount
   useEffect(() => {
+    // Show all buttons immediately as fallback
+    setVisibleButtons(toolbarButtons.map(btn => btn.id));
+    
     // Initial calculation with a delay to ensure DOM is ready
     const initialTimer = setTimeout(() => {
       calculateVisibleButtons();
@@ -2238,10 +2401,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             colHeaders={true}
             rowHeaders={true}
             dropdownMenu={true}
+            contextMenu={contextMenuConfig as any}
             height={containerHeight}
             width="100%"
             licenseKey="non-commercial-and-evaluation"
-            contextMenu={true}
             manualRowResize={true}
             manualColumnResize={true}
             outsideClickDeselects={false}
@@ -2258,7 +2421,17 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             cells={(row: number, col: number) => {
               return {
                 renderer: (instance: any, td: HTMLTableCellElement, r: number, c: number, prop: any, value: any, cellProperties: any) => {
-                  textRenderer(instance, td, r, c, prop, value, cellProperties);
+                  // Delegate to appropriate base renderer based on meta.type
+                  try {
+                    const meta = instance.getCellMeta(r, c) || {};
+                    if (meta.type === 'checkbox') {
+                      checkboxRenderer(instance, td, r, c, prop, value, cellProperties);
+                    } else {
+                      textRenderer(instance, td, r, c, prop, value, cellProperties);
+                    }
+                  } catch {
+                    textRenderer(instance, td, r, c, prop, value, cellProperties);
+                  }
                   const cellKey = `${r}-${c}`;
                   const fmt = cellFormats[cellKey];
                   const sty = cellStyles[cellKey];
