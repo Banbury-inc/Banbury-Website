@@ -1,207 +1,68 @@
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import Box from '@mui/material/Box';
-import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
-import CardActions from '@mui/material/CardActions';
-import CardContent from '@mui/material/CardContent';
-import Container from '@mui/material/Container';
-import Grid from '@mui/material/Grid';
-import { useTheme } from '@mui/material/styles';
-import Typography from '@mui/material/Typography';
-import axios from 'axios';
-import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { Button } from './ui/button';
 
-interface PricingProps {
-  title: string;
-  price: number;
-  currency: string;
-  features: { name: string }[];
-}
-
-const Pricing = (): JSX.Element => {
-  const theme = useTheme();
-
-  const [pricing, setPricing] = useState<PricingProps[]>([]);
-
-  const fetchPricing = () => {
-    axios
-      .get<PricingProps[]>('http://127.0.0.1:8000/pricing', {
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-      .then((response) => {
-        setPricing(response.data);
-      })
-      .catch((error) => console.log(error));
-  };
-
-  useEffect(() => {
-    fetchPricing();
-  }, []);
-
+export default function Pricing(): JSX.Element {
   return (
-    <div id='pricing'>
-      <Box
-        sx={{
-          paddingTop: 5,
-          paddingBottom: 10,
-          paddingX: 2,
-          backgroundColor: theme.palette.background.default,
-        }}
-      >
-        <Box marginBottom={4}>
-          <Typography
-            variant='h5'
-            align='center'
-            fontWeight={700}
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            sx={{
-              color: theme.palette.text.primary,
-              textTransform: 'uppercase',
+    <div className="min-h-screen w-full" style={{ background: '#000000' }}>
+      <section className="max-w-6xl mx-auto px-4 md:px-6 py-16 md:py-24">
+        <div className="text-center mb-12 md:mb-16">
+          <h1
+            className="text-4xl md:text-5xl font-semibold tracking-tight mb-3"
+            style={{ color: '#ffffff' }}
+          >
+            Simple, transparent pricing
+          </h1>
+          <p
+            className="text-lg md:text-xl"
+            style={{ color: '#a1a1aa' }}
+          >
+            Start for free. No credit card required.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-6 md:gap-8 md:grid-cols-3">
+          <div className="md:col-start-2 rounded-2xl p-6 md:p-8"
+            style={{
+              background: 'rgba(255, 255, 255, 0.03)',
+              border: '1px solid rgba(255, 255, 255, 0.08)'
             }}
           >
-            Pricing
-          </Typography>
-          <Typography
-            variant='subtitle1'
-            align='center'
-            marginTop={theme.spacing(1)}
-            gutterBottom
-            color={theme.palette.text.secondary}
-          >
-            We offer a range of pricing plans to suit everyone
-          </Typography>
-        </Box>
-        <Container>
-          <Grid container spacing={4}>
-            {pricing.map((item, i) => (
-              <Grid item xs={12} md={4} key={i}>
-                <Box
-                  component={Card}
-                  height={1}
-                  display='flex'
-                  flexDirection='column'
-                  boxShadow={0}
-                  border={`1px solid ${theme.palette.divider}`}
-                >
-                  <CardContent
-                    sx={{
-                      padding: { sm: 4 },
-                    }}
-                  >
-                    <Box
-                      marginBottom={4}
-                      display='flex'
-                      flexDirection='column'
-                      alignItems='center'
-                    >
-                      <Typography variant='h6' gutterBottom>
-                        <Box component='span' fontWeight={600}>
-                          {item.title}
-                        </Box>
-                      </Typography>
-                      <Box display='flex' alignItems='flex-start'>
-                        <Typography variant='h4' color='primary'>
-                          <Box
-                            component='span'
-                            fontWeight={600}
-                            marginRight={1 / 2}
-                            sx={{
-                              color:
-                                theme.palette.mode === 'dark'
-                                  ? theme.palette.primary.main
-                                  : theme.palette.success.dark,
-                            }}
-                          >
-                            {item.currency}
-                          </Box>
-                        </Typography>
-                        <Typography variant='h2' color='primary' gutterBottom>
-                          <Box
-                            component='span'
-                            fontWeight={600}
-                            sx={{
-                              color:
-                                theme.palette.mode === 'dark'
-                                  ? theme.palette.primary.main
-                                  : theme.palette.success.dark,
-                            }}
-                          >
-                            {item.price}
-                          </Box>
-                        </Typography>
-                      </Box>
-                      <Typography
-                        variant='subtitle2'
-                        color={theme.palette.text.secondary}
-                      >
-                        Per user, per month
-                      </Typography>
-                    </Box>
-                    <Grid container spacing={1}>
-                      {item.features?.map((feature, j) => (
-                        <Grid item xs={12} key={j}>
-                          <Typography
-                            component='p'
-                            align='center'
-                            sx={{
-                              textDecoration: 'none',
-                            }}
-                          >
-                            {feature.name}
-                          </Typography>
-                        </Grid>
-                      ))}
-                    </Grid>
-                  </CardContent>
-                  <Box flexGrow={1} />
-                  <CardActions sx={{ justifyContent: 'center', padding: 4 }}>
-                    <Button
-                      size='large'
-                      variant='contained'
-                      endIcon={<ArrowForwardIcon />}
-                      sx={{
-                        textTransform: 'uppercase',
-                        color:
-                          theme.palette.mode === 'dark'
-                            ? theme.palette.common.black
-                            : theme.palette.common.white,
-                        bgcolor:
-                          theme.palette.mode === 'dark'
-                            ? theme.palette.primary.main
-                            : theme.palette.success.dark,
-                        border: '2px solid',
-                        borderColor:
-                          theme.palette.mode === 'dark'
-                            ? theme.palette.primary.main
-                            : theme.palette.success.dark,
-                        '&:hover': {
-                          backgroundColor: 'transparent',
-                          color:
-                            theme.palette.mode === 'dark'
-                              ? theme.palette.primary.main
-                              : theme.palette.success.dark,
-                          border: '2px solid',
-                          borderColor:
-                            theme.palette.mode === 'dark'
-                              ? theme.palette.primary.main
-                              : theme.palette.success.dark,
-                        },
-                      }}
-                    >
-                      Get started
+            <div className="mb-6">
+              <span
+                className="text-sm uppercase tracking-wider"
+                style={{ color: '#a1a1aa' }}
+              >
+                Free
+              </span>
+              <h2
+                className="mt-2 text-3xl font-semibold"
+                style={{ color: '#ffffff' }}
+              >
+                $0 <span className="text-base font-normal" style={{ color: '#a1a1aa' }}>/ month</span>
+              </h2>
+            </div>
+
+            <ul className="space-y-3 mb-8">
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full" style={{ background: '#22c55e' }} />
+                <span style={{ color: '#e4e4e7' }}>Core features included</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full" style={{ background: '#22c55e' }} />
+                <span style={{ color: '#e4e4e7' }}>Unlimited projects</span>
+              </li>
+              <li className="flex items-start gap-3">
+                <span className="mt-1 h-2 w-2 rounded-full" style={{ background: '#22c55e' }} />
+                <span style={{ color: '#e4e4e7' }}>Community support</span>
+              </li>
+            </ul>
+
+            <Button asChild size="lg" className="w-full" style={{ minHeight: '44px' }}>
+              <Link href="/register">Get started</Link>
                     </Button>
-                  </CardActions>
-                </Box>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
-      </Box>
+          </div>
+        </div>
+      </section>
     </div>
   );
-};
-
-export default Pricing;
+}
