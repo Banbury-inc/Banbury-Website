@@ -1,13 +1,15 @@
+import React, { useState, useEffect } from 'react';
+
+import ApiIcon from '@mui/icons-material/Api';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import ChatIcon from '@mui/icons-material/Chat';
 import FolderIcon from '@mui/icons-material/Folder';
 import RocketLaunchIcon from '@mui/icons-material/RocketLaunch';
 import SearchIcon from '@mui/icons-material/Search';
-import ApiIcon from '@mui/icons-material/Api';
 import { Box, Card, CardMedia, Container, Grid, Typography, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Paper } from '@mui/material';
 import axios from 'axios';
-import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+
 import gmailLogo from '../assets/images/gmail_logo.png';
 import googleCalendarLogo from '../assets/images/google_calendar_logo.png';
 
@@ -41,7 +43,7 @@ const Features = (): JSX.Element => {
       },
     }).then((response) => {
       setProducts(response.data);
-    }).catch((error) => {
+    }).catch((_error) => {
       // Handle error silently
     });
   };
@@ -202,7 +204,6 @@ const Features = (): JSX.Element => {
                   display: 'flex',
                   justifyContent: 'center',
                   margin: '0 auto',
-                  paddingTop: '56.25%',
                   alignItems: 'center',
                   width: '90%',
                   maxWidth: '1200px',
@@ -375,7 +376,7 @@ const Features = (): JSX.Element => {
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                       }}
                     >
-                      Experience Banbury's AI-powered fantasy draft assistance. The AI analyzes player statistics, provides recommendations, and helps you make informed decisions during your fantasy sports drafts.
+                      Experience Banbury&apos;s AI-powered fantasy draft assistance. The AI analyzes player statistics, provides recommendations, and helps you make informed decisions during your fantasy sports drafts.
                     </Typography>
                     <Box sx={{ 
                       position: 'relative', 
@@ -434,7 +435,7 @@ const Features = (): JSX.Element => {
                         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
                       }}
                     >
-                      Discover how Banbury's AI transforms spreadsheet workflows. Watch as it analyzes data, generates formulas, cleans datasets, and provides insights through natural language interactions.
+                      Discover how Banbury&apos;s AI transforms spreadsheet workflows. Watch as it analyzes data, generates formulas, cleans datasets, and provides insights through natural language interactions.
                     </Typography>
                     <Box sx={{ 
                       position: 'relative', 
