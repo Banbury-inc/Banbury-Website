@@ -518,7 +518,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               // console.log(`🔄 Attempting to download file: ${p.fileName} (ID: ${p.fileId})`);
               try {
                 // Use the same download endpoint as the frontend file viewers
-                const apiUrl = 'http://www.api.dev.banbury.io';
+                const apiUrl = 'https://www.api.dev.banbury.io';
                 const downloadUrl = `${apiUrl}/files/download_s3_file/${encodeURIComponent(p.fileId)}/`;
                 console.log(`📡 Download URL: ${downloadUrl}`);
                 

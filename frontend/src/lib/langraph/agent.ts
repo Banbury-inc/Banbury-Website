@@ -403,6 +403,31 @@ const anthropicModel = new ChatAnthropic({
   temperature: 0.2,
 });
 
+// Function to get current date/time context
+function getCurrentDateTimeContext(): string {
+  const now = new Date();
+  
+  // Format current date and time
+  const dateOptions: Intl.DateTimeFormatOptions = { 
+    weekday: 'long', 
+    year: 'numeric', 
+    month: 'long', 
+    day: 'numeric' 
+  };
+  const timeOptions: Intl.DateTimeFormatOptions = { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  };
+  
+  const currentDate = now.toLocaleDateString('en-US', dateOptions);
+  const currentTime = now.toLocaleTimeString('en-US', timeOptions);
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isoString = now.toISOString();
+  
+  return `Current date and time: ${currentDate} at ${currentTime} (${timezone}). ISO timestamp: ${isoString}`;
+}
+
 // Create file tool (inline) to avoid module resolution issues
 const createFileTool = tool(
   async (input: { fileName: string; filePath: string; content: string; contentType?: string }) => {
@@ -816,6 +841,52 @@ const searchFilesTool = tool(
     schema: z.object({
       query: z.string().describe("The search query to match against file names (case-insensitive)")
     })
+  }
+);
+
+// Tool to get current date/time information
+const getCurrentDateTimeTool = tool(
+  async () => {
+    const now = new Date();
+    
+    // Format current date and time
+    const dateOptions: Intl.DateTimeFormatOptions = { 
+      weekday: 'long', 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    };
+    const timeOptions: Intl.DateTimeFormatOptions = { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    };
+    
+    const currentDate = now.toLocaleDateString('en-US', dateOptions);
+    const currentTime = now.toLocaleTimeString('en-US', timeOptions);
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const isoString = now.toISOString();
+    
+    return JSON.stringify({
+      currentDate,
+      currentTime,
+      timezone,
+      isoString,
+      formatted: `${currentDate} at ${currentTime} (${timezone})`,
+      unixTimestamp: Math.floor(now.getTime() / 1000),
+      year: now.getFullYear(),
+      month: now.getMonth() + 1, // 1-based month
+      day: now.getDate(),
+      hour: now.getHours(),
+      minute: now.getMinutes(),
+      dayOfWeek: now.getDay(), // 0 = Sunday, 1 = Monday, etc.
+      dayOfYear: Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24))
+    });
+  },
+  {
+    name: "get_current_datetime",
+    description: "Get the current date and time information including formatted strings, timestamps, and individual components.",
+    schema: z.object({})
   }
 );
 
@@ -1281,6 +1352,196 @@ const gmailSendMessageTool = tool(
   }
 );
 
+// Google Calendar tools (proxy to Banbury API). Respects user toolPreferences via server context
+const calendarListEventsTool = tool(
+  async (input: {
+    calendarId?: string;
+    timeMin?: string;
+    timeMax?: string;
+    maxResults?: number;
+    pageToken?: string;
+    query?: string;
+    singleEvents?: boolean;
+    orderBy?: 'startTime' | 'updated';
+  }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { calendar?: boolean };
+    if (prefs.calendar === false) {
+      return JSON.stringify({ success: false, error: "Calendar access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const params = new URLSearchParams();
+    params.set('calendarId', input.calendarId || 'primary');
+    if (input.timeMin) params.set('timeMin', input.timeMin);
+    if (input.timeMax) params.set('timeMax', input.timeMax);
+    if (typeof input.maxResults === 'number') params.set('maxResults', String(input.maxResults));
+    if (input.pageToken) params.set('pageToken', input.pageToken);
+    if (input.query) params.set('q', input.query);
+    if (typeof input.singleEvents !== 'undefined') params.set('singleEvents', String(input.singleEvents));
+    if (input.orderBy) params.set('orderBy', input.orderBy);
+
+    const listUrl = `${apiBase}/authentication/calendar/events/?${params.toString()}`;
+    const resp = await fetch(listUrl, { method: 'GET', headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${resp.status}: ${resp.statusText}` });
+    }
+    const data = await resp.json();
+    return JSON.stringify({ success: true, ...data });
+  },
+  {
+    name: 'calendar_list_events',
+    description: 'List Google Calendar events with optional time range and query filtering',
+    schema: z.object({
+      calendarId: z.string().optional().describe("Calendar identifier (default 'primary')"),
+      timeMin: z.string().optional().describe('RFC3339 start time'),
+      timeMax: z.string().optional().describe('RFC3339 end time'),
+      maxResults: z.number().optional().describe('Maximum events to return'),
+      pageToken: z.string().optional().describe('Pagination token'),
+      query: z.string().optional().describe('Free-text search query'),
+      singleEvents: z.boolean().optional().describe('Expand recurring events into instances'),
+      orderBy: z.enum(['startTime','updated']).optional().describe('Sort order')
+    })
+  }
+);
+
+const calendarGetEventTool = tool(
+  async (input: { eventId: string; calendarId?: string }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { calendar?: boolean };
+    if (prefs.calendar === false) {
+      return JSON.stringify({ success: false, error: "Calendar access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const url = `${apiBase}/authentication/calendar/events/${encodeURIComponent(input.eventId)}/?calendarId=${encodeURIComponent(input.calendarId || 'primary')}`;
+    const resp = await fetch(url, { method: 'GET', headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${resp.status}: ${resp.statusText}` });
+    }
+    const data = await resp.json();
+    return JSON.stringify({ success: true, event: data });
+  },
+  {
+    name: 'calendar_get_event',
+    description: 'Get a specific Google Calendar event by ID',
+    schema: z.object({
+      eventId: z.string().describe('The event ID'),
+      calendarId: z.string().optional().describe("Calendar identifier (default 'primary')")
+    })
+  }
+);
+
+const calendarCreateEventTool = tool(
+  async (input: { calendarId?: string; event: Record<string, any> }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { calendar?: boolean };
+    if (prefs.calendar === false) {
+      return JSON.stringify({ success: false, error: "Calendar access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const url = `${apiBase}/authentication/calendar/events/`;
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendarId: input.calendarId || 'primary', event: input.event })
+    });
+    if (!resp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${resp.status}: ${resp.statusText}` });
+    }
+    const data = await resp.json();
+    return JSON.stringify({ success: true, event: data });
+  },
+  {
+    name: 'calendar_create_event',
+    description: 'Create a new Google Calendar event',
+    schema: z.object({
+      calendarId: z.string().optional().describe("Calendar identifier (default 'primary')"),
+      event: z.record(z.any()).describe('Event payload matching Google Calendar API events.insert body')
+    })
+  }
+);
+
+const calendarUpdateEventTool = tool(
+  async (input: { eventId: string; calendarId?: string; event: Record<string, any> }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { calendar?: boolean };
+    if (prefs.calendar === false) {
+      return JSON.stringify({ success: false, error: "Calendar access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const url = `${apiBase}/authentication/calendar/events/${encodeURIComponent(input.eventId)}/`;
+    const resp = await fetch(url, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calendarId: input.calendarId || 'primary', event: input.event })
+    });
+    if (!resp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${resp.status}: ${resp.statusText}` });
+    }
+    const data = await resp.json();
+    return JSON.stringify({ success: true, event: data });
+  },
+  {
+    name: 'calendar_update_event',
+    description: 'Update an existing Google Calendar event',
+    schema: z.object({
+      eventId: z.string().describe('The event ID to update'),
+      calendarId: z.string().optional().describe("Calendar identifier (default 'primary')"),
+      event: z.record(z.any()).describe('Partial event payload to update')
+    })
+  }
+);
+
+const calendarDeleteEventTool = tool(
+  async (input: { eventId: string; calendarId?: string }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { calendar?: boolean };
+    if (prefs.calendar === false) {
+      return JSON.stringify({ success: false, error: "Calendar access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const url = `${apiBase}/authentication/calendar/events/${encodeURIComponent(input.eventId)}/?calendarId=${encodeURIComponent(input.calendarId || 'primary')}`;
+    const resp = await fetch(url, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } });
+    if (!resp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${resp.status}: ${resp.statusText}` });
+    }
+    const data = await resp.json().catch(() => ({}));
+    return JSON.stringify({ success: true, result: data });
+  },
+  {
+    name: 'calendar_delete_event',
+    description: 'Delete a Google Calendar event by ID',
+    schema: z.object({
+      eventId: z.string().describe('The event ID to delete'),
+      calendarId: z.string().optional().describe("Calendar identifier (default 'primary')")
+    })
+  }
+);
+
 // Bind tools to the model and also prepare tools array for React agent
 const tools = [
   webSearchTool,
@@ -1291,10 +1552,16 @@ const tools = [
   createFileTool,
   downloadFromUrlTool,
   searchFilesTool,
+  getCurrentDateTimeTool,
   gmailGetRecentTool,
   gmailSearchTool,
   gmailGetMessageTool,
   gmailSendMessageTool,
+  calendarListEventsTool,
+  calendarGetEventTool,
+  calendarCreateEventTool,
+  calendarUpdateEventTool,
+  calendarDeleteEventTool,
 ];
 const modelWithTools = anthropicModel.bindTools(tools);
 
@@ -1311,9 +1578,17 @@ async function agentNode(state: AgentState): Promise<AgentState> {
     const hasSystemMessage = messages.length > 0 && messages[0]._getType() === "system";
     
     if (!hasSystemMessage) {
+      // Get date/time context from server context if available, otherwise generate it
+      let dateTimeContext = getServerContextValue<any>("dateTimeContext");
+      if (!dateTimeContext) {
+        dateTimeContext = getCurrentDateTimeContext();
+      } else {
+        dateTimeContext = `Current date and time: ${dateTimeContext.formatted}. ISO timestamp: ${dateTimeContext.isoString}`;
+      }
+      
       const systemMessage = new SystemMessage(
         "You are Athena, a helpful AI assistant with advanced capabilities. " +
-        "You have access to web search, memory management, document editing, spreadsheet editing, file creation, file downloading, and file search tools. " +
+        "You have access to web search, memory management, document editing, spreadsheet editing, file creation, file downloading, file search, and datetime tools. " +
         "When helping with document editing tasks, use the tiptap_ai tool to deliver your response. " +
         "When helping with spreadsheet editing tasks (cleaning, transformations, formulas, row/column edits), use the sheet_ai tool to deliver structured operations. " +
         "To create a new file in the user's cloud workspace, use the create_file tool with file name, full path (including the file name), and content. " +
@@ -1321,7 +1596,9 @@ async function agentNode(state: AgentState): Promise<AgentState> {
         "To search for files in the user's cloud storage, use the search_files tool with a search query to find files by name. " +
         "Store important information in memory for future reference using the store_memory tool. " +
         "Search your memories when relevant using the search_memory tool. " +
-        "Provide clear, accurate, and helpful responses with proper citations when using web search."
+        "Use the get_current_datetime tool when you need to know the current date and time for scheduling, planning, or time-sensitive tasks. " +
+        "Provide clear, accurate, and helpful responses with proper citations when using web search. " +
+        "\n\n" + dateTimeContext
       );
       messages = [systemMessage, ...messages];
     }
@@ -1381,6 +1658,9 @@ async function toolNode(state: AgentState): Promise<AgentState> {
         case "search_files":
           result = await searchFilesTool.invoke(toolCall.args);
           break;
+        case "get_current_datetime":
+          result = await getCurrentDateTimeTool.invoke(toolCall.args);
+          break;
         case "gmail_get_recent":
           result = await gmailGetRecentTool.invoke(toolCall.args);
           break;
@@ -1392,6 +1672,21 @@ async function toolNode(state: AgentState): Promise<AgentState> {
           break;
         case "gmail_send_message":
           result = await gmailSendMessageTool.invoke(toolCall.args);
+          break;
+        case "calendar_list_events":
+          result = await calendarListEventsTool.invoke(toolCall.args);
+          break;
+        case "calendar_get_event":
+          result = await calendarGetEventTool.invoke(toolCall.args);
+          break;
+        case "calendar_create_event":
+          result = await calendarCreateEventTool.invoke(toolCall.args);
+          break;
+        case "calendar_update_event":
+          result = await calendarUpdateEventTool.invoke(toolCall.args);
+          break;
+        case "calendar_delete_event":
+          result = await calendarDeleteEventTool.invoke(toolCall.args);
           break;
         default:
           result = `Unknown tool: ${toolCall.name}`;
@@ -1473,4 +1768,4 @@ export function createInitialState(messages: BaseMessage[]): AgentState {
   };
 }
 
-export { webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool };
+export { webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool, getCurrentDateTimeTool };

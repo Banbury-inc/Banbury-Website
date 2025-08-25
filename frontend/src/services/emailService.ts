@@ -54,15 +54,16 @@ export class EmailService {
     return resp.data
   }
 
-  static async sendMessage(input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean; in_reply_to?: string; references?: string; thread_id?: string }) {
+  static async sendMessage(input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean; in_reply_to?: string; references?: string; thread_id?: string; attachments?: Array<{ filename: string; mimeType?: string; content: string }> }) {
     const resp = await axios.post(`${this.baseURL}/authentication/gmail/send_message/`, input, {
       headers: { 'Content-Type': 'application/json', ...this.withAuthHeaders() }
     })
     return resp.data
   }
 
-  static async sendReply(input: { original_message_id: string; to: string; subject: string; body: string; cc?: string; bcc?: string }) {
-    const resp = await axios.post(`${this.baseURL}/authentication/gmail/reply/`, input, {
+  static async sendReply(input: { original_message_id: string; to: string; subject: string; body: string; cc?: string; bcc?: string; attachments?: Array<{ filename: string; mimeType?: string; content: string }> }) {
+    // Use files app endpoint to support attachments
+    const resp = await axios.post(`${this.baseURL}/files/gmail/reply`, input, {
       headers: { 'Content-Type': 'application/json', ...this.withAuthHeaders() }
     })
     return resp.data
@@ -124,7 +125,7 @@ export class EmailService {
     return resp.data
   }
 
-  static async sendMessageWithSignature(input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean; in_reply_to?: string; references?: string; thread_id?: string }) {
+  static async sendMessageWithSignature(input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean; in_reply_to?: string; references?: string; thread_id?: string; attachments?: Array<{ filename: string; mimeType?: string; content: string }> }) {
     const resp = await axios.post(`${this.baseURL}/files/gmail/send_with_signature`, input, {
       headers: { 'Content-Type': 'application/json', ...this.withAuthHeaders() }
     })

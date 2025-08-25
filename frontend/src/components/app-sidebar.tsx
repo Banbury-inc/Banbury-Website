@@ -9,6 +9,7 @@ import {
   Trash2, 
   FolderPlus, 
   Mail,
+  Calendar as CalendarIcon,
   FileText,
   FileImage,
   FileVideo,
@@ -28,6 +29,7 @@ import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback, useRef } from 'react'
 
 import { EmailTab } from "./EmailTab"
+import { CalendarTab } from "./CalendarTab"
 import { Button } from "./ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
 import { ApiService } from "../services/apiService"
@@ -55,6 +57,8 @@ interface AppSidebarProps {
   onCreateDocument?: () => void
   onCreateSpreadsheet?: () => void
   onCreateFolder?: () => void
+  onEventSelect?: (event: any) => void
+  onOpenCalendar?: () => void
 }
 
 // Drag and drop state interfaces
@@ -596,7 +600,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder }: AppSidebarProps) {
+export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -604,7 +608,7 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false)
   const [newRootFolderName, setNewRootFolderName] = useState('New Folder')
   const rootFolderInputRef = useRef<HTMLInputElement | null>(null)
-  const [activeTab, setActiveTab] = useState<'files' | 'email'>('files')
+  const [activeTab, setActiveTab] = useState<'files' | 'email' | 'calendar'>('files')
   const [uploadingFolder, setUploadingFolder] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
@@ -934,6 +938,19 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
                Email
              </div>
            </button>
+                       <button
+              onClick={() => setActiveTab('calendar')}
+              className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
+                activeTab === 'calendar'
+                  ? 'text-white bg-zinc-900 shadow-sm'
+                  : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
+              }`}
+            >
+             <div className="flex items-center justify-center gap-2">
+               <CalendarIcon className="h-4 w-4" />
+               Calendar
+             </div>
+           </button>
          </div>
         
                  {/* Tab Content Header */}
@@ -1208,6 +1225,12 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
              onOpenEmailApp={() => router.push('/email')} 
              onMessageSelect={onEmailSelect}
              onComposeEmail={onComposeEmail}
+           />
+         )}
+                 {activeTab === 'calendar' && (
+           <CalendarTab 
+             onOpenCalendarApp={onOpenCalendar}
+             onEventSelect={onEventSelect}
            />
          )}
       </div>

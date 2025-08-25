@@ -289,6 +289,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       threadId?: string;
       toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; memory?: boolean; gmail?: boolean };
       documentContext?: string;
+      dateTimeContext?: {
+        currentDate: string;
+        currentTime: string;
+        timezone: string;
+        isoString: string;
+        formatted: string;
+      };
     };
     
     // Normalize messages like in athena-intelligence
@@ -354,7 +361,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               // File already downloaded
             } else if (token) {
               try {
-                const apiUrl = 'http://www.api.dev.banbury.io';
+                const apiUrl = 'https://www.api.dev.banbury.io';
                 const downloadUrl = `${apiUrl}/files/download_s3_file/${encodeURIComponent(p.fileId)}/`;
                 
                 const resp = await fetch(downloadUrl, {
@@ -405,7 +412,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Reuse the token defined earlier for file pre-downloads
     
     try {
-      await runWithServerContext({ authToken: token, toolPreferences: body.toolPreferences || { gmail: true } }, async () => {
+      await runWithServerContext({ 
+        authToken: token, 
+        toolPreferences: body.toolPreferences || { gmail: true },
+        dateTimeContext: body.dateTimeContext
+      }, async () => {
         // Use a custom streaming approach for character-by-character updates
         const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
 

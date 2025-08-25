@@ -13,6 +13,16 @@ import { useToast } from './ui/use-toast'
 import { EmailService } from '../services/emailService'
 import { EmailTiptapEditor } from './EmailTiptapEditor'
 
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  let binary = ''
+  const bytes = new Uint8Array(buffer)
+  const len = bytes.byteLength
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i])
+  }
+  return btoa(binary)
+}
+
 interface EmailComposerProps {
   onBack?: () => void
   onSendComplete?: () => void
@@ -80,11 +90,6 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
         console.log('Setting signature:', response.signature)
         const cleanedSignature = cleanSignature(response.signature)
         setSignature(cleanedSignature)
-        // Automatically append signature to the body if it's empty or just whitespace
-        if (isContentEmpty(form.body)) {
-          console.log('Auto-inserting signature into empty body')
-          setForm(prev => ({ ...prev, body: cleanedSignature }))
-        }
       } else {
         console.log('No signature available or error:', response)
       }
@@ -110,18 +115,35 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
     try {
       // Use sendReply if this is a reply to an existing message
       if (replyTo?.messageId) {
+        const attachmentsPayload = await Promise.all(attachments.map(async (file) => ({
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          content: await file.arrayBuffer().then((buf) => arrayBufferToBase64(buf))
+        })))
         await EmailService.sendReply({
           original_message_id: replyTo.messageId,
           to: form.to,
           subject: form.subject,
-          body: form.body
+          body: form.body,
+          attachments: attachmentsPayload
         })
       } else {
         // Use sendMessageWithSignature for new emails to automatically include signature
+        const attachmentsPayload = await Promise.all(attachments.map(async (file) => ({
+          filename: file.name,
+          mimeType: file.type || 'application/octet-stream',
+          content: await file.arrayBuffer().then((buf) => arrayBufferToBase64(buf))
+        })))
+        // If the user already inserted the signature into the body, remove it before
+        // calling the endpoint that appends the signature to avoid duplication.
+        const bodyWithoutSignature = signature && form.body.includes(signature)
+          ? form.body.replace(signature, '')
+          : form.body
         await EmailService.sendMessageWithSignature({
           to: form.to,
           subject: form.subject,
-          body: form.body
+          body: bodyWithoutSignature,
+          attachments: attachmentsPayload
         })
       }
 
@@ -141,7 +163,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
     } finally {
       setSending(false)
     }
-  }, [form, onSendComplete, toast])
+  }, [form, onSendComplete, toast, signature])
 
   const handleSaveDraft = useCallback(async () => {
     if (!form.to && !form.subject && isContentEmpty(form.body)) {

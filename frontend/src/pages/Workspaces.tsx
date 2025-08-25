@@ -10,6 +10,7 @@ import { DocumentViewer } from '../components/DocumentViewer';
 import { EmailComposer } from '../components/EmailComposer';
 import { EmailViewer } from '../components/EmailViewer';
 import { ImageViewer } from '../components/ImageViewer';
+import { CalendarViewer } from '../components/CalendarViewer';
 import { NavSidebar } from "../components/nav-sidebar";
 import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
 import { VideoViewer } from '../components/VideoViewer';
@@ -74,7 +75,13 @@ interface EmailTab {
   type: 'email';
 }
 
-type WorkspaceTab = FileTab | EmailTab;
+interface CalendarTab {
+  id: string;
+  title: string;
+  type: 'calendar';
+}
+
+type WorkspaceTab = FileTab | EmailTab | CalendarTab;
 
 interface Panel {
   id: string;
@@ -556,8 +563,10 @@ const Workspaces = (): JSX.Element => {
     const panel = findPanel(panelLayout, panelId);
     if (panel) {
       const tab = panel.tabs.find(t => t.id === tabId);
-      if (tab) {
-        setSelectedFile(tab.file);
+      if (tab && (tab as any).type === 'file') {
+        setSelectedFile((tab as any).file);
+      } else {
+        setSelectedFile(null);
       }
     }
   }, [updatePanelActiveTab, findPanel, panelLayout]);
@@ -607,6 +616,37 @@ const Workspaces = (): JSX.Element => {
       setSelectedFile(newFileTab.file);
     }
   }, []);
+
+  // Open Calendar in a new tab within specified panel
+  const openCalendarInTab = useCallback((targetPanelId: string = activePanelId) => {
+    // Check if a calendar tab already exists
+    const allTabs = getAllTabs(panelLayout);
+    const existing = allTabs.find(tab => (tab as any).type === 'calendar') as CalendarTab | undefined;
+    if (existing) {
+      // Activate the panel containing this tab
+      const activateExisting = (layout: PanelGroup): boolean => {
+        if (layout.type === 'panel' && layout.panel) {
+          const has = layout.panel.tabs.some(t => t.id === existing.id);
+          if (has) {
+            setActivePanelId(layout.panel.id);
+            setPanelLayout(prev => updatePanelActiveTab(prev, layout.panel!.id, existing.id));
+            return true;
+          }
+        }
+        if (layout.type === 'group' && layout.children) {
+          return layout.children.some(child => activateExisting(child));
+        }
+        return false;
+      };
+      activateExisting(panelLayout);
+      return;
+    }
+
+    const tabId = `calendar_${Date.now()}`;
+    const newTab: CalendarTab = { id: tabId, title: 'Calendar', type: 'calendar' };
+    setPanelLayout(prev => addTabToPanel(prev, targetPanelId, newTab as any));
+    setActivePanelId(targetPanelId);
+  }, [activePanelId, panelLayout, getAllTabs, updatePanelActiveTab]);
   
   // Handle context menu for tabs
   const handleTabContextMenu = useCallback((event: React.MouseEvent, tabId: string, panelId: string) => {
@@ -780,7 +820,7 @@ const Workspaces = (): JSX.Element => {
               <OlympusTabs
                 tabs={panel.tabs.map<OlympusTab>((t) => ({ 
                   id: t.id, 
-                  label: t.type === 'email' ? t.subject : t.fileName 
+                  label: (t as any).type === 'email' ? (t as any).subject : ( (t as any).type === 'file' ? (t as any).fileName : 'Calendar' ) 
                 }))}
                 activeTab={panel.activeTabId || panel.tabs[0]?.id}
                 onTabChange={(tabId) => handleTabChange(panel.id, tabId)}
@@ -935,6 +975,16 @@ const Workspaces = (): JSX.Element => {
                     </div>
                   );
                 }
+              }
+              if ((activeTab as any).type === 'calendar') {
+                return (
+                  <CalendarViewer
+                    initialView="month"
+                    onEventClick={(ev) => {
+                      // Optionally open event details in a new panel/tab using Email-like pattern
+                    }}
+                  />
+                );
               }
               
               return null;
@@ -1702,6 +1752,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                           onCreateDocument={handleCreateWordDocument}
                           onCreateSpreadsheet={handleCreateSpreadsheet}
                           onCreateFolder={handleCreateFolder}
+                          onOpenCalendar={() => openCalendarInTab(activePanelId)}
                         />
                       </div>
                     </div>

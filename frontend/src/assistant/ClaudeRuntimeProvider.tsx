@@ -107,6 +107,37 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         }
       } catch {}
 
+      // Get current date/time context
+      const getCurrentDateTimeContext = () => {
+        const now = new Date();
+        const dateOptions: Intl.DateTimeFormatOptions = { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        };
+        const timeOptions: Intl.DateTimeFormatOptions = { 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: true 
+        };
+        
+        const currentDate = now.toLocaleDateString('en-US', dateOptions);
+        const currentTime = now.toLocaleTimeString('en-US', timeOptions);
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const isoString = now.toISOString();
+        
+        return {
+          currentDate,
+          currentTime,
+          timezone,
+          isoString,
+          formatted: `${currentDate} at ${currentTime} (${timezone})`
+        };
+      };
+
+      const dateTimeContext = getCurrentDateTimeContext();
+
       const res = await fetch(apiEndpoint, {
         method: "POST",
         headers: { 
@@ -116,7 +147,8 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         body: JSON.stringify({ 
           messages: messagesWithAttachmentParts, 
           toolPreferences,
-          documentContext: documentContext || undefined
+          documentContext: documentContext || undefined,
+          dateTimeContext
         }),
         signal: options.abortSignal,
       });
