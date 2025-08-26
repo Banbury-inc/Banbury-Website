@@ -41,10 +41,10 @@ export async function createStagehandSession(options?: {
   let title: string | undefined = undefined;
   try {
     const sessionId = (instance as any).browserbaseSessionID;
-    if (sessionId && process.env.BROWSERBASE_API_KEY) {
+    if (sessionId) {
       const resp = await fetch(`https://api.browserbase.com/v1/sessions/${sessionId}/debug`, {
         headers: {
-          'X-BB-API-Key': process.env.BROWSERBASE_API_KEY as string,
+          'X-BB-API-Key': 'bb_live_LleFhuIha5NZcpoovoJQOwvv6aA',
         },
       });
       if (resp.ok) {
