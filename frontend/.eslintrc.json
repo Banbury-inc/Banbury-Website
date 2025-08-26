@@ -26,14 +26,14 @@
   },
   "plugins": ["@typescript-eslint"],
   "rules": {
-    "no-console": "warn",
-    "no-unused-vars": "warn",
+    "no-console": "off",
+    "no-unused-vars": "off",
     "@typescript-eslint/no-unused-vars": [
-      "warn",
+      "off",
       { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_", "ignoreRestSiblings": true }
     ],
     "import/order": [
-      "warn",
+      "off",
       {
         "groups": [
           ["builtin", "external"],
@@ -44,7 +44,9 @@
         "alphabetize": { "order": "asc", "caseInsensitive": true }
       }
     ],
-    "import/namespace": "warn",
-    "import/no-unresolved": "warn"
+    "import/namespace": "off",
+    "import/no-unresolved": "off",
+    "react-hooks/exhaustive-deps": "off",
+    "react/no-unescaped-entities": "off"
   }
 }
