@@ -57,7 +57,6 @@ export class BrowserbaseService {
         debugUrl: respData.debugUrl || respData.debug_url,
       };
       
-      console.log('[BrowserbaseService] Parsed session:', session);
       
       // Validate session has required fields
       if (!session.id || session.id === 'unknown') {
