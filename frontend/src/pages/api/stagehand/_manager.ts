@@ -26,9 +26,13 @@ export async function createStagehandSession(options?: {
   });
 
   await instance.init();
-  if (options?.startUrl) {
-    await instance.page.goto(options.startUrl);
-  }
+  // Ensure we navigate to a real https URL so the UI has a valid viewer target
+  try {
+    const startUrl = options?.startUrl && options.startUrl.trim().length > 0
+      ? options.startUrl
+      : 'https://www.example.com';
+    await instance.page.goto(startUrl);
+  } catch {}
 
   sessions.set(id, { id, instance });
   
@@ -61,8 +65,18 @@ export async function createStagehandSession(options?: {
   if (!viewerUrl) {
     try {
       title = await instance.page.title();
-      viewerUrl = instance.page.url();
+      const currentUrl = instance.page.url();
+      // Avoid non-https and about:blank which BrowserViewer rejects
+      if (currentUrl && currentUrl.startsWith('https://') && currentUrl !== 'about:blank') {
+        viewerUrl = currentUrl;
+      }
     } catch {}
+  }
+
+  // Absolute fallback to a safe https URL if we still don't have one
+  if (!viewerUrl) {
+    viewerUrl = 'https://www.example.com';
+    title = title || 'Browser Session';
   }
 
   // Optionally expose the Browserbase viewer URL (requires login); keep as fallback if needed
