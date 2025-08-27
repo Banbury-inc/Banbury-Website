@@ -35,15 +35,25 @@ export function EventModal({
         setIsCreating(true)
         setIsEditing(false)
         // Initialize with selected date
-        const dateStr = selectedDate!.toISOString().slice(0, 10)
-        const endDate = new Date(selectedDate!)
-        endDate.setHours(selectedDate!.getHours() + 1)
+        const start = new Date(selectedDate!)
+        const end = new Date(start)
+        end.setMinutes(end.getMinutes() + 60)
+        const toLocalInput = (d: Date) => {
+          const pad = (n: number) => String(n).padStart(2, '0')
+          const yyyy = d.getFullYear()
+          const mm = pad(d.getMonth() + 1)
+          const dd = pad(d.getDate())
+          const hh = pad(d.getHours())
+          const mi = pad(d.getMinutes())
+          return `${yyyy}-${mm}-${dd}T${hh}:${mi}:00`
+        }
+        const toDateInput = (d: Date) => toLocalInput(d).slice(0, 10)
         setFormData({
           summary: '',
           description: '',
           location: '',
-          start: { dateTime: `${dateStr}T09:00:00` },
-          end: { dateTime: endDate.toISOString().slice(0, 19) }
+          start: { date: toDateInput(start), dateTime: toLocalInput(start) },
+          end: { date: toDateInput(end), dateTime: toLocalInput(end) }
         })
         setIsAllDay(false)
       } else if (event) {
@@ -212,8 +222,8 @@ export function EventModal({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-      <div className="bg-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-4 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 overflow-y-auto">
+      <div className="bg-zinc-800 rounded-lg shadow-xl max-w-md w-full mx-4 my-8">
         <div className="flex items-center justify-between p-4 border-b border-zinc-700">
           <h2 className="text-lg font-semibold text-white">
             {isCreating ? 'New Event' : isEditing ? 'Edit Event' : 'Event Details'}

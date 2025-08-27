@@ -35,6 +35,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { ApiService } from "../services/apiService"
 import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
 import InlineFileSearch from "./InlineFileSearch"
+import { useToast } from "./ui/use-toast"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
@@ -51,6 +52,7 @@ interface AppSidebarProps {
   onFileMoved?: (fileId: string, oldPath: string, newPath: string) => void
   onFolderCreated?: (folderPath: string) => void
   onFolderRenamed?: (oldPath: string, newPath: string) => void
+  onFolderDeleted?: (folderPath: string) => void
   triggerRootFolderCreation?: boolean
   onEmailSelect?: (email: any) => void
   onComposeEmail?: () => void
@@ -80,6 +82,7 @@ interface FileTreeItemProps {
   onFileRenamed?: (oldPath: string, newPath: string) => void
   onFolderCreated?: (folderPath: string) => void
   onFolderRenamed?: (oldPath: string, newPath: string) => void
+  onFolderDeleted?: (folderPath: string) => void
   onUploadFile?: () => void
   onUploadFolder?: () => void
   userInfo?: {
@@ -291,6 +294,7 @@ function FileTreeItem({
   onFileRenamed, 
   onFolderCreated, 
   onFolderRenamed, 
+  onFolderDeleted,
   onUploadFile, 
   onUploadFolder, 
   userInfo, 
@@ -301,6 +305,7 @@ function FileTreeItem({
   onDragLeave, 
   onDrop 
 }: FileTreeItemProps) {
+  const { toast } = useToast()
   const isExpanded = expandedItems.has(item.id)
   const hasChildren = item.children && item.children.length > 0
   const isSelected = selectedFile?.id === item.id
@@ -400,6 +405,29 @@ function FileTreeItem({
       onFileDeleted?.(item.file_id)
     } catch (error) {
       alert('Failed to delete file. Please try again.')
+    }
+  }
+
+  const handleDeleteFolder = async () => {
+    if (item.type !== 'folder') return
+    try {
+      if (!userInfo?.username) throw new Error('User information not available')
+      const result = await ApiService.deleteFolder(item.path, userInfo.username)
+      toast({
+        title: 'Folder deleted',
+        description: result.failed > 0 
+          ? `Deleted ${result.deleted} items; ${result.failed} failed`
+          : `Deleted ${result.deleted} items`,
+        variant: result.failed > 0 ? 'destructive' : 'success',
+      })
+    } catch (error) {
+      toast({
+        title: 'Failed to delete folder',
+        description: 'Please try again.',
+        variant: 'destructive',
+      })
+    } finally {
+      onFolderDeleted?.(item.path)
     }
   }
 
@@ -540,7 +568,7 @@ function FileTreeItem({
         {(item.type === 'file' && item.file_id) || item.type === 'folder' ? (
           <FileContextMenu 
             onRename={handleRename} 
-            onDelete={item.type === 'file' && item.file_id ? handleDelete : undefined} 
+            onDelete={item.type === 'file' && item.file_id ? handleDelete : (item.type === 'folder' ? handleDeleteFolder : undefined)} 
             onNewFolder={item.type === 'folder' ? handleCreateFolder : undefined}
             onUploadFile={onUploadFile}
             onUploadFolder={onUploadFolder}
@@ -603,6 +631,7 @@ function FileTreeItem({
               onFileRenamed={onFileRenamed}
               onFolderCreated={onFolderCreated}
               onFolderRenamed={onFolderRenamed}
+              onFolderDeleted={onFolderDeleted}
               onUploadFile={onUploadFile}
               onUploadFolder={onUploadFolder}
               userInfo={userInfo}
@@ -620,7 +649,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
+export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -723,6 +752,13 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
     fetchUserFiles()
     // Call the parent callback if provided
     onFolderRenamed?.(oldPath, newPath)
+  }
+
+  const handleFolderDeleted = (folderPath: string) => {
+    // Refresh the file tree when a folder is deleted
+    fetchUserFiles()
+    // Propagate up if parent wants to react (e.g., close tabs)
+    onFolderDeleted?.(folderPath)
   }
 
   const fetchUserFiles = useCallback(async () => {
@@ -1060,7 +1096,7 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 overflow-y-auto sidebar-scrollbar">
         {activeTab === 'files' && (
           <div 
             onContextMenu={(e) => {
@@ -1242,6 +1278,7 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
                 onFileRenamed={onFileRenamed}
                 onFolderCreated={handleFolderCreated}
                 onFolderRenamed={handleFolderRenamed}
+                onFolderDeleted={handleFolderDeleted}
                 onUploadFile={handleFileUpload}
                 onUploadFolder={handleFolderUpload}
                 userInfo={userInfo}
@@ -1287,6 +1324,28 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
         style={{ display: 'none' }}
         {...({ webkitdirectory: '' } as any)}
       />
+      <style jsx global>{`
+        .sidebar-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: #52525b transparent; /* thumb track */
+        }
+        .sidebar-scrollbar::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+        .sidebar-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scrollbar::-webkit-scrollbar-thumb {
+          background-color: #3f3f46; /* zinc-700 */
+          border-radius: 8px;
+          border: 2px solid transparent;
+          background-clip: content-box;
+        }
+        .sidebar-scrollbar:hover::-webkit-scrollbar-thumb {
+          background-color: #52525b; /* zinc-600 */
+        }
+      `}</style>
     </div>
   )
 }

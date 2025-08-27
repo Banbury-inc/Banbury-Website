@@ -5,6 +5,7 @@ import { Button } from './ui/button'
 import { Input } from './ui/input'
 import { CalendarService, CalendarEvent, ListEventsResponse } from '../services/calendarService'
 import { ScopeService } from '../services/scopeService'
+import { CreateEventPopover } from './CreateEventPopover'
 
 interface CalendarTabProps {
   onOpenCalendarApp?: () => void
@@ -21,6 +22,8 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
   const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [calendarAvailable, setCalendarAvailable] = useState<boolean | null>(null)
   const [checkingAccess, setCheckingAccess] = useState(false)
+  const [isCreatePopoverOpen, setIsCreatePopoverOpen] = useState(false)
+  const [createPopoverPos, setCreatePopoverPos] = useState<{ x: number; y: number } | null>(null)
   const [dateRange, setDateRange] = useState<{ start: string; end: string }>(() => {
     const start = new Date()
     const end = new Date()
@@ -107,6 +110,21 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
     if (onEventSelect) onEventSelect(event)
   }, [onEventSelect])
 
+  const handleCreateEvent = useCallback((e: React.MouseEvent) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    setCreatePopoverPos({ x: rect.left, y: rect.bottom + 8 })
+    setIsCreatePopoverOpen(true)
+  }, [])
+
+  const handleCreatePopoverClose = useCallback(() => {
+    setIsCreatePopoverOpen(false)
+    setCreatePopoverPos(null)
+  }, [])
+
+  const handleEventCreated = useCallback(() => {
+    loadEvents()
+  }, [loadEvents])
+
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
@@ -139,7 +157,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
             variant="ghost"
             size="sm"
             className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
-            onClick={() => onCreateEvent ? onCreateEvent() : null}
+            onClick={handleCreateEvent}
             title="Create Event"
           >
             <Plus className="h-3 w-3" />
@@ -235,6 +253,14 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
           </div>
         )}
       </div>
+
+      <CreateEventPopover
+        isOpen={isCreatePopoverOpen}
+        position={createPopoverPos}
+        selectedDate={new Date()}
+        onClose={handleCreatePopoverClose}
+        onCreated={handleEventCreated}
+      />
     </div>
   )
 }

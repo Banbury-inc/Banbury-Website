@@ -12,6 +12,8 @@ import { Input } from './ui/input'
 import { useToast } from './ui/use-toast'
 import { EmailService } from '../services/emailService'
 import { EmailTiptapEditor } from './EmailTiptapEditor'
+import RecipientChipsInput from './RecipientChipsInput'
+import { ApiService } from '../services/apiService'
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   let binary = ''
@@ -74,9 +76,75 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
       .replace(/class="[^"]*"/g, '') // Remove classes
       .replace(/<div[^>]*>/g, '<p>') // Convert divs to paragraphs
       .replace(/<\/div>/g, '</p>') // Close paragraphs
-      .replace(/<br\s*\/?>/g, '<br>') // Normalize line breaks
+      .replace(/<br\s*\/>?/g, '<br>') // Normalize line breaks
       .replace(/<p><\/p>/g, '') // Remove empty paragraphs
       .replace(/<p><br><\/p>/g, '<br>') // Convert empty paragraphs to line breaks
+  }, [])
+
+  // Helpers to support multiple recipients in the To field
+  const parseRecipients = useCallback((raw: string): string[] => {
+    return raw
+      .split(/[;,\s]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0)
+  }, [])
+
+  const normalizeRecipients = useCallback((raw: string): string => {
+    const unique = Array.from(new Set(parseRecipients(raw)))
+    return unique.join(', ')
+  }, [parseRecipients])
+
+  // Suggest contacts from recent email headers
+  const loadRecipientSuggestions = useCallback(async (query: string) => {
+    try {
+      // Use Gmail search to fetch recent messages matching the query in from/to headers
+      const q = `from:${query} OR to:${query}`
+      const result = await ApiService.searchEmails(q)
+      const suggestionsMap = new Map<string, { label: string; value: string }>()
+
+      const extractAddresses = (headers: any[]) => {
+        const headerMap: Record<string, string> = {}
+        headers?.forEach((h) => {
+          if (h && h.name && typeof h.value === 'string') headerMap[h.name.toLowerCase()] = h.value
+        })
+        const fields = ['from', 'to', 'cc', 'bcc']
+        const values: string[] = []
+        fields.forEach((f) => {
+          if (headerMap[f]) values.push(headerMap[f])
+        })
+        return values.join(', ')
+      }
+
+      const messages: any[] = result?.messages || []
+      for (const msg of messages) {
+        const headers = msg?.payload?.headers || []
+        const combined = extractAddresses(headers)
+        if (!combined) continue
+        combined.split(',').forEach((raw: string) => {
+          const part = raw.trim()
+          if (!part) return
+          // Try to parse "Name <email>" or just email
+          const match = part.match(/^(.*?)(<([^>]+)>)?$/)
+          let name = ''
+          let email = part
+          if (match) {
+            name = (match[1] || '').replace(/"/g, '').trim()
+            email = (match[3] || match[1] || '').trim()
+          }
+          if (email && email.includes('@')) {
+            const key = email.toLowerCase()
+            const label = name ? `${name}` : email
+            if (!suggestionsMap.has(key)) {
+              suggestionsMap.set(key, { label, value: email })
+            }
+          }
+        })
+      }
+
+      return Array.from(suggestionsMap.values()).slice(0, 20)
+    } catch {
+      return []
+    }
   }, [])
 
   const fetchSignature = useCallback(async () => {
@@ -102,7 +170,8 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
   }, [form.body, isContentEmpty, cleanSignature])
 
   const handleSend = useCallback(async () => {
-    if (!form.to || !form.subject || isContentEmpty(form.body)) {
+    const normalizedTo = normalizeRecipients(form.to)
+    if (!normalizedTo || !form.subject || isContentEmpty(form.body)) {
       toast({
         title: "Missing required fields",
         description: "Please fill in all required fields (To, Subject, and Message).",
@@ -122,7 +191,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
         })))
         await EmailService.sendReply({
           original_message_id: replyTo.messageId,
-          to: form.to,
+          to: normalizedTo,
           subject: form.subject,
           body: form.body,
           attachments: attachmentsPayload
@@ -140,7 +209,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
           ? form.body.replace(signature, '')
           : form.body
         await EmailService.sendMessageWithSignature({
-          to: form.to,
+          to: normalizedTo,
           subject: form.subject,
           body: bodyWithoutSignature,
           attachments: attachmentsPayload
@@ -163,7 +232,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
     } finally {
       setSending(false)
     }
-  }, [form, onSendComplete, toast, signature])
+  }, [form, onSendComplete, toast, signature, normalizeRecipients, isContentEmpty])
 
   const handleSaveDraft = useCallback(async () => {
     if (!form.to && !form.subject && isContentEmpty(form.body)) {
@@ -177,8 +246,9 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
 
     try {
       // Create a draft message using Gmail API
+      const normalizedTo = normalizeRecipients(form.to)
       await EmailService.sendMessage({
-        to: form.to,
+        to: normalizedTo,
         subject: form.subject,
         body: form.body,
         isDraft: true
@@ -199,7 +269,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
         variant: "destructive",
       })
     }
-  }, [form, toast])
+  }, [form, toast, normalizeRecipients, isContentEmpty])
 
   const handleAttachmentChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(event.target.files || [])
@@ -243,7 +313,9 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
           </Button>
           <Button
             onClick={handleSend}
-            disabled={sending || !form.to || !form.subject || isContentEmpty(form.body)}
+            disabled={
+              sending || parseRecipients(form.to).length === 0 || !form.subject || isContentEmpty(form.body)
+            }
             className="bg-slate-600 hover:bg-slate-700 text-white px-4 py-1.5 rounded-md transition-colors duration-200 disabled:bg-slate-300 disabled:text-slate-500"
           >
             <Send className="h-4 w-4 mr-2" />
@@ -260,11 +332,13 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
             <div className="space-y-4">
               <div>
                 <label className="text-slate-700 text-sm font-medium mb-2 block">To</label>
-                <Input
+                <RecipientChipsInput
                   value={form.to}
-                  onChange={(e) => setForm(prev => ({ ...prev, to: e.target.value }))}
-                  className="bg-white border-slate-300 text-slate-900 focus:border-slate-500 focus:ring-slate-500"
-                  placeholder="recipient@example.com"
+                  onChange={(next) => setForm(prev => ({ ...prev, to: next }))}
+                  className=""
+                  placeholder="Add recipients"
+                  disabled={sending}
+                  loadSuggestions={loadRecipientSuggestions}
                 />
               </div>
               

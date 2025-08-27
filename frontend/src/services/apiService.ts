@@ -672,6 +672,57 @@ export class ApiService {
   }
 
   /**
+   * Delete a folder by deleting all files within the folder path
+   */
+  static async deleteFolder(folderPath: string, username: string): Promise<{
+    success: boolean;
+    deleted: number;
+    failed: number;
+    message: string;
+  }> {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+
+      const userFilesResult = await this.getUserFiles(username);
+      if (!userFilesResult.success) {
+        throw new Error('Failed to fetch user files');
+      }
+
+      // Find all files that are in the folder path (including nested)
+      const filesToDelete = userFilesResult.files.filter((file) => {
+        const p = file.file_path;
+        return p === folderPath || p.startsWith(folderPath + '/');
+      });
+
+      if (filesToDelete.length === 0) {
+        return { success: true, deleted: 0, failed: 0, message: 'Folder was already empty' };
+      }
+
+      const results = await Promise.allSettled(
+        filesToDelete
+          .filter((f) => !!f.file_id)
+          .map((f) => this.deleteS3File(f.file_id as string))
+      );
+
+      const deleted = results.filter((r) => r.status === 'fulfilled').length;
+      const failed = results.length - deleted;
+
+      return {
+        success: failed === 0,
+        deleted,
+        failed,
+        message: failed === 0
+          ? `Deleted ${deleted} items from folder`
+          : `Deleted ${deleted} items; ${failed} failed`
+      };
+    } catch (error) {
+      console.error('deleteFolder error:', error);
+      throw this.enhanceError(error, 'Failed to delete folder');
+    }
+  }
+
+  /**
    * Upload file to S3 (replacing existing file)
    */
   static async uploadToS3(file: File | Blob, fileName: string, deviceName: string = 'web-editor', filePath: string = '', fileParent: string = '') {

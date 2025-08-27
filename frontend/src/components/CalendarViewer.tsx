@@ -3,7 +3,8 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, Ref
 
 import { Button } from './ui/button'
 import { CalendarService, CalendarEvent } from '../services/calendarService'
-import { EventModal } from './EventModal'
+import { CreateEventPopover } from './CreateEventPopover'
+import { EditEventPopover } from './EditEventPopover'
 
 type CalendarView = 'month' | 'week' | 'day'
 
@@ -20,7 +21,11 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
   const [loading, setLoading] = useState(false)
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null)
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false)
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
+  const [isEditPopoverOpen, setIsEditPopoverOpen] = useState(false)
+  const [editPopoverPos, setEditPopoverPos] = useState<{ x: number; y: number } | null>(null)
+  const [isClosingPopover, setIsClosingPopover] = useState(false)
 
   const startOfWeek = useCallback((date: Date) => {
     const d = new Date(date)
@@ -80,17 +85,27 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
     }
   }, [visibleRange.start, visibleRange.end])
 
-  const handleEventClick = (event: CalendarEvent) => {
+  const handleEventClick = (event: CalendarEvent, clickPos?: { x: number; y: number }) => {
+    // Don't open popover if another popover is already open or if we're in the process of closing
+    if (isPopoverOpen || isEditPopoverOpen || isClosingPopover) return
+    
     setSelectedEvent(event)
     setSelectedDate(null)
-    setIsModalOpen(true)
+    const defaultPos = typeof window !== 'undefined' ? { x: window.innerWidth / 2, y: window.innerHeight / 3 } : { x: 0, y: 0 }
+    setEditPopoverPos(clickPos || defaultPos)
+    setIsEditPopoverOpen(true)
     onEventClick?.(event)
   }
 
-  const handleDateClick = (date: Date) => {
+  const handleDateClick = (date: Date, clickPos?: { x: number; y: number }) => {
+    // Don't open popover if another popover is already open or if we're in the process of closing
+    if (isPopoverOpen || isEditPopoverOpen || isClosingPopover) return
+    
     setSelectedEvent(null)
     setSelectedDate(date)
-    setIsModalOpen(true)
+    const defaultPos = typeof window !== 'undefined' ? { x: window.innerWidth / 2, y: window.innerHeight / 3 } : { x: 0, y: 0 }
+    setPopoverPos(clickPos || defaultPos)
+    setIsPopoverOpen(true)
   }
 
   const handleEventSaved = () => {
@@ -101,10 +116,22 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
     loadEvents()
   }
 
-  const handleModalClose = () => {
-    setIsModalOpen(false)
-    setSelectedEvent(null)
+  const handlePopoverClose = () => {
+    setIsClosingPopover(true)
+    setIsPopoverOpen(false)
+    setPopoverPos(null)
     setSelectedDate(null)
+    // Reset the closing flag after a short delay
+    setTimeout(() => setIsClosingPopover(false), 100)
+  }
+
+  const handleEditPopoverClose = () => {
+    setIsClosingPopover(true)
+    setIsEditPopoverOpen(false)
+    setEditPopoverPos(null)
+    setSelectedEvent(null)
+    // Reset the closing flag after a short delay
+    setTimeout(() => setIsClosingPopover(false), 100)
   }
 
   useEffect(() => {
@@ -181,7 +208,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
               <div 
                 key={idx} 
                 className={`min-h-[7rem] p-1 border-r border-b border-zinc-700 ${isCurrentMonth ? 'bg-zinc-800' : 'bg-zinc-900'} ${isToday ? 'ring-1 ring-blue-500' : ''} cursor-pointer hover:bg-zinc-700/50 transition-colors`}
-                onClick={() => handleDateClick(d)}
+                onClick={(e) => handleDateClick(d, { x: e.clientX, y: e.clientY })}
               >
                 <div className="text-xs text-slate-400 mb-1 flex items-center justify-between">
                   <span className={`px-1 rounded ${isToday ? 'bg-blue-600 text-white' : ''}`}>{d.getDate()}</span>
@@ -193,7 +220,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                       key={ev.id} 
                       onClick={(e) => {
                         e.stopPropagation()
-                        handleEventClick(ev)
+                        handleEventClick(ev, { x: e.clientX, y: e.clientY })
                       }} 
                       className="w-full text-left truncate text-xs px-1 py-0.5 rounded bg-blue-900/50 text-blue-300 hover:bg-blue-800/50 border border-blue-700/50"
                     >
@@ -244,7 +271,17 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
               <div 
                 key={key} 
                 className="flex-1 p-2 border-r border-b border-zinc-700 bg-zinc-800 cursor-pointer hover:bg-zinc-700/50 transition-colors"
-                onClick={() => handleDateClick(d)}
+                onClick={(e) => {
+                  const container = e.currentTarget as HTMLElement
+                  const rect = container.getBoundingClientRect()
+                  const y = e.clientY - rect.top
+                  const ratio = Math.max(0, Math.min(1, y / rect.height))
+                  const totalMinutes = Math.round((ratio * 24 * 60) / 30) * 30
+                  const clicked = new Date(d)
+                  clicked.setHours(0, 0, 0, 0)
+                  clicked.setMinutes(totalMinutes)
+                  handleDateClick(clicked, { x: e.clientX, y: e.clientY })
+                }}
               >
                 {dayEvents.length === 0 ? (
                   <div className="text-xs text-slate-500 flex items-center justify-between">
@@ -258,7 +295,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                         key={ev.id} 
                         onClick={(e) => {
                           e.stopPropagation()
-                          handleEventClick(ev)
+                          handleEventClick(ev, { x: e.clientX, y: e.clientY })
                         }} 
                         className="w-full text-left p-2 rounded border border-blue-700/50 bg-blue-900/50 text-blue-300 hover:bg-blue-800/50"
                       >
@@ -293,7 +330,17 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
     return (
       <div 
         className="flex-1 overflow-auto bg-zinc-900 cursor-pointer"
-        onClick={() => handleDateClick(currentDate)}
+        onClick={(e) => {
+          const container = e.currentTarget as HTMLElement
+          const rect = container.getBoundingClientRect()
+          const y = e.clientY - rect.top
+          const ratio = Math.max(0, Math.min(1, y / rect.height))
+          const totalMinutes = Math.round((ratio * 24 * 60) / 30) * 30
+          const clicked = new Date(currentDate)
+          clicked.setHours(0, 0, 0, 0)
+          clicked.setMinutes(totalMinutes)
+          handleDateClick(clicked, { x: e.clientX, y: e.clientY })
+        }}
       >
         <div className="p-4 space-y-3">
           {dayEvents.length === 0 ? (
@@ -307,7 +354,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                 key={ev.id} 
                 onClick={(e) => {
                   e.stopPropagation()
-                  handleEventClick(ev)
+                  handleEventClick(ev, { x: e.clientX, y: e.clientY })
                 }} 
                 className="w-full text-left p-3 rounded border border-blue-700/50 bg-blue-900/50 text-blue-300 hover:bg-blue-800/50"
               >
@@ -357,13 +404,21 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
       {view === 'week' && renderWeek()}
       {view === 'day' && renderDay()}
       
-      <EventModal
-        event={selectedEvent}
-        isOpen={isModalOpen}
-        onClose={handleModalClose}
-        onEventSaved={handleEventSaved}
-        onEventDeleted={handleEventDeleted}
+      <CreateEventPopover
+        isOpen={isPopoverOpen}
+        position={popoverPos}
         selectedDate={selectedDate}
+        onClose={handlePopoverClose}
+        onCreated={handleEventSaved}
+      />
+
+      <EditEventPopover
+        isOpen={isEditPopoverOpen}
+        position={editPopoverPos}
+        event={selectedEvent}
+        onClose={handleEditPopoverClose}
+        onSaved={handleEventSaved}
+        onDeleted={handleEventDeleted}
       />
     </div>
   )
