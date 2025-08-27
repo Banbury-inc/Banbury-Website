@@ -92,11 +92,30 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
       // Always use LangGraph endpoint
       const apiEndpoint = '/api/assistant/langgraph-stream';
 
-      // Track that a user sent a message to the AI (fire-and-forget)
+      // Track that a user sent a message to the AI and check rate limits
       try {
-        await ApiService.post('/users/ai_message_sent/', {} as any);
-      } catch {
-        // ignore tracking errors
+        const aiResponse = await ApiService.post('/users/ai_message_sent/', {} as any) as any;
+        
+        // Check if the user has exceeded the AI message limit
+        if (aiResponse?.result === 'exceeded_ai_message_limit') {
+          contentParts.push({ 
+            type: "text", 
+            text: "❌ You have exceeded 100 AI requests this month. Please subscribe to the Pro plan for unlimited requests." 
+          });
+          yield { content: contentParts, status: { type: "incomplete", reason: "rate_limited" } } as any;
+          return;
+        }
+      } catch (error: any) {
+        // Check if it's a rate limit error (429 status)
+        if (error?.status === 429 || error?.response?.status === 429) {
+          contentParts.push({ 
+            type: "text", 
+            text: "❌ You have exceeded 100 AI requests this month. Please subscribe to the Pro plan for unlimited requests." 
+          });
+          yield { content: contentParts, status: { type: "incomplete", reason: "rate_limited" } } as any;
+          return;
+        }
+        // ignore other tracking errors
       }
 
       // Debug + intent: Check the last user message and optionally trigger Browserbase session

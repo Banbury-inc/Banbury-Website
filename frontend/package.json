@@ -31,7 +31,6 @@
     ]
   },
   "dependencies": {
-    "@browserbasehq/stagehand": "^1.14.0",
     "@ai-sdk/openai": "^2.0.4",
     "@assistant-ui/react": "^0.10.36",
     "@assistant-ui/react-ai-sdk": "^0.11.1",
@@ -39,6 +38,7 @@
     "@atlaskit/pragmatic-drag-and-drop": "^1.7.4",
     "@atlaskit/pragmatic-drag-and-drop-hitbox": "1.1.0",
     "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "@browserbasehq/stagehand": "^1.14.0",
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
     "@floating-ui/react": "^0.27.15",
@@ -65,6 +65,8 @@
     "@radix-ui/react-toast": "^1.2.14",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@radix-ui/themes": "^3.2.1",
+    "@stripe/react-stripe-js": "^3.9.2",
+    "@stripe/stripe-js": "^7.9.0",
     "@tiptap/extension-highlight": "^3.0.9",
     "@tiptap/extension-horizontal-rule": "^3.0.9",
     "@tiptap/extension-image": "^3.0.9",

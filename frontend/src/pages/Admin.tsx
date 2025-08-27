@@ -31,6 +31,18 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { ApiService } from '../services/apiService'
 
+// Utility function to format bytes into human readable format
+const formatBytes = (bytes: number, decimals: number = 2): string => {
+  if (bytes === 0) return '0 B'
+  
+  const k = 1024
+  const dm = decimals < 0 ? 0 : decimals
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB']
+  
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+}
 
 interface User {
   _id: string
@@ -42,8 +54,12 @@ interface User {
   created_at?: string
   last_login?: string
   is_active?: boolean
+  subscription?: string
   totalFiles?: number
+  totalFileSize?: number
+  lastFileUploadAt?: string
   aiMessageCount?: number
+  lastAiMessageAt?: string
   loginCount?: number
   lastLoginDate?: string
   preferredAuthMethod?: string
@@ -651,7 +667,9 @@ export default function Admin() {
                         <tr className="border-b border-zinc-700">
                           <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm">User</th>
                           <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm">Email</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Plan</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Files</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Storage</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">AI Msgs</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Logins</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Last Login</th>
@@ -683,7 +701,21 @@ export default function Admin() {
                             </td>
                             <td className="py-2 px-2 text-zinc-300 text-sm truncate">{user.email}</td>
                             <td className="py-2 px-1 text-center">
+                              <span className={`px-2 py-1 rounded text-xs font-medium ${
+                                user.subscription === 'pro' 
+                                  ? 'bg-purple-900/50 text-purple-300' 
+                                  : 'bg-green-900/50 text-green-300'
+                              }`}>
+                                {user.subscription === 'pro' ? 'Pro' : 'Free'}
+                              </span>
+                            </td>
+                            <td className="py-2 px-1 text-center">
                               <span className="text-white font-medium text-sm">{user.totalFiles?.toLocaleString() || 0}</span>
+                            </td>
+                            <td className="py-2 px-1 text-center">
+                              <span className="text-white font-medium text-sm" title={user.lastFileUploadAt ? new Date(user.lastFileUploadAt).toLocaleString() : 'Never'}>
+                                {user.totalFileSize ? formatBytes(user.totalFileSize) : '0 B'}
+                              </span>
                             </td>
                             <td className="py-2 px-1 text-center">
                               <span className="text-white font-medium text-sm">{user.aiMessageCount?.toLocaleString() || 0}</span>

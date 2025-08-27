@@ -1094,12 +1094,22 @@ const Workspaces = (): JSX.Element => {
         // Trigger sidebar refresh after successful upload
         triggerSidebarRefresh();
       } catch (error) {
-        // Show error toast
-        toast({
-          title: "Failed to upload file",
-          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          variant: "error",
-        });
+        // Check if it's a storage limit error
+        if (error instanceof Error && error.message.includes('STORAGE_LIMIT_EXCEEDED')) {
+          // Show storage limit exceeded toast
+          toast({
+            title: "Storage limit exceeded",
+            description: "You have exceeded the 10GB storage limit. Please subscribe to Pro plan for unlimited storage.",
+            variant: "destructive",
+          });
+        } else {
+          // Show generic error toast
+          toast({
+            title: "Failed to upload file",
+            description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+            variant: "destructive",
+          });
+        }
       } finally {
         setUploading(false);
       }
@@ -1138,6 +1148,11 @@ const Workspaces = (): JSX.Element => {
     });
 
     if (!response.ok) {
+      // Handle storage limit exceeded (413 Payload Too Large)
+      if (response.status === 413) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(`STORAGE_LIMIT_EXCEEDED: ${errorData.message || 'Storage limit exceeded. Please subscribe to Pro plan for unlimited storage.'}`);
+      }
       throw new Error(`Upload failed: ${response.status} ${response.statusText}`);
     }
 
@@ -1214,12 +1229,22 @@ Created on: ${new Date().toLocaleDateString()}`;
       // Trigger sidebar refresh after successful document creation
       triggerSidebarRefresh();
     } catch (error) {
-      // Show error toast
-      toast({
-        title: "Failed to create document",
-        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "error",
-      });
+      // Check if it's a storage limit error
+      if (error instanceof Error && error.message.includes('STORAGE_LIMIT_EXCEEDED')) {
+        // Show storage limit exceeded toast
+        toast({
+          title: "Storage limit exceeded",
+          description: "You have exceeded the 10GB storage limit. Please subscribe to Pro plan for unlimited storage.",
+          variant: "destructive",
+        });
+      } else {
+        // Show generic error toast
+        toast({
+          title: "Failed to create document",
+          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
     }
@@ -1264,12 +1289,22 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
       // Trigger sidebar refresh after successful spreadsheet creation
       triggerSidebarRefresh();
     } catch (error) {
-      // Show error toast
-      toast({
-        title: "Failed to create spreadsheet",
-        description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        variant: "error",
-      });
+      // Check if it's a storage limit error
+      if (error instanceof Error && error.message.includes('STORAGE_LIMIT_EXCEEDED')) {
+        // Show storage limit exceeded toast
+        toast({
+          title: "Storage limit exceeded",
+          description: "You have exceeded the 10GB storage limit. Please subscribe to Pro plan for unlimited storage.",
+          variant: "destructive",
+        });
+      } else {
+        // Show generic error toast
+        toast({
+          title: "Failed to create spreadsheet",
+          description: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          variant: "destructive",
+        });
+      }
     } finally {
       setUploading(false);
     }
