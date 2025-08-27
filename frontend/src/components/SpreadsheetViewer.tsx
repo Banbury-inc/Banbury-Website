@@ -1,4 +1,4 @@
-import { AlertCircle, FileSpreadsheet } from 'lucide-react';
+import { AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
 import { useToast } from './ui/use-toast';
@@ -347,11 +347,11 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background relative z-10 isolate">
       {/* Spreadsheet display area with CSVEditor */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden relative z-10">
         {documentUrl ? (
-          <div className="h-full">
+          <div className="h-full relative z-10">
             <CSVEditor
               src={documentUrl}
               fileName={currentFile.name}

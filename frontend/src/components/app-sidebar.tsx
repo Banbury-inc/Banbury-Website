@@ -310,6 +310,8 @@ function FileTreeItem({
   const [newFolderName, setNewFolderName] = useState('New Folder')
   const inputRef = useRef<HTMLInputElement | null>(null)
   const newFolderInputRef = useRef<HTMLInputElement | null>(null)
+  const [isCreatingFolderPending, setIsCreatingFolderPending] = useState(false)
+  const [pendingFolderName, setPendingFolderName] = useState<string | null>(null)
 
   useEffect(() => {
     if (isRenaming && inputRef.current) {
@@ -446,20 +448,27 @@ function FileTreeItem({
   }
 
   const handleCreateFolderSubmit = async () => {
-    if (newFolderName.trim() === '') {
+    const name = newFolderName.trim()
+    if (name === '') {
       setIsCreatingFolder(false)
       return
     }
-    
-    try {
-      await ApiService.createFolder(item.path, newFolderName.trim())
-      onFolderCreated?.(item.path ? `${item.path}/${newFolderName.trim()}` : newFolderName.trim())
-      setIsCreatingFolder(false)
-      setNewFolderName('New Folder')
-    } catch (error) {
-      alert('Failed to create folder. Please try again.')
-      setIsCreatingFolder(false)
-    }
+    // Close input immediately and fire request in background
+    setIsCreatingFolder(false)
+    setNewFolderName('New Folder')
+    setIsCreatingFolderPending(true)
+    setPendingFolderName(name)
+    ApiService.createFolder(item.path, name)
+      .then(() => {
+        onFolderCreated?.(item.path ? `${item.path}/${name}` : name)
+      })
+      .catch(() => {
+        alert('Failed to create folder. Please try again.')
+      })
+      .finally(() => {
+        setIsCreatingFolderPending(false)
+        setPendingFolderName(null)
+      })
   }
 
   const handleCreateFolderKeyDown = (e: React.KeyboardEvent) => {
@@ -558,7 +567,6 @@ function FileTreeItem({
                 type="text"
                 value={newFolderName}
                 onChange={(e) => setNewFolderName(e.target.value)}
-                onBlur={handleCreateFolderSubmit}
                 onKeyDown={handleCreateFolderKeyDown}
                 className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
                 autoFocus
@@ -566,6 +574,18 @@ function FileTreeItem({
                 onFocus={(e) => e.currentTarget.select()}
                 onClick={(e) => e.stopPropagation()}
               />
+            </div>
+          )}
+          {/* Pending creation indicator */}
+          {isCreatingFolderPending && pendingFolderName && (
+            <div
+              className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300"
+              style={{ paddingLeft: `${((level + 1) * 12) + 12}px` }}
+            >
+              <div className="w-3" />
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span className="text-sm truncate min-w-0 flex-1">{pendingFolderName}</span>
+              <span className="text-xs text-gray-400">Creating...</span>
             </div>
           )}
           
@@ -607,6 +627,8 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   const [error, setError] = useState<string | null>(null)
   const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false)
   const [newRootFolderName, setNewRootFolderName] = useState('New Folder')
+  const [isCreatingRootFolderPending, setIsCreatingRootFolderPending] = useState(false)
+  const [pendingRootFolderName, setPendingRootFolderName] = useState<string | null>(null)
   const rootFolderInputRef = useRef<HTMLInputElement | null>(null)
   const [activeTab, setActiveTab] = useState<'files' | 'email' | 'calendar'>('files')
   const [uploadingFolder, setUploadingFolder] = useState(false)
@@ -813,20 +835,27 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
   }, [isCreatingRootFolder])
 
   const handleCreateRootFolderSubmit = async () => {
-    if (newRootFolderName.trim() === '') {
+    const name = newRootFolderName.trim()
+    if (name === '') {
       setIsCreatingRootFolder(false)
       return
     }
-    
-    try {
-      await ApiService.createFolder('', newRootFolderName.trim())
-      handleFolderCreated(newRootFolderName.trim())
-      setIsCreatingRootFolder(false)
-      setNewRootFolderName('New Folder')
-    } catch (error) {
-      alert('Failed to create folder. Please try again.')
-      setIsCreatingRootFolder(false)
-    }
+    // Close input immediately and fire request in background
+    setIsCreatingRootFolder(false)
+    setNewRootFolderName('New Folder')
+    setIsCreatingRootFolderPending(true)
+    setPendingRootFolderName(name)
+    ApiService.createFolder('', name)
+      .then(() => {
+        handleFolderCreated(name)
+      })
+      .catch(() => {
+        alert('Failed to create folder. Please try again.')
+      })
+      .finally(() => {
+        setIsCreatingRootFolderPending(false)
+        setPendingRootFolderName(null)
+      })
   }
 
   const handleCreateRootFolderKeyDown = (e: React.KeyboardEvent) => {
@@ -1182,7 +1211,6 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
                   type="text"
                   value={newRootFolderName}
                   onChange={(e) => setNewRootFolderName(e.target.value)}
-                  onBlur={handleCreateRootFolderSubmit}
                   onKeyDown={handleCreateRootFolderKeyDown}
                   className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
                   autoFocus
@@ -1190,6 +1218,14 @@ export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, 
                   onFocus={(e) => e.currentTarget.select()}
                   onClick={(e) => e.stopPropagation()}
                 />
+              </div>
+            )}
+            {isCreatingRootFolderPending && pendingRootFolderName && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm truncate min-w-0 flex-1">{pendingRootFolderName}</span>
+                <span className="text-xs text-gray-400">Creating...</span>
               </div>
             )}
             
