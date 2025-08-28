@@ -1,9 +1,8 @@
 import { Box, Typography, Alert, CircularProgress } from '@mui/material';
 import mammoth from 'mammoth';
 import React, { useState, useEffect } from 'react';
-
 import TiptapWordEditor from './TiptapWordEditor';
-import { useTiptapAIContext } from '../../contexts/TiptapAIContext';
+import { useTiptapAIContext } from '../../../contexts/TiptapAIContext';
 
 
 

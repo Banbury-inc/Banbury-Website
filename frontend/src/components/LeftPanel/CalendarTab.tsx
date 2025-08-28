@@ -1,11 +1,11 @@
 import { Calendar, Plus, RefreshCw, Search, Settings, Clock, MapPin, Users } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { CalendarService, CalendarEvent, ListEventsResponse } from '../services/calendarService'
-import { ScopeService } from '../services/scopeService'
-import { CreateEventPopover } from './CreateEventPopover'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { CalendarService, CalendarEvent, ListEventsResponse } from '../../services/calendarService'
+import { ScopeService } from '../../services/scopeService'
+import { CreateEventPopover } from '../MiddlePanel/CalendarViewer/CreateEventPopover'
 
 interface CalendarTabProps {
   onOpenCalendarApp?: () => void

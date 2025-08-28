@@ -4,32 +4,29 @@ import { useState, useEffect, useCallback } from 'react';
 // Using lucide-react icons instead of @mui/icons-material to avoid import issues
  
 import { ClaudeRuntimeProvider } from '../assistant/ClaudeRuntimeProvider';
-import { AppSidebar } from "../components/app-sidebar";
+import { LeftPanel } from "../components/LeftPanel/LeftPanel";
 import OlympusTabs, { Tab as OlympusTab } from '../components/common/Tabs/Tabs';
-import { DocumentViewer } from '../components/DocumentViewer';
-import { EmailComposer } from '../components/EmailComposer';
-import { EmailViewer } from '../components/EmailViewer';
-import { ImageViewer } from '../components/ImageViewer';
-import { CalendarViewer } from '../components/CalendarViewer';
+import { DocumentViewer } from '../components/MiddlePanel/DocumentViewer/DocumentViewer';
+import { EmailComposer } from '../components/MiddlePanel/EmailViewer/EmailComposer';
+import { EmailViewer } from '../components/MiddlePanel/EmailViewer/EmailViewer';
+import { ImageViewer } from '../components/MiddlePanel/ImageViewer';
+import { CalendarViewer } from '../components/MiddlePanel/CalendarViewer/CalendarViewer';
 import { NavSidebar } from "../components/nav-sidebar";
-import { SpreadsheetViewer } from '../components/SpreadsheetViewer';
-import { VideoViewer } from '../components/VideoViewer';
-import CodeViewer from '../components/CodeViewer';
-import IDE from '../components/IDE';
+import { SpreadsheetViewer } from '../components/MiddlePanel/SpreadsheetViewer/SpreadsheetViewer';
+import { VideoViewer } from '../components/MiddlePanel/VideoViewer/VideoViewer';
+import CodeViewer from '../components/MiddlePanel/CodeViewer/CodeViewer';
+import IDE from '../components/MiddlePanel/CodeViewer/IDE';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import 'allotment/dist/style.css';
-import { Thread } from '../components/thread';
+import { Thread } from '../components/RightPanel/thread';
 import { motion } from "framer-motion";
-import BrowserViewer from '../components/BrowserViewer';
-
-
+import BrowserViewer from '../components/MiddlePanel/BrowserViewer/BrowserViewer';
 import { X, FileText, Folder, SplitSquareHorizontal, SplitSquareVertical, Move, FileSpreadsheet, Save, FolderOpen, Trash2, Edit3, Search, ChevronDown, Plus, TimerReset, PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Menu } from 'lucide-react';
 import { useRouter } from 'next/router';
 import { dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/closest-edge';
-
 import { TiptapAIProvider } from '../contexts/TiptapAIContext';
-import { PDFViewer } from '../components/PDFViewer';
+import { PDFViewer } from '../components/MiddlePanel/PDFViewer';
 import { Button } from '../components/ui/button';
 
 import { TooltipProvider } from "../components/ui/tooltip";
@@ -1842,7 +1839,7 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
                       </button>
                       {/* File Sidebar Content */}
                       <div className="flex-1 overflow-hidden">
-                        <AppSidebar 
+                        <LeftPanel 
                           currentView="workspaces"
                           userInfo={userInfo}
                           onFileSelect={handleFileSelect}

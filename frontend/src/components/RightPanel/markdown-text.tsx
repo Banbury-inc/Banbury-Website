@@ -13,7 +13,7 @@ import { type FC, memo, useState } from "react";
 import remarkGfm from "remark-gfm";
 
 import { TooltipIconButton } from "./tooltip-icon-button";
-import { cn } from "../utils";
+import { cn } from "../../utils";
 
 const MarkdownTextImpl = () => {
   return (

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, MapPin, RefreshCw, Plus } from 'lucide-react'
 
-import { Button } from './ui/button'
-import { CalendarService, CalendarEvent } from '../services/calendarService'
+import { Button } from '../../ui/button'
+import { CalendarService, CalendarEvent } from '../../../services/calendarService'
 import { CreateEventPopover } from './CreateEventPopover'
 import { EditEventPopover } from './EditEventPopover'
 

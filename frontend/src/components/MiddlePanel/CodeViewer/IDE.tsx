@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Editor } from '@monaco-editor/react';
-import { FileSystemItem } from '../utils/fileTreeUtils';
-import { ApiService } from '../services/apiService';
-import { CONFIG } from '../config/config';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
+import { ApiService } from '../../../services/apiService';
+import { CONFIG } from '../../../config/config';
 import IDESettings from './IDESettings';
 import { 
   File, 

@@ -30,12 +30,12 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 
 import { EmailTab } from "./EmailTab"
 import { CalendarTab } from "./CalendarTab"
-import { Button } from "./ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "./ui/dropdown-menu"
-import { ApiService } from "../services/apiService"
-import { buildFileTree, FileSystemItem, S3FileInfo } from "../utils/fileTreeUtils"
-import InlineFileSearch from "./InlineFileSearch"
-import { useToast } from "./ui/use-toast"
+import { Button } from "../ui/button"
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
+import { ApiService } from "../../services/apiService"
+import { buildFileTree, FileSystemItem, S3FileInfo } from "../../utils/fileTreeUtils"
+import InlineFileSearch from "../InlineFileSearch"
+import { useToast } from "../ui/use-toast"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
@@ -649,7 +649,7 @@ function FileTreeItem({
   )
 }
 
-export function AppSidebar({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
+export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)

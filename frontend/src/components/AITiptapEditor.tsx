@@ -42,7 +42,7 @@ import {
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 
 
-import styles from './SimpleTiptapEditor.module.css';
+import styles from '../styles/SimpleTiptapEditor.module.css';
 import {
   DropdownMenu,
   DropdownMenuContent,

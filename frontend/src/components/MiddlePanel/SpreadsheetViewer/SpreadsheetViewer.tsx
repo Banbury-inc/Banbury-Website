@@ -1,10 +1,10 @@
 import { AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
 
-import { useToast } from './ui/use-toast';
-import CSVEditor from './workspaces/CSVEditor';
-import { ApiService } from '../services/apiService';
-import { FileSystemItem } from '../utils/fileTreeUtils';
+import { useToast } from '../../ui/use-toast';
+import CSVEditor from './CSVEditor';
+import { ApiService } from '../../../services/apiService';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
 
 interface SpreadsheetViewerProps {
   file: FileSystemItem;

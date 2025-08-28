@@ -1,7 +1,6 @@
 import ToolCallCard from "./ToolCallCard";
-import { Button } from "./ui/button";
 
-import type { FC, ReactNode, SVGProps } from "react";
+import type { ReactNode, SVGProps } from "react";
 
 interface WebSearchResult {
   title: string;

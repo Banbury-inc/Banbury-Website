@@ -14,11 +14,11 @@ import {
 } from 'lucide-react'
 import { useState, useEffect, useCallback } from 'react'
 
-import { EmailViewer } from './EmailViewer'
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { EmailService, GmailMessage, GmailMessageListResponse } from '../services/emailService'
-import { ScopeService } from '../services/scopeService'
+import { EmailViewer } from '../MiddlePanel/EmailViewer/EmailViewer'
+import { Button } from '../ui/button'
+import { Input } from '../ui/input'
+import { EmailService, GmailMessage, GmailMessageListResponse } from '../../services/emailService'
+import { ScopeService } from '../../services/scopeService'
 
 interface EmailTabProps {
   onOpenEmailApp?: () => void

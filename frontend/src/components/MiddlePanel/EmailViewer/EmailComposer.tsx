@@ -7,13 +7,13 @@ import {
 } from 'lucide-react'
 import { useState, useCallback, useEffect } from 'react'
 
-import { Button } from './ui/button'
-import { Input } from './ui/input'
-import { useToast } from './ui/use-toast'
-import { EmailService } from '../services/emailService'
+import { Button } from '../../ui/button'
+import { Input } from '../../ui/input'
+import { useToast } from '../../ui/use-toast'
+import { EmailService } from '../../../services/emailService'
 import { EmailTiptapEditor } from './EmailTiptapEditor'
 import RecipientChipsInput from './RecipientChipsInput'
-import { ApiService } from '../services/apiService'
+import { ApiService } from '../../../services/apiService'
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   let binary = ''

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 
-import { useTiptapAIContext } from '../../contexts/TiptapAIContext';
-import { AITiptapEditor } from '../AITiptapEditor';
+import { useTiptapAIContext } from '../../../contexts/TiptapAIContext';
+import { AITiptapEditor } from '../../AITiptapEditor';
 
 interface TiptapWordEditorProps {
   initialContent?: string;

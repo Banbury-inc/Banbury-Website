@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Save, X } from 'lucide-react'
-import { Button } from './ui/button'
-import { CalendarService, CalendarEvent } from '../services/calendarService'
+import { Button } from '../../ui/button'
+import { CalendarService, CalendarEvent } from '../../../services/calendarService'
 
 interface CreateEventPopoverProps {
   isOpen: boolean

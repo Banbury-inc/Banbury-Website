@@ -1,11 +1,9 @@
 import { AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-
-
-import { useToast } from './ui/use-toast';
-import WordViewer from './workspaces/WordViewer';
-import { ApiService } from '../services/apiService';
-import { FileSystemItem } from '../utils/fileTreeUtils';
+import { useToast } from '../../ui/use-toast';
+import WordViewer from './WordViewer';
+import { ApiService } from '../../../services/apiService';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
 
 interface DocumentViewerProps {
   file: FileSystemItem;

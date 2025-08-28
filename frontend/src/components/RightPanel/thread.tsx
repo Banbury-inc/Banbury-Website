@@ -24,16 +24,16 @@ import {
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
-import { ChatTiptapComposer } from "./ChatTiptapComposer";
-import { DocumentAITool } from "./DocumentAITool";
-import { FileAttachment } from "./file-attachment";
-import { FileAttachmentDisplay } from "./file-attachment-display";
+import { ChatTiptapComposer } from "../ChatTiptapComposer";
+import { DocumentAITool } from "../DocumentAITool";
+import { FileAttachment } from "../file-attachment";
+import { FileAttachmentDisplay } from "../file-attachment-display";
 import { MarkdownText } from "./markdown-text";
-import { SheetAITool } from "./SheetAITool";
-import { TiptapAITool } from "./TiptapAITool";
+import { SheetAITool } from "../SheetAITool";
+import { TiptapAITool } from "../TiptapAITool";
 import { ToolFallback } from "./tool-fallback";
 import { TooltipIconButton } from "./tooltip-icon-button";
-import { Button } from "./ui/button";
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -42,16 +42,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuItem,
-} from "./ui/dropdown-menu";
+} from "../ui/dropdown-menu";
 import { WebSearchTool } from "./web-search-result";
-import { BrowserTool } from "./BrowserTool";
-import { ApiService } from "../services/apiService";
-import { extractEmailContent } from "../utils/emailUtils";
-import { ConversationService } from "../services/conversationService";
-import { useToast } from "./ui/use-toast";
-import styles from "../styles/scrollbar.module.css";
-import { cn } from "../utils";
-import { FileSystemItem } from "../utils/fileTreeUtils";
+import { BrowserTool } from "../MiddlePanel/BrowserViewer/BrowserTool";
+import { ApiService } from "../../services/apiService";
+import { extractEmailContent } from "../../utils/emailUtils";
+import { ConversationService } from "../../services/conversationService";
+import { useToast } from "../ui/use-toast";
+import styles from "../../styles/scrollbar.module.css";
+import { cn } from "../../utils";
+import { FileSystemItem } from "../../utils/fileTreeUtils";
 
 import type { FC } from "react";
 

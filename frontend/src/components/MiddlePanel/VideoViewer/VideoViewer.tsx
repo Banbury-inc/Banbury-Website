@@ -1,8 +1,8 @@
 import { AlertCircle, Download, Play, Pause, Volume2, VolumeX, Maximize2, RotateCcw } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-import { Button } from './ui/button';
-import { ApiService } from '../services/apiService';
-import { FileSystemItem } from '../utils/fileTreeUtils';
+import { Button } from '../../ui/button';
+import { ApiService } from '../../../services/apiService';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
 
 interface VideoViewerProps {
   file: FileSystemItem;

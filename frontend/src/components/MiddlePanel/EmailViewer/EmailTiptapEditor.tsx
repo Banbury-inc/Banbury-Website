@@ -29,13 +29,13 @@ import {
   Image as ImageIcon,
   MoreHorizontal,
 } from 'lucide-react';
-import styles from './SimpleTiptapEditor.module.css';
+import styles from '../../../styles/SimpleTiptapEditor.module.css';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from './ui/dropdown-menu';
+} from '../../../components/ui/dropdown-menu';
 
 interface EmailTiptapEditorProps {
   value: string;

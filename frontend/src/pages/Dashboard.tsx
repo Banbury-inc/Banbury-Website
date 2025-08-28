@@ -6,14 +6,10 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
-
 import { NavSidebar } from "../components/nav-sidebar";
-import { Thread } from '../components/thread';
+import { Thread } from '../components/RightPanel/thread';
 import { TooltipProvider } from "../components/ui/tooltip";
 import { ApiService } from '../services/apiService';
- 
-
-
 
 interface UserInfo {
   username: string;
