@@ -2617,7 +2617,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             licenseKey="non-commercial-and-evaluation"
             manualRowResize={true}
             manualColumnResize={true}
-            outsideClickDeselects={false}
+            outsideClickDeselects={true}
             selectionMode="multiple"
             afterChange={handleDataChange}
             afterSelectionEnd={(r: number, c: number, r2: number, c2: number) => { lastSelectionRef.current = [r,c,r2,c2]; }}
