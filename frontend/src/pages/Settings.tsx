@@ -499,15 +499,6 @@ const Settings = (): JSX.Element => {
                   </div>
                 </div>
               )}
-
-              {/* Profile Update Form - Coming Soon */}
-              <div className="p-6 bg-zinc-900 rounded-lg">
-                <h3 className="text-lg font-semibold mb-4 text-white">Update Profile</h3>
-                <p className="text-gray-400 mb-4">Profile update functionality coming soon.</p>
-                <Button variant="outline" disabled>
-                  Coming Soon
-                </Button>
-              </div>
             </div>
           )}
 

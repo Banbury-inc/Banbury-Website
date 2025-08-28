@@ -18,8 +18,8 @@ import googleCalendarLogo from '../assets/images/google_calendar_logo.png';
 const calendarDemo = require('../assets/images/calendar_demo.mp4');
 const fantasyDraftDemo = require('../assets/images/fantasy_draft_demo.mp4');
 const spreadsheetDemo = require('../assets/images/spreadsheet_demo.mp4');
-
-
+const browserAutomationDemo = require('../assets/images/browser-automation-demo.mp4');
+const emailSchedulingDemo = require('../assets/images/email-calendar-scheduling-demo.mp4');
 
 
 interface ProductsProps {
@@ -283,6 +283,124 @@ const Features = (): JSX.Element => {
                 </Typography>
               </Box>
               <Grid container spacing={6} sx={{ mb: 12 }}>
+                <Grid item xs={12} md={4}>
+                  <Box sx={{
+                    p: 3,
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}>
+                    <Typography
+                      sx={{
+                        mb: 2,
+                        fontWeight: 600,
+                        color: '#ffffff',
+                        fontSize: '1.25rem',
+                        letterSpacing: '-0.01em',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      Browser Automation Demo
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mb: 3,
+                        color: '#a1a1aa',
+                        lineHeight: 1.6,
+                        fontSize: '0.95rem',
+                        fontWeight: 400,
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      Watch how Banbury automates web tasks using natural language commands. The AI assistant navigates websites, fills out forms, and extracts information, showcasing its powerful browser automation capabilities.
+                    </Typography>
+                    <Box sx={{ 
+                      position: 'relative', 
+                      width: '100%', 
+                      borderRadius: '12px', 
+                      overflow: 'hidden',
+                      flex: 1,
+                      minHeight: '300px'
+                    }}>
+                      <video 
+                        src={browserAutomationDemo} 
+                        controls 
+                        muted 
+                        playsInline 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          borderRadius: '12px',
+                          objectFit: 'cover'
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Box sx={{
+                    p: 3,
+                    background: 'rgba(255,255,255,0.02)',
+                    borderRadius: '20px',
+                    border: '1px solid rgba(255,255,255,0.08)',
+                    position: 'relative',
+                    overflow: 'hidden',
+                    height: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}>
+                    <Typography
+                      sx={{
+                        mb: 2,
+                        fontWeight: 600,
+                        color: '#ffffff',
+                        fontSize: '1.25rem',
+                        letterSpacing: '-0.01em',
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                      Email Calendar Scheduling Demo
+                    </Typography>
+                    <Typography
+                      sx={{
+                        mb: 3,
+                        color: '#a1a1aa',
+                        lineHeight: 1.6,
+                        fontSize: '0.95rem',
+                        fontWeight: 400,
+                        fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+                      }}
+                    >
+                    See how Banbury can read your emails and schedule meetings directly from Gmail. Watch as the AI assistant understands natural language requests, checks your calendar availability, and sends out meeting invitations seamlessly.
+                    </Typography>
+                    <Box sx={{ 
+                      position: 'relative', 
+                      width: '100%', 
+                      borderRadius: '12px', 
+                      overflow: 'hidden',
+                      flex: 1,
+                      minHeight: '300px'
+                    }}>
+                      <video 
+                        src={emailSchedulingDemo} 
+                        controls 
+                        muted 
+                        playsInline 
+                        style={{ 
+                          width: '100%', 
+                          height: '100%', 
+                          borderRadius: '12px',
+                          objectFit: 'cover'
+                        }} 
+                      />
+                    </Box>
+                  </Box>
+                </Grid>
                 <Grid item xs={12} md={4}>
                   <Box sx={{
                     p: 3,
