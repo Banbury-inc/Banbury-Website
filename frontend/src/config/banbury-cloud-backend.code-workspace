@@ -1,0 +1,14 @@
+{
+	"folders": [
+		{
+			"path": "../../../../banbury-cloud-backend"
+		},
+		{
+			"path": "../../.."
+		},
+		{
+			"path": "../../../../athena-intelligence"
+		}
+	],
+	"settings": {}
+}

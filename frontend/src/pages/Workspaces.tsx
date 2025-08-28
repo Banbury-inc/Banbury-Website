@@ -1802,7 +1802,23 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
     <TooltipProvider>
       <TiptapAIProvider>
         <ClaudeRuntimeProvider>
-          <div className="flex h-screen bg-black">
+          <div 
+            className="flex h-screen bg-black"
+            onClick={(e) => {
+              // Check if the click is outside any CSV editor
+              const target = e.target as HTMLElement;
+              const isCSVEditorClick = target.closest('.csv-editor-container') || 
+                                     target.closest('.handsontable-container-full') || 
+                                     target.closest('.ht_master') ||
+                                     target.closest('[role="menu"]') ||
+                                     target.closest('[role="dialog"]');
+              
+              // If click is outside CSV editor, dispatch event to deselect cells
+              if (!isCSVEditorClick) {
+                window.dispatchEvent(new CustomEvent('workspace-outside-click'));
+              }
+            }}
+          >
 
           {/* Navigation Sidebar - Fixed */}
           <NavSidebar onLogout={handleLogout} />

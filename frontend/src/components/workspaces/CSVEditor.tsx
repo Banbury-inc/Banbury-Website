@@ -849,75 +849,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   // Persist data type meta similarly to how we persist bold/italic via React state
   const [cellTypeMeta, setCellTypeMeta] = useState<{[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }} >({});
 
-  // Keep metadata aligned when rows/columns are inserted or removed
-  const shiftMapForRowInsert = useCallback((map: {[key: string]: any}, index: number, amount: number) => {
-    const next: {[key: string]: any} = {};
-    Object.entries(map).forEach(([key, value]) => {
-      const [rs, cs] = key.split('-');
-      const r = parseInt(rs, 10);
-      const c = parseInt(cs, 10);
-      if (Number.isNaN(r) || Number.isNaN(c)) return;
-      if (r >= index) {
-        next[`${r + amount}-${c}`] = value;
-      } else {
-        next[key] = value;
-      }
-    });
-    return next;
-  }, []);
-
-  const shiftMapForRowRemove = useCallback((map: {[key: string]: any}, index: number, amount: number) => {
-    const next: {[key: string]: any} = {};
-    const end = index + amount - 1;
-    Object.entries(map).forEach(([key, value]) => {
-      const [rs, cs] = key.split('-');
-      const r = parseInt(rs, 10);
-      const c = parseInt(cs, 10);
-      if (Number.isNaN(r) || Number.isNaN(c)) return;
-      if (r < index) {
-        next[key] = value;
-      } else if (r > end) {
-        next[`${r - amount}-${c}`] = value;
-      }
-      // rows within [index, end] are deleted -> drop entries
-    });
-    return next;
-  }, []);
-
-  const shiftMapForColInsert = useCallback((map: {[key: string]: any}, index: number, amount: number) => {
-    const next: {[key: string]: any} = {};
-    Object.entries(map).forEach(([key, value]) => {
-      const [rs, cs] = key.split('-');
-      const r = parseInt(rs, 10);
-      const c = parseInt(cs, 10);
-      if (Number.isNaN(r) || Number.isNaN(c)) return;
-      if (c >= index) {
-        next[`${r}-${c + amount}`] = value;
-      } else {
-        next[key] = value;
-      }
-    });
-    return next;
-  }, []);
-
-  const shiftMapForColRemove = useCallback((map: {[key: string]: any}, index: number, amount: number) => {
-    const next: {[key: string]: any} = {};
-    const end = index + amount - 1;
-    Object.entries(map).forEach(([key, value]) => {
-      const [rs, cs] = key.split('-');
-      const r = parseInt(rs, 10);
-      const c = parseInt(cs, 10);
-      if (Number.isNaN(r) || Number.isNaN(c)) return;
-      if (c < index) {
-        next[key] = value;
-      } else if (c > end) {
-        next[`${r}-${c - amount}`] = value;
-      }
-      // cols within [index, end] are deleted -> drop entries
-    });
-    return next;
-  }, []);
-
   // Cell formatting functions using proper Handsontable approach
   const toggleCellFormat = (className: string) => {
     const hotInstance = hotTableRef.current?.hotInstance;
@@ -1122,6 +1053,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const [visibleButtons, setVisibleButtons] = useState<string[]>([]);
   const [overflowAnchorEl, setOverflowAnchorEl] = useState<null | HTMLElement>(null);
   const [helpDialogOpen, setHelpDialogOpen] = useState(false);
+  const [isEditorFocused, setIsEditorFocused] = useState(true);
   const toolbarRef = useRef<HTMLDivElement>(null);
   // Register a stable renderer to apply meta.className and meta.style as per docs
   useEffect(() => {
@@ -1970,6 +1902,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Only handle shortcuts when the editor is focused and not in an input field
+      if (!isEditorFocused) {
+        return;
+      }
+      
       const activeElement = document.activeElement;
       if (activeElement && (activeElement.tagName === 'INPUT' || activeElement.tagName === 'TEXTAREA')) {
         return;
@@ -2100,7 +2036,25 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [onSaveDocument, onSave]); // Dependencies for the handlers
+  }, [onSaveDocument, onSave, isEditorFocused]); // Dependencies for the handlers
+
+  // Listen for workspace outside clicks to deselect cells and lose focus
+  useEffect(() => {
+    const handleWorkspaceOutsideClick = () => {
+      const hotInstance = hotTableRef.current?.hotInstance;
+      if (hotInstance && hotInstance.deselectCell) {
+        hotInstance.deselectCell();
+      }
+      // Disable editor focus when clicking outside
+      setIsEditorFocused(false);
+    };
+
+    window.addEventListener('workspace-outside-click', handleWorkspaceOutsideClick);
+    
+    return () => {
+      window.removeEventListener('workspace-outside-click', handleWorkspaceOutsideClick);
+    };
+  }, []);
 
   // Keyboard shortcuts help data
   const keyboardShortcuts = [
@@ -2134,7 +2088,30 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   }
 
   return (
-    <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <Box 
+      className="csv-editor-container"
+      sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+      onClick={(e) => {
+        // Check if click is outside the table area but not on toolbar
+        const target = e.target as HTMLElement;
+        const isToolbarClick = toolbarRef.current?.contains(target);
+        const isTableClick = target.closest('.handsontable-container-full') || target.closest('.ht_master');
+        const isMenuClick = target.closest('[role="menu"]') || target.closest('[role="dialog"]');
+        
+        // If click is outside table, toolbar, and menus, deselect cells
+        if (!isToolbarClick && !isTableClick && !isMenuClick) {
+          const hotInstance = hotTableRef.current?.hotInstance;
+          if (hotInstance && hotInstance.deselectCell) {
+            hotInstance.deselectCell();
+          }
+        }
+        
+        // Re-enable focus when clicking within the CSV editor
+        if (!isEditorFocused) {
+          setIsEditorFocused(true);
+        }
+      }}
+    >
 
       {error && (
         <Alert severity="warning" sx={{ m: 1 }}>
@@ -2174,7 +2151,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                 )}
                 <IconButton
                   size="small"
-                  onClick={(e: any) => {
+                  onClick={(e) => {
                     // For handlers that need event parameters, pass them through
                     if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'alignment') {
                       button.handler(e as any);
@@ -2407,7 +2384,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
            .map((button) => (
              <MenuItem
                key={button.id}
-               onClick={(e: any) => {
+               onClick={(e) => {
                  handleOverflowClose();
                  // For handlers that need event parameters, we need to handle them specially
                  if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'alignment') {
@@ -2449,18 +2426,18 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
          PaperProps={{ sx: { minWidth: '220px', p: 1 } }}
        >
-         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(10, 18px)', gap: '6px', p: 1 }} onMouseDown={(e: any) => e.preventDefault()}>
+         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(10, 18px)', gap: '6px', p: 1 }} onMouseDown={(e) => e.preventDefault()}>
            {['#000000','#333333','#666666','#999999','#CCCCCC','#FFFFFF',
              '#E53935','#D81B60','#8E24AA','#5E35B1','#3949AB','#1E88E5','#039BE5','#00ACC1','#00897B','#43A047','#7CB342','#C0CA33','#FDD835','#FB8C00']
              .map((c) => (
                <Box key={c}
-                 onMouseDown={(e: any) => e.preventDefault()}
+                 onMouseDown={(e) => e.preventDefault()}
                  onClick={() => { handleTextColorClose(); setTimeout(() => applyCellStyle('color', c), 0); }}
                  sx={{ width: 18, height: 18, backgroundColor: c, border: '1px solid #e5e7eb', cursor: 'pointer' }} />
              ))}
          </Box>
          <Divider />
-         <MenuItem onMouseDown={(e: any) => e.preventDefault()} onClick={() => { handleTextColorClose(); setTimeout(() => removeCellStyle('color'), 0); }}>Clear text color</MenuItem>
+         <MenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => { handleTextColorClose(); setTimeout(() => removeCellStyle('color'), 0); }}>Clear text color</MenuItem>
        </Menu>
 
        {/* Fill Color Menu */}
@@ -2472,18 +2449,18 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
          PaperProps={{ sx: { minWidth: '220px', p: 1 } }}
        >
-         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(10, 18px)', gap: '6px', p: 1 }} onMouseDown={(e: any) => e.preventDefault()}>
+         <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(10, 18px)', gap: '6px', p: 1 }} onMouseDown={(e) => e.preventDefault()}>
            {['#000000','#333333','#666666','#999999','#CCCCCC','#FFFFFF',
              '#E53935','#D81B60','#8E24AA','#5E35B1','#3949AB','#1E88E5','#039BE5','#00ACC1','#00897B','#43A047','#7CB342','#C0CA33','#FDD835','#FB8C00']
              .map((c) => (
                <Box key={c}
-                 onMouseDown={(e: any) => e.preventDefault()}
+                 onMouseDown={(e) => e.preventDefault()}
                  onClick={() => { handleBackgroundColorClose(); setTimeout(() => applyCellStyle('backgroundColor', c), 0); }}
                  sx={{ width: 18, height: 18, backgroundColor: c, border: '1px solid #e5e7eb', cursor: 'pointer' }} />
              ))}
          </Box>
          <Divider />
-         <MenuItem onMouseDown={(e: any) => e.preventDefault()} onClick={() => { handleBackgroundColorClose(); setTimeout(() => removeCellStyle('backgroundColor'), 0); }}>Clear fill color</MenuItem>
+         <MenuItem onMouseDown={(e) => e.preventDefault()} onClick={() => { handleBackgroundColorClose(); setTimeout(() => removeCellStyle('backgroundColor'), 0); }}>Clear fill color</MenuItem>
        </Menu>
 
        {/* Borders Menu */}
@@ -2497,17 +2474,17 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
        >
          <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(5, 40px)', gap: 1, p: 1 }}>
            {/* First row: All / Outer / Inner / None placeholder / None */}
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('all')} title="All borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('outer')} title="Outer borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('inner')} title="Inner borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('all')} title="All borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('outer')} title="Outer borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('inner')} title="Inner borders"><BorderAll sx={{ fontSize: 18 }} /></IconButton>
            <Box />
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('none')} title="Clear borders"><Clear sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('none')} title="Clear borders"><Clear sx={{ fontSize: 18 }} /></IconButton>
 
            {/* Second row: Top / Right / Bottom / Left */}
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('top')} title="Top border"><BorderTop sx={{ fontSize: 18 }} /></IconButton>
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('right')} title="Right border"><BorderRight sx={{ fontSize: 18 }} /></IconButton>
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('bottom')} title="Bottom border"><BorderBottom sx={{ fontSize: 18 }} /></IconButton>
-           <IconButton size="small" onMouseDown={(e: any) => e.preventDefault()} onClick={() => applyBordersOption('left')} title="Left border"><BorderLeft sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('top')} title="Top border"><BorderTop sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('right')} title="Right border"><BorderRight sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('bottom')} title="Bottom border"><BorderBottom sx={{ fontSize: 18 }} /></IconButton>
+           <IconButton size="small" onMouseDown={(e) => e.preventDefault()} onClick={() => applyBordersOption('left')} title="Left border"><BorderLeft sx={{ fontSize: 18 }} /></IconButton>
            <Box />
          </Box>
          <Divider sx={{ my: 1 }} />
@@ -2620,7 +2597,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             outsideClickDeselects={false}
             selectionMode="multiple"
             afterChange={handleDataChange}
-            afterSelectionEnd={(r: number, c: number, r2: number, c2: number) => { lastSelectionRef.current = [r,c,r2,c2]; }}
+            afterSelectionEnd={(r,c,r2,c2) => { lastSelectionRef.current = [r,c,r2,c2]; }}
             stretchH="all"
             customBorders={customBordersDefs.length ? customBordersDefs : undefined}
             minRows={Math.max(1000, data.length)}
@@ -2628,26 +2605,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             autoWrapRow={false}
             viewportRowRenderingOffset={50}
             viewportColumnRenderingOffset={50}
-            afterCreateRow={(index: number, amount: number) => {
-              setCellTypeMeta((prev) => shiftMapForRowInsert(prev, index, amount));
-              setCellFormats((prev) => shiftMapForRowInsert(prev, index, amount));
-              setCellStyles((prev) => shiftMapForRowInsert(prev, index, amount));
-            }}
-            afterRemoveRow={(index: number, amount: number) => {
-              setCellTypeMeta((prev) => shiftMapForRowRemove(prev, index, amount));
-              setCellFormats((prev) => shiftMapForRowRemove(prev, index, amount));
-              setCellStyles((prev) => shiftMapForRowRemove(prev, index, amount));
-            }}
-            afterCreateCol={(index: number, amount: number) => {
-              setCellTypeMeta((prev) => shiftMapForColInsert(prev, index, amount));
-              setCellFormats((prev) => shiftMapForColInsert(prev, index, amount));
-              setCellStyles((prev) => shiftMapForColInsert(prev, index, amount));
-            }}
-            afterRemoveCol={(index: number, amount: number) => {
-              setCellTypeMeta((prev) => shiftMapForColRemove(prev, index, amount));
-              setCellFormats((prev) => shiftMapForColRemove(prev, index, amount));
-              setCellStyles((prev) => shiftMapForColRemove(prev, index, amount));
-            }}
             cells={(row: number, col: number) => {
               return {
                 renderer: (instance: any, td: HTMLTableCellElement, r: number, c: number, prop: any, value: any, cellProperties: any) => {
