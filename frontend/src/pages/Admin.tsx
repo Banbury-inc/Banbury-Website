@@ -50,7 +50,7 @@ const convertToEasternTime = (timestamp: string): string => {
       hour: '2-digit',
       minute: '2-digit',
       second: '2-digit',
-      hour12: false
+      hour12: true
     })
   } catch (error) {
     console.error('Error converting timestamp to Eastern time:', error)
