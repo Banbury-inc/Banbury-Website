@@ -77,12 +77,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Create .env file
-        run: |
-          echo "BROWSERBASE_API_KEY=${{ secrets.BROWSERBASE_API_KEY }}" >> .env
-          echo "BROWSERBASE_PROJECT_ID=${{ secrets.BROWSERBASE_PROJECT_ID }}" >> .env
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
-
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
         with:
@@ -99,8 +93,11 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           IMAGE_TAG: ${{ github.sha }}
+          BROWSERBASE_API_KEY: ${{ secrets.BROWSERBASE_API_KEY }}
+          BROWSERBASE_PROJECT_ID: ${{ secrets.BROWSERBASE_PROJECT_ID }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
-          docker build -f frontend/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+          docker build --build-arg BROWSERBASE_API_KEY=$BROWSERBASE_API_KEY --build-arg BROWSERBASE_PROJECT_ID=$BROWSERBASE_PROJECT_ID --build-arg OPENAI_API_KEY=$OPENAI_API_KEY -f frontend/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 

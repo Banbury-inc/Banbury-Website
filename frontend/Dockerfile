@@ -16,6 +16,16 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# Accept build arguments for environment variables
+ARG BROWSERBASE_API_KEY
+ARG BROWSERBASE_PROJECT_ID
+ARG OPENAI_API_KEY
+
+# Set environment variables for the build process
+ENV BROWSERBASE_API_KEY=$BROWSERBASE_API_KEY
+ENV BROWSERBASE_PROJECT_ID=$BROWSERBASE_PROJECT_ID
+ENV OPENAI_API_KEY=$OPENAI_API_KEY
+
 # Set memory allocation and clean build artifacts
 ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm run clean || true
