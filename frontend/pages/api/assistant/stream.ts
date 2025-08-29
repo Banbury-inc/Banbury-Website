@@ -212,6 +212,104 @@ const webSearch: any = tool(
 );
 
 
+// Image generation tool: lets the model generate images and upload them to S3
+const generateImage: any = tool(
+  async (input: { prompt: string; size?: '256x256' | '512x512' | '1024x1024'; folder?: string; fileBaseName?: string }, runtime?: any) => {
+    const openaiKey = process.env.OPENAI_API_KEY;
+    if (!openaiKey) {
+      return JSON.stringify({ ok: false, error: 'OPENAI_API_KEY not configured' });
+    }
+
+    try {
+      const prompt = (input?.prompt || '').toString().trim();
+      if (!prompt) return JSON.stringify({ ok: false, error: 'Missing prompt' });
+      const size = input?.size || '1024x1024';
+      const folder = (input?.folder || 'images').replace(/^\/+|\/+$/g, '');
+      const baseName = (input?.fileBaseName || 'Generated Image').toString().trim();
+
+      // 1) Call OpenAI images API
+      const resp = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${openaiKey}`,
+        },
+        body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size, response_format: 'b64_json' }),
+      });
+
+      if (!resp.ok) {
+        const text = await resp.text().catch(() => '');
+        return JSON.stringify({ ok: false, error: `Provider error: ${text || resp.statusText}` });
+      }
+
+      const data: any = await resp.json();
+      const b64 = data?.data?.[0]?.b64_json as string | undefined;
+      if (!b64) return JSON.stringify({ ok: false, error: 'No image returned by provider' });
+
+      // 2) Upload to S3 via backend API using the user's token
+      // Token from original request headers
+      const token = (runtime as any)?.req?.headers?.authorization?.replace('Bearer ', '') || '';
+      if (!token) return JSON.stringify({ ok: false, error: 'Missing auth token for upload' });
+
+      const apiBase = process.env.API_BASE_URL || 'https://www.api.dev.banbury.io';
+
+      const buffer = Buffer.from(b64, 'base64');
+      const blob = new Blob([buffer], { type: 'image/png' });
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+      const fileName = `${baseName} ${timestamp}.png`;
+      const filePath = `${folder}/${fileName}`;
+
+      const form = new FormData();
+      form.append('file', blob, fileName);
+      form.append('device_name', 'web-editor');
+      form.append('file_path', filePath);
+      form.append('file_parent', folder);
+
+      const uploadResp = await fetch(`${apiBase}/files/upload_to_s3/`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        } as any,
+        body: form as any,
+      });
+
+      if (!uploadResp.ok) {
+        const text = await uploadResp.text().catch(() => '');
+        return JSON.stringify({ ok: false, error: `Upload failed: ${text || uploadResp.statusText}` });
+      }
+
+      const uploaded: any = await uploadResp.json();
+
+      // Normalize a compact file_info for the UI to act on
+      const result = {
+        ok: true,
+        file_info: {
+          file_name: fileName,
+          file_path: filePath,
+          folder,
+          size_bytes: buffer.length,
+        },
+        provider: 'openai',
+        size,
+      };
+
+      return JSON.stringify(result);
+    } catch (err: any) {
+      return JSON.stringify({ ok: false, error: err?.message || 'Failed to generate image' });
+    }
+  },
+  {
+    name: 'generate_image',
+    description: 'Generate an image from a prompt and save it to cloud storage. Use when user asks to create or generate an image.',
+    schema: z.object({
+      prompt: z.string().describe('Image description prompt'),
+      size: z.enum(['256x256', '512x512', '1024x1024']).optional(),
+      folder: z.string().optional().describe('Target folder, default images'),
+      fileBaseName: z.string().optional().describe('Base filename, default "Generated Image"'),
+    }),
+  }
+);
+
 
 const anthropicModel = new ChatAnthropic({
   model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
@@ -618,7 +716,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (prefs.web_search) enabledTools.push(webSearch);
     if (prefs.read_file) enabledTools.push(readFile);
     if (prefs.tiptap_ai) enabledTools.push(tiptapAI);
-    const modelWithTools = anthropicModel.bindTools(enabledTools as any);
+    enabledTools.push(generateImage);
+    // Bind with access to req in tool runtime via custom wrapper
+    const modelWithTools = anthropicModel.bindTools(enabledTools.map((t: any) => ({
+      ...t,
+      // @ts-ignore pass through req for tools that need it
+      call: (args: any) => (t as any).invoke(args, { req }),
+    })) as any);
 
     // start assistant message
     send({ type: "message-start", role: "assistant" });
@@ -689,6 +793,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           });
           toolMsgs.push(new ToolMessage({ content: JSON.stringify(toolResult), tool_call_id: tc.id }));
+        } else if (tc.name === 'generate_image') {
+          const toolResult = await generateImage.invoke(tc.args, { req });
+          send({
+            type: 'tool-call',
+            part: {
+              type: 'tool-call',
+              toolCallId: tc.id,
+              toolName: tc.name,
+              args: tc.args,
+              argsText: JSON.stringify(tc.args, null, 2),
+              result: toolResult,
+            },
+          });
+          toolMsgs.push(new ToolMessage({ content: toolResult, tool_call_id: tc.id }));
         } else {
           send({ type: "tool-call", part: { type: "tool-call", toolCallId: tc.id, toolName: tc.name, args: tc.args, argsText: JSON.stringify(tc.args, null, 2) } });
         }

@@ -38,4 +38,15 @@ export const CONFIG = {
       return 'ws://0.0.0.0:8082/ws/live_data/';
     }
   }
+  ,
+  // JupyterLab base URL for embedded notebooks (optional)
+  get jupyterUrl() {
+    // Prefer environment variable when available
+    const env = (typeof window !== 'undefined' ? (window as any).env : undefined)
+    const fromEnv = (typeof process !== 'undefined' && (process as any).env && (process as any).env.NEXT_PUBLIC_JUPYTER_URL)
+      || (env && env.NEXT_PUBLIC_JUPYTER_URL)
+    if (fromEnv) return String(fromEnv)
+    // Default to empty to disable embedding when not configured
+    return ''
+  }
 }

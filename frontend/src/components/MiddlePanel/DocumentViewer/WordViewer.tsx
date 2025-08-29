@@ -296,7 +296,7 @@ const WordViewer: React.FC<WordViewerProps> = ({
         setContent(nextHTML);
         // update the live editor if available
         try {
-          editor?.commands.setContent(nextHTML, true);
+          editor?.commands.setContent(nextHTML, { emitUpdate: true });
         } catch {}
         // bubble up so save button enables
         onSave?.(nextHTML);

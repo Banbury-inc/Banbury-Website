@@ -12,6 +12,8 @@ import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
 import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
+import { TextStyle } from '@tiptap/extension-text-style';
+import { FontFamily } from '@tiptap/extension-font-family';
 import {
   Bold,
   Italic,
@@ -53,6 +55,8 @@ import {
 } from './ui/dropdown-menu';
 import { useTiptapAIContext } from '../contexts/TiptapAIContext';
 import { cn } from '../utils';
+import { changeSelectionFontFamily } from './handlers/editorFont';
+ 
 
 interface AITiptapEditorProps {
   initialContent?: string;
@@ -77,6 +81,7 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
 }) => {
   const { setEditor, aiBridge, registerAICommands, aiCommands } = useTiptapAIContext();
   const [selection, setSelection] = useState<{ from: number; to: number; text: string } | null>(null);
+  const [selectedFont, setSelectedFont] = useState<string | null>(null);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -85,6 +90,8 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
         horizontalRule: false,
       }),
       HorizontalRule,
+      TextStyle,
+      FontFamily,
       TextAlign.configure({
         types: ['heading', 'paragraph'],
       }),
@@ -174,7 +181,7 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
                 updated = html;
               }
               if (updated !== html) {
-                editor.commands.setContent(updated, true);
+                editor.commands.setContent(updated, { emitUpdate: true });
               } else {
                 editor.chain().focus().insertContent(response).run();
               }
@@ -198,6 +205,8 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
       window.removeEventListener('tiptap-ai-response', handleAIResponse as EventListener);
     };
   }, [editor]);
+
+  // no-op
 
   if (!editor) {
     return null;
@@ -332,6 +341,35 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
             >
               <AlignJustify size={16} />
             </button>
+          </div>
+
+          <div className={styles['toolbar-separator']} />
+
+          {/* Font family */}
+          <div className={styles['toolbar-group']}>
+            <select
+              className={styles['toolbar-select']}
+              aria-label="Font family"
+              value={selectedFont ?? ''}
+              onChange={(e) => {
+                const value = e.target.value || null;
+                setSelectedFont(value);
+                changeSelectionFontFamily({ editor, fontFamily: value });
+              }}
+            >
+              <option value="">Default</option>
+              <option value="Inter">Inter</option>
+              <option value="Arial">Arial</option>
+              <option value="Georgia">Georgia</option>
+              <option value="Times New Roman">Times New Roman</option>
+              <option value="Courier New">Courier New</option>
+              <option value="Roboto">Roboto</option>
+              <option value="Open Sans">Open Sans</option>
+              <option value="Merriweather">Merriweather</option>
+              <option value="sans-serif">Sans-serif</option>
+              <option value="serif">Serif</option>
+              <option value="monospace">Monospace</option>
+            </select>
           </div>
 
           <div className={styles['toolbar-separator']} />

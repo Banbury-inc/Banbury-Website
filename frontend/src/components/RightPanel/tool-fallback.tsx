@@ -7,6 +7,15 @@ export const ToolFallback: ToolCallMessagePartComponent = ({
   argsText,
   result,
 }) => {
+  // Dispatch a creation event when generate_image succeeds
+  try {
+    if (toolName === 'generate_image' && typeof result === 'string') {
+      const parsed = JSON.parse(result);
+      if (parsed?.ok && parsed?.file_info) {
+        window.dispatchEvent(new CustomEvent('assistant-file-created', { detail: { result: parsed } }));
+      }
+    }
+  } catch {}
   return (
     <ToolCallCard
       toolName={toolName}

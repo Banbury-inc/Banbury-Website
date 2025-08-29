@@ -4,6 +4,7 @@ import { attachClosestEdge, extractClosestEdge } from '@atlaskit/pragmatic-drag-
 import { X as CloseIcon, Plus as AddIcon } from 'lucide-react';
 import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { SplitPreview } from '../SplitPreview';
 
 import type { ElementDropTargetGetFeedbackArgs } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/types';
@@ -32,6 +33,8 @@ interface TabsProps {
   onTabAdd?: () => void;
   onReorder?: (sourceIndex: number, destinationIndex: number) => void;
   dragContext?: Record<string, any>;
+  suppressReorderIndicator?: boolean;
+  onSplitPreview?: (direction: 'horizontal' | 'vertical' | null, position: { x: number; y: number }) => void;
 }
 
 const DragPreview = ({ label }: { label: string }) => (
@@ -121,13 +124,24 @@ export const Tabs: React.FC<TabsProps> = ({
   onTabClose, 
   onTabAdd,
   onReorder,
-  dragContext
+  dragContext,
+  suppressReorderIndicator = false,
+  onSplitPreview
 }) => {
   const [closestEdge, setClosestEdge] = useState<Edge | null>(null);
   const [indicatorPosition, setIndicatorPosition] = useState<number | null>(null);
   const [newTabId, setNewTabId] = useState<string | null>(null);
   const [closingTabId, setClosingTabId] = useState<string | null>(null);
   const [renderedTabs, setRenderedTabs] = useState(tabs);
+  const [splitPreviewState, setSplitPreviewState] = useState<{
+    direction: 'horizontal' | 'vertical' | null;
+    position: { x: number; y: number };
+    isVisible: boolean;
+  }>({
+    direction: null,
+    position: { x: 0, y: 0 },
+    isVisible: false,
+  });
   const tabRefs = useRef<(HTMLDivElement | null)[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const prevTabsLength = useRef(tabs.length);
@@ -173,7 +187,10 @@ export const Tabs: React.FC<TabsProps> = ({
       element,
       getData: () => ({ type: 'container' }),
       onDrag: () => {},
-      onDragLeave: () => setClosestEdge(null),
+      onDragLeave: () => {
+        // Only clear the tab reorder indicator when leaving container
+        setClosestEdge(null);
+      },
       onDrop: () => setClosestEdge(null),
     });
   }, []);
@@ -186,7 +203,10 @@ export const Tabs: React.FC<TabsProps> = ({
       return combine(
         draggable({
           element,
-          getInitialData: () => ({ id: tab.id, index, type: 'tab', ...(dragContext || {}) }),
+          getInitialData: () => {
+            console.log('Tab draggable init:', { id: tab.id, index, type: 'tab', dragContext });
+            return { id: tab.id, index, type: 'tab', ...(dragContext || {}) };
+          },
           onGenerateDragPreview: ({ nativeSetDragImage }) => {
             if (!nativeSetDragImage) return;
             const previewEl = document.createElement('div');
@@ -203,6 +223,83 @@ export const Tabs: React.FC<TabsProps> = ({
               root.unmount();
               document.body.removeChild(previewEl);
             }, 0);
+          },
+          onDrag: ({ location }) => {
+            // Handle split preview logic
+            const mousePosition = location.current.input.clientX !== undefined && location.current.input.clientY !== undefined
+              ? { x: location.current.input.clientX, y: location.current.input.clientY }
+              : null;
+            
+            if (mousePosition) {
+              // Check if mouse is within the main content area (middle panel)
+              const mainElement = document.querySelector('main.h-full.bg-black.relative');
+              let isInMiddlePanel = false;
+              let direction: 'horizontal' | 'vertical' | null = null;
+              let previewPosition = mousePosition;
+              
+              if (mainElement) {
+                const rect = mainElement.getBoundingClientRect();
+                isInMiddlePanel = mousePosition.x >= rect.left && mousePosition.x <= rect.right && 
+                                 mousePosition.y >= rect.top && mousePosition.y <= rect.bottom;
+                
+                if (isInMiddlePanel) {
+                  // Use panel dimensions instead of viewport dimensions
+                  const panelWidth = rect.width;
+                  const panelHeight = rect.height;
+                  
+                  // Check if mouse is near the edges of the panel
+                  const edgeThreshold = Math.min(150, Math.min(panelWidth, panelHeight) * 0.25);
+                  const relativeX = mousePosition.x - rect.left;
+                  const relativeY = mousePosition.y - rect.top;
+                  
+                  const isNearLeftEdge = relativeX < edgeThreshold;
+                  const isNearRightEdge = relativeX > panelWidth - edgeThreshold;
+                  const isNearTopEdge = relativeY < edgeThreshold;
+                  const isNearBottomEdge = relativeY > panelHeight - edgeThreshold;
+                  
+                  if (isNearLeftEdge || isNearRightEdge) direction = 'vertical';
+                  else if (isNearTopEdge || isNearBottomEdge) direction = 'horizontal';
+                  else direction = 'vertical'; // default to vertical split in the middle
+
+                  // Center the preview in the middle of the panel
+                  previewPosition = { x: rect.left + panelWidth / 2, y: rect.top + panelHeight / 2 };
+                }
+              }
+              
+              setSplitPreviewState({
+                direction: isInMiddlePanel ? direction : null,
+                position: isInMiddlePanel ? previewPosition : mousePosition,
+                isVisible: isInMiddlePanel,
+              });
+              
+              if (onSplitPreview) {
+                onSplitPreview(
+                  isInMiddlePanel ? direction : null,
+                  isInMiddlePanel ? previewPosition : mousePosition
+                );
+              }
+            }
+          },
+          onDrop: () => {
+            setSplitPreviewState({
+              direction: null,
+              position: { x: 0, y: 0 },
+              isVisible: false,
+            });
+            if (onSplitPreview) {
+              onSplitPreview(null, { x: 0, y: 0 });
+            }
+          },
+          onDropTargetChange: () => {
+            // Clear split preview when dropping on a target
+            setSplitPreviewState({
+              direction: null,
+              position: { x: 0, y: 0 },
+              isVisible: false,
+            });
+            if (onSplitPreview) {
+              onSplitPreview(null, { x: 0, y: 0 });
+            }
           },
         }),
         dropTargetForElements({
@@ -224,6 +321,7 @@ export const Tabs: React.FC<TabsProps> = ({
             }
           },
           onDragLeave() {
+            // Only clear the tab reorder indicator, not the global drag state
             setClosestEdge(null);
             setIndicatorPosition(null);
           },
@@ -300,8 +398,17 @@ export const Tabs: React.FC<TabsProps> = ({
           <AddIcon size={14} />
         </button>
       )}
-      {closestEdge && indicatorPosition !== null && (
+      {closestEdge && indicatorPosition !== null && !suppressReorderIndicator && (
         <DropIndicator edge={closestEdge} gap="1px" left={indicatorPosition} />
+      )}
+      
+      {/* Split Preview (render internally only if no external handler is provided) */}
+      {!onSplitPreview && (
+        <SplitPreview
+          direction={splitPreviewState.direction}
+          position={splitPreviewState.position}
+          isVisible={splitPreviewState.isVisible}
+        />
       )}
     </div>
   );

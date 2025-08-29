@@ -67,6 +67,7 @@
     "@radix-ui/themes": "^3.2.1",
     "@stripe/react-stripe-js": "^3.9.2",
     "@stripe/stripe-js": "^7.9.0",
+    "@tiptap/extension-font-family": "^3.3.0",
     "@tiptap/extension-highlight": "^3.0.9",
     "@tiptap/extension-horizontal-rule": "^3.0.9",
     "@tiptap/extension-image": "^3.0.9",
@@ -77,6 +78,7 @@
     "@tiptap/extension-subscript": "^3.0.9",
     "@tiptap/extension-superscript": "^3.0.9",
     "@tiptap/extension-text-align": "^3.0.9",
+    "@tiptap/extension-text-style": "^3.3.0",
     "@tiptap/extension-typography": "^3.0.9",
     "@tiptap/extension-underline": "^3.1.0",
     "@tiptap/extensions": "^3.0.9",
@@ -170,7 +172,9 @@
     "sass-embedded": "^1.90.0",
     "tailwindcss": "^3.4.10",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.9.2"
+    "typescript": "^5.9.2",
+    "@jupyterlab/nbformat": "^4.2.5",
+    "@lumino/coreutils": "^2.2.1"
   },
   "browserslist": {
     "production": [

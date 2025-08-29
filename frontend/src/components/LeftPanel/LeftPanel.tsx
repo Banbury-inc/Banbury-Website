@@ -56,9 +56,11 @@ interface AppSidebarProps {
   triggerRootFolderCreation?: boolean
   onEmailSelect?: (email: any) => void
   onComposeEmail?: () => void
-  onCreateDocument?: () => void
-  onCreateSpreadsheet?: () => void
+  onCreateDocument?: (documentName: string) => void
+  onCreateSpreadsheet?: (spreadsheetName: string) => void
+  onCreateNotebook?: (notebookName: string) => void
   onCreateFolder?: () => void
+  onGenerateImage?: () => void
   onEventSelect?: (event: any) => void
   onOpenCalendar?: () => void
 }
@@ -295,8 +297,8 @@ function FileTreeItem({
   onFolderCreated, 
   onFolderRenamed, 
   onFolderDeleted,
-  onUploadFile, 
-  onUploadFolder, 
+  onUploadFile,
+  onUploadFolder,
   userInfo, 
   dragState, 
   onDragStart, 
@@ -305,6 +307,17 @@ function FileTreeItem({
   onDragLeave, 
   onDrop 
 }: FileTreeItemProps) {
+  
+  // Helper function to select filename without extension
+  const selectFilenameWithoutExtension = (input: HTMLInputElement) => {
+    const value = input.value
+    const lastDotIndex = value.lastIndexOf('.')
+    if (lastDotIndex > 0) {
+      input.setSelectionRange(0, lastDotIndex)
+    } else {
+      input.select()
+    }
+  }
   const { toast } = useToast()
   const isExpanded = expandedItems.has(item.id)
   const hasChildren = item.children && item.children.length > 0
@@ -321,8 +334,10 @@ function FileTreeItem({
   useEffect(() => {
     if (isRenaming && inputRef.current) {
       requestAnimationFrame(() => {
-        inputRef.current?.focus()
-        inputRef.current?.select()
+        if (inputRef.current) {
+          inputRef.current.focus()
+          selectFilenameWithoutExtension(inputRef.current)
+        }
       })
     }
   }, [isRenaming])
@@ -330,8 +345,10 @@ function FileTreeItem({
   useEffect(() => {
     if (isCreatingFolder && newFolderInputRef.current) {
       requestAnimationFrame(() => {
-        newFolderInputRef.current?.focus()
-        newFolderInputRef.current?.select()
+        if (newFolderInputRef.current) {
+          newFolderInputRef.current.focus()
+          selectFilenameWithoutExtension(newFolderInputRef.current)
+        }
       })
     }
   }, [isCreatingFolder])
@@ -391,7 +408,7 @@ function FileTreeItem({
 
   const handleRename = () => {
     setIsRenaming(true)
-    setNewName(item.name)
+    setNewName(item.name) // Keep the full filename with extension
   }
 
   const handleDelete = async () => {
@@ -439,11 +456,21 @@ function FileTreeItem({
     
     try {
       if (item.type === 'file' && item.file_id) {
-        // Handle file renaming
-        await ApiService.renameS3File(item.file_id, newName.trim(), item.path)
-        onFileRenamed?.(item.path, newName.trim())
+        // For files, we need to preserve the original extension
+        const originalExtension = item.name.substring(item.name.lastIndexOf('.'))
+        const newNameWithoutExtension = newName.replace(originalExtension, '')
+        
+        // Create the full new filename with the original extension
+        const newFullName = newNameWithoutExtension.trim() + originalExtension
+        
+        // Pass the full filename (with extension) to the API
+        await ApiService.renameS3File(item.file_id, newFullName, item.path)
+        
+        // Calculate the new path with the full filename
+        const newPath = item.path.replace(item.name, newFullName)
+        onFileRenamed?.(item.path, newPath)
       } else if (item.type === 'folder') {
-        // Handle folder renaming
+        // Handle folder renaming (folders don't have extensions)
         if (!userInfo?.username) {
           throw new Error('User information not available')
         }
@@ -532,7 +559,7 @@ function FileTreeItem({
           className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
           autoFocus
           ref={inputRef}
-          onFocus={(e) => e.currentTarget.select()}
+          onFocus={(e) => selectFilenameWithoutExtension(e.currentTarget)}
           onClick={(e) => e.stopPropagation()}
         />
       </div>
@@ -649,7 +676,7 @@ function FileTreeItem({
   )
 }
 
-export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateFolder, onEventSelect, onOpenCalendar }: AppSidebarProps) {
+export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateNotebook, onCreateFolder, onGenerateImage, onEventSelect, onOpenCalendar }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -659,11 +686,42 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   const [isCreatingRootFolderPending, setIsCreatingRootFolderPending] = useState(false)
   const [pendingRootFolderName, setPendingRootFolderName] = useState<string | null>(null)
   const rootFolderInputRef = useRef<HTMLInputElement | null>(null)
+  
+  // Document creation state
+  const [isCreatingDocument, setIsCreatingDocument] = useState(false)
+  const [newDocumentName, setNewDocumentName] = useState('New Document.docx')
+  const [isCreatingDocumentPending, setIsCreatingDocumentPending] = useState(false)
+  const [pendingDocumentName, setPendingDocumentName] = useState<string | null>(null)
+  const documentInputRef = useRef<HTMLInputElement | null>(null)
+  
+  // Spreadsheet creation state
+  const [isCreatingSpreadsheet, setIsCreatingSpreadsheet] = useState(false)
+  const [newSpreadsheetName, setNewSpreadsheetName] = useState('New Spreadsheet.csv')
+  const [isCreatingSpreadsheetPending, setIsCreatingSpreadsheetPending] = useState(false)
+  const [pendingSpreadsheetName, setPendingSpreadsheetName] = useState<string | null>(null)
+  const spreadsheetInputRef = useRef<HTMLInputElement | null>(null)
+  // Notebook creation state
+  const [isCreatingNotebook, setIsCreatingNotebook] = useState(false)
+  const [newNotebookName, setNewNotebookName] = useState('New Notebook.ipynb')
+  const [isCreatingNotebookPending, setIsCreatingNotebookPending] = useState(false)
+  const [pendingNotebookName, setPendingNotebookName] = useState<string | null>(null)
+  const notebookInputRef = useRef<HTMLInputElement | null>(null)
   const [activeTab, setActiveTab] = useState<'files' | 'email' | 'calendar'>('files')
   const [uploadingFolder, setUploadingFolder] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
+  
+  // Helper function to select filename without extension
+  const selectFilenameWithoutExtension = (input: HTMLInputElement) => {
+    const value = input.value
+    const lastDotIndex = value.lastIndexOf('.')
+    if (lastDotIndex > 0) {
+      input.setSelectionRange(0, lastDotIndex)
+    } else {
+      input.select()
+    }
+  }
   
   // Drag and drop state
   const [dragState, setDragState] = useState<DragState>({
@@ -863,10 +921,15 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   // Focus root folder input when creating
   useEffect(() => {
     if (isCreatingRootFolder && rootFolderInputRef.current) {
-      requestAnimationFrame(() => {
-        rootFolderInputRef.current?.focus()
-        rootFolderInputRef.current?.select()
-      })
+      // Use a small timeout to ensure the DOM is fully rendered
+      const timeoutId = setTimeout(() => {
+        if (rootFolderInputRef.current) {
+          rootFolderInputRef.current.focus()
+          rootFolderInputRef.current.select()
+        }
+      }, 10)
+      
+      return () => clearTimeout(timeoutId)
     }
   }, [isCreatingRootFolder])
 
@@ -900,6 +963,176 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
     } else if (e.key === 'Escape') {
       setIsCreatingRootFolder(false)
       setNewRootFolderName('New Folder')
+    }
+  }
+
+  // Document creation handlers
+  const handleCreateDocument = () => {
+    setIsCreatingDocument(true)
+    setNewDocumentName('New Document.docx')
+  }
+
+  // Focus document input when creating
+  useEffect(() => {
+    if (isCreatingDocument && documentInputRef.current) {
+      // Use a small timeout to ensure the DOM is fully rendered
+      const timeoutId = setTimeout(() => {
+        if (documentInputRef.current) {
+          documentInputRef.current.focus()
+          selectFilenameWithoutExtension(documentInputRef.current)
+        }
+      }, 10)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [isCreatingDocument])
+
+  const handleCreateDocumentSubmit = async () => {
+    const name = newDocumentName.trim()
+    if (name === '') {
+      setIsCreatingDocument(false)
+      return
+    }
+    // Extract filename without extension for the handler
+    const filenameWithoutExtension = name.replace(/\.docx$/, '')
+    
+    // Close input immediately and fire request in background
+    setIsCreatingDocument(false)
+    setNewDocumentName('New Document.docx')
+    setIsCreatingDocumentPending(true)
+    setPendingDocumentName(name)
+    
+    // Call the parent handler to create the document
+    if (onCreateDocument) {
+      try {
+        await onCreateDocument(filenameWithoutExtension)
+      } catch (error) {
+        console.error('Failed to create document:', error)
+      } finally {
+        setIsCreatingDocumentPending(false)
+        setPendingDocumentName(null)
+      }
+    }
+  }
+
+  const handleCreateDocumentKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCreateDocumentSubmit()
+    } else if (e.key === 'Escape') {
+      setIsCreatingDocument(false)
+      setNewDocumentName('New Document.docx')
+    }
+  }
+
+  // Spreadsheet creation handlers
+  const handleCreateSpreadsheet = () => {
+    setIsCreatingSpreadsheet(true)
+    setNewSpreadsheetName('New Spreadsheet.csv')
+  }
+
+  // Focus spreadsheet input when creating
+  useEffect(() => {
+    if (isCreatingSpreadsheet && spreadsheetInputRef.current) {
+      // Use a small timeout to ensure the DOM is fully rendered
+      const timeoutId = setTimeout(() => {
+        if (spreadsheetInputRef.current) {
+          spreadsheetInputRef.current.focus()
+          selectFilenameWithoutExtension(spreadsheetInputRef.current)
+        }
+      }, 10)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [isCreatingSpreadsheet])
+
+  const handleCreateSpreadsheetSubmit = async () => {
+    const name = newSpreadsheetName.trim()
+    if (name === '') {
+      setIsCreatingSpreadsheet(false)
+      return
+    }
+    // Extract filename without extension for the handler
+    const filenameWithoutExtension = name.replace(/\.csv$/, '')
+    
+    // Close input immediately and fire request in background
+    setIsCreatingSpreadsheet(false)
+    setNewSpreadsheetName('New Spreadsheet.csv')
+    setIsCreatingSpreadsheetPending(true)
+    setPendingSpreadsheetName(name)
+    
+    // Call the parent handler to create the spreadsheet
+    if (onCreateSpreadsheet) {
+      try {
+        await onCreateSpreadsheet(filenameWithoutExtension)
+      } catch (error) {
+        console.error('Failed to create spreadsheet:', error)
+      } finally {
+        setIsCreatingSpreadsheetPending(false)
+        setPendingSpreadsheetName(null)
+      }
+    }
+  }
+
+  const handleCreateSpreadsheetKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleCreateSpreadsheetSubmit()
+    } else if (e.key === 'Escape') {
+      setIsCreatingSpreadsheet(false)
+      setNewSpreadsheetName('New Spreadsheet.csv')
+    }
+  }
+
+  // Notebook creation handlers
+  const handleCreateNotebook = () => {
+    setIsCreatingNotebook(true)
+    setNewNotebookName('New Notebook.ipynb')
+  }
+
+  useEffect(() => {
+    if (isCreatingNotebook && notebookInputRef.current) {
+      const timeoutId = setTimeout(() => {
+        if (notebookInputRef.current) {
+          notebookInputRef.current.focus()
+          selectFilenameWithoutExtension(notebookInputRef.current)
+        }
+      }, 10)
+      return () => clearTimeout(timeoutId)
+    }
+  }, [isCreatingNotebook])
+
+  const handleCreateNotebookSubmit = async () => {
+    const name = newNotebookName.trim()
+    if (name === '') {
+      setIsCreatingNotebook(false)
+      return
+    }
+    const filenameWithoutExtension = name.replace(/\.ipynb$/, '')
+    setIsCreatingNotebook(false)
+    setNewNotebookName('New Notebook.ipynb')
+    setIsCreatingNotebookPending(true)
+    setPendingNotebookName(name)
+    if (onCreateSpreadsheet && false) {}
+    if ((onCreateNotebook as any)) {}
+    if ((onCreateNotebook as any)) {
+      try {
+        await (onCreateNotebook as any)(filenameWithoutExtension)
+      } catch (error) {
+        console.error('Failed to create notebook:', error)
+      } finally {
+        setIsCreatingNotebookPending(false)
+        setPendingNotebookName(null)
+      }
+    } else {
+      setIsCreatingNotebookPending(false)
+      setPendingNotebookName(null)
+    }
+  }
+
+  const handleCreateNotebookKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleCreateNotebookSubmit()
+    else if (e.key === 'Escape') {
+      setIsCreatingNotebook(false)
+      setNewNotebookName('New Notebook.ipynb')
     }
   }
 
@@ -1058,14 +1291,14 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                      Upload Folder
                    </DropdownMenuItem>
                    <DropdownMenuItem 
-                     onSelect={onCreateDocument}
+                     onSelect={handleCreateDocument}
                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                    >
                      <FileText size={20} className="mr-2" />
                      Document
                    </DropdownMenuItem>
                    <DropdownMenuItem 
-                     onSelect={onCreateSpreadsheet}
+                     onSelect={handleCreateSpreadsheet}
                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                    >
                      <FileSpreadsheet size={20} className="mr-2" />
@@ -1248,10 +1481,10 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                   value={newRootFolderName}
                   onChange={(e) => setNewRootFolderName(e.target.value)}
                   onKeyDown={handleCreateRootFolderKeyDown}
+                  onBlur={handleCreateRootFolderSubmit}
                   className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
-                  autoFocus
                   ref={rootFolderInputRef}
-                  onFocus={(e) => e.currentTarget.select()}
+                  onFocus={(e) => selectFilenameWithoutExtension(e.currentTarget)}
                   onClick={(e) => e.stopPropagation()}
                 />
               </div>
@@ -1261,6 +1494,87 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
                 <span className="text-sm truncate min-w-0 flex-1">{pendingRootFolderName}</span>
+                <span className="text-xs text-gray-400">Creating...</span>
+              </div>
+            )}
+
+            {/* Root level document creation */}
+            {isCreatingDocument && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <FileText className="h-4 w-4" />
+                <input
+                  type="text"
+                  value={newDocumentName}
+                  onChange={(e) => setNewDocumentName(e.target.value)}
+                  onKeyDown={handleCreateDocumentKeyDown}
+                  onBlur={handleCreateDocumentSubmit}
+                  className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
+                  ref={documentInputRef}
+                  onFocus={(e) => selectFilenameWithoutExtension(e.currentTarget)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+            {isCreatingDocumentPending && pendingDocumentName && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm truncate min-w-0 flex-1">{pendingDocumentName}</span>
+                <span className="text-xs text-gray-400">Creating...</span>
+              </div>
+            )}
+
+            {/* Root level spreadsheet creation */}
+            {isCreatingSpreadsheet && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <FileSpreadsheet className="h-4 w-4" />
+                <input
+                  type="text"
+                  value={newSpreadsheetName}
+                  onChange={(e) => setNewSpreadsheetName(e.target.value)}
+                  onKeyDown={handleCreateSpreadsheetKeyDown}
+                  onBlur={handleCreateSpreadsheetSubmit}
+                  className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
+                  ref={spreadsheetInputRef}
+                  onFocus={(e) => selectFilenameWithoutExtension(e.currentTarget)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+            {isCreatingSpreadsheetPending && pendingSpreadsheetName && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm truncate min-w-0 flex-1">{pendingSpreadsheetName}</span>
+                <span className="text-xs text-gray-400">Creating...</span>
+              </div>
+            )}
+
+            {/* Root level notebook creation */}
+            {isCreatingNotebook && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <FileCode className="h-4 w-4" />
+                <input
+                  type="text"
+                  value={newNotebookName}
+                  onChange={(e) => setNewNotebookName(e.target.value)}
+                  onKeyDown={handleCreateNotebookKeyDown}
+                  onBlur={handleCreateNotebookSubmit}
+                  className="text-sm bg-zinc-700 text-white px-1 py-0 rounded border-none outline-none flex-1"
+                  ref={notebookInputRef}
+                  onFocus={(e) => selectFilenameWithoutExtension(e.currentTarget)}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            )}
+            {isCreatingNotebookPending && pendingNotebookName && (
+              <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
+                <div className="w-3" />
+                <RefreshCw className="h-4 w-4 animate-spin" />
+                <span className="text-sm truncate min-w-0 flex-1">{pendingNotebookName}</span>
                 <span className="text-xs text-gray-400">Creating...</span>
               </div>
             )}

@@ -1,0 +1,317 @@
+import React from 'react';
+import OlympusTabs, { Tab as OlympusTab } from '../../../components/common/Tabs/Tabs';
+import { DocumentViewer } from '../../../components/MiddlePanel/DocumentViewer/DocumentViewer';
+import { EmailComposer } from '../../../components/MiddlePanel/EmailViewer/EmailComposer';
+import { EmailViewer } from '../../../components/MiddlePanel/EmailViewer/EmailViewer';
+import { ImageViewer } from '../../../components/MiddlePanel/ImageViewer';
+import { CalendarViewer } from '../../../components/MiddlePanel/CalendarViewer/CalendarViewer';
+import { SpreadsheetViewer } from '../../../components/MiddlePanel/SpreadsheetViewer/SpreadsheetViewer';
+import { VideoViewer } from '../../../components/MiddlePanel/VideoViewer/VideoViewer';
+import CodeViewer from '../../../components/MiddlePanel/CodeViewer/CodeViewer';
+import IDE from '../../../components/MiddlePanel/CodeViewer/IDE';
+import BrowserViewer from '../../../components/MiddlePanel/BrowserViewer/BrowserViewer';
+import NotebookViewer from '../../../components/MiddlePanel/NotebookViewer/NotebookViewer';
+import NotebookLabViewer from '../../../components/MiddlePanel/NotebookViewer/NotebookLabViewer';
+import { CONFIG } from '../../../config/config';
+import { PDFViewer } from '../../../components/MiddlePanel/PDFViewer';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
+import { isNotebookFile } from './fileTypeUtils';
+
+interface UserInfo {
+  username: string;
+  email?: string;
+  first_name?: string;
+  last_name?: string;
+  picture?: any;
+  phone_number?: string;
+  auth_method?: string;
+}
+
+interface FileTab {
+  id: string;
+  fileName: string;
+  filePath: string;
+  fileType: string;
+  file: FileSystemItem;
+  type: 'file';
+}
+
+interface EmailTab {
+  id: string;
+  subject: string;
+  emailId: string;
+  email: any;
+  type: 'email';
+}
+
+interface CalendarTab {
+  id: string;
+  type: 'calendar';
+}
+
+type WorkspaceTab = FileTab | EmailTab | CalendarTab;
+
+interface Panel {
+  id: string;
+  tabs: WorkspaceTab[];
+  activeTabId: string | null;
+}
+
+interface DragState {
+  isDragging: boolean;
+  draggedTab: WorkspaceTab | null;
+  draggedFromPanel: string | null;
+  dragStartPosition: { x: number; y: number } | null;
+  currentPosition: { x: number; y: number } | null;
+  dragDirection: 'horizontal' | 'vertical' | null;
+  dropZone: 'left' | 'right' | 'top' | 'bottom' | null;
+  dropTargetPanel: string | null;
+}
+
+interface RenderPanelProps {
+  panel: Panel;
+  activePanelId: string;
+  dragState: DragState;
+  userInfo: UserInfo | null;
+  replyToEmail: any;
+  setActivePanelId: (panelId: string) => void;
+  handleTabChange: (panelId: string, tabId: string) => void;
+  handleCloseTab: (tabId: string, panelId: string) => void;
+  handleReplyToEmail: (email: any) => void;
+  triggerSidebarRefresh: () => void;
+  extractReplyBody: (email: any) => string;
+  isImageFile: (fileName: string) => boolean;
+  isPdfFile: (fileName: string) => boolean;
+  isDocumentFile: (fileName: string) => boolean;
+  isSpreadsheetFile: (fileName: string) => boolean;
+  isVideoFile: (fileName: string) => boolean;
+  isCodeFile: (fileName: string) => boolean;
+  isBrowserFile: (fileName: string) => boolean;
+  setPanelLayout: React.Dispatch<React.SetStateAction<any>>;
+  onSplitPreview?: (direction: 'horizontal' | 'vertical' | null, position: { x: number; y: number }) => void;
+}
+
+export const renderPanel = ({
+  panel,
+  activePanelId,
+  dragState,
+  userInfo,
+  replyToEmail,
+  setActivePanelId,
+  handleTabChange,
+  handleCloseTab,
+  handleReplyToEmail,
+  triggerSidebarRefresh,
+  extractReplyBody,
+  isImageFile,
+  isPdfFile,
+  isDocumentFile,
+  isSpreadsheetFile,
+  isVideoFile,
+  isCodeFile,
+  isBrowserFile,
+  setPanelLayout,
+  onSplitPreview
+}: RenderPanelProps) => {
+  const isActive = panel.id === activePanelId;
+  const isDropTarget = dragState.dropTargetPanel === panel.id;
+  const dropZone = isDropTarget ? dragState.dropZone : null;
+  
+  // Debug logging (no hooks in non-component functions)
+  if (dragState.isDragging) {
+    console.log('Panel render debug:', {
+      panelId: panel.id,
+      isDropTarget,
+      dropZone,
+      dragState
+    });
+  }
+  
+  return (
+    <div 
+      key={panel.id}
+      data-panel-id={panel.id}
+      className={`h-full flex flex-col relative ${
+        isActive ? 'ring-2 ring-blue-500' : 'ring-1 ring-gray-700'
+      }`}
+      onClick={() => setActivePanelId(panel.id)}
+    >
+      {/* Panel Tab Bar (Olympus Tabs) */}
+      {panel.tabs.length > 0 && (
+        <div className="bg-black border-b border-zinc-600 min-h-[40px] flex items-end">
+          <div className="flex items-end overflow-x-auto flex-1">
+            <OlympusTabs
+              tabs={panel.tabs.map<OlympusTab>((t) => ({ 
+                id: t.id, 
+                label: (t as any).type === 'email' ? (t as any).subject : ( (t as any).type === 'file' ? (t as any).fileName : 'Calendar' ) 
+              }))}
+              activeTab={panel.activeTabId || panel.tabs[0]?.id}
+              onTabChange={(tabId) => handleTabChange(panel.id, tabId)}
+              onTabClose={(tabId) => handleCloseTab(tabId, panel.id)}
+              dragContext={{ panelId: panel.id }}
+              onReorder={(sourceIndex, destinationIndex) => {
+                setPanelLayout((prev: any) => {
+                  const reorderInLayout = (layout: any): any => {
+                    if (layout.type === 'panel' && layout.panel?.id === panel.id) {
+                      const newTabs = [...layout.panel.tabs];
+                      const [moved] = newTabs.splice(sourceIndex, 1);
+                      newTabs.splice(destinationIndex, 0, moved);
+                      return {
+                        ...layout,
+                        panel: {
+                          ...layout.panel,
+                          tabs: newTabs,
+                        },
+                      };
+                    }
+                    if (layout.type === 'group' && layout.children) {
+                      return { ...layout, children: layout.children.map(reorderInLayout) };
+                    }
+                    return layout;
+                  };
+                  return reorderInLayout(prev);
+                });
+              }}
+              suppressReorderIndicator={Boolean(dragState.dropTargetPanel && dragState.dropZone)}
+              onSplitPreview={onSplitPreview}
+            />
+          </div>
+        </div>
+      )}
+      
+      {/* Overlays are now handled at the root level in Workspaces.tsx */}
+      
+      {/* Panel Content */}
+      <div className="flex-1 overflow-hidden relative">
+        {panel.activeTabId && panel.tabs.length > 0 ? (
+          (() => {
+            const activeTab = panel.tabs.find(tab => tab.id === panel.activeTabId);
+            if (!activeTab) return null;
+            
+            // Handle email tabs
+            if (activeTab.type === 'email') {
+              // Check if this is a compose tab (email is null)
+              if (activeTab.email === null) {
+                return (
+                  <EmailComposer 
+                    onBack={() => {
+                      // Close the compose tab when back is clicked
+                      handleCloseTab(activeTab.id, panel.id);
+                    }}
+                    onSendComplete={() => {
+                      // Close the compose tab when send is complete
+                      handleCloseTab(activeTab.id, panel.id);
+                    }}
+                    replyTo={replyToEmail ? {
+                      to: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'from')?.value || '',
+                      subject: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'subject')?.value || '',
+                      body: extractReplyBody(replyToEmail),
+                      messageId: replyToEmail.id || ''
+                    } : undefined}
+                  />
+                );
+              } else {
+                return (
+                  <EmailViewer 
+                    email={activeTab.email} 
+                    onBack={() => {
+                      // Close the email tab when back is clicked
+                      handleCloseTab(activeTab.id, panel.id);
+                    }}
+                    onReply={handleReplyToEmail}
+                  />
+                );
+              }
+            }
+            
+            // Handle file tabs
+            if (activeTab.type === 'file') {
+              const file = activeTab.file;
+              
+              // Browser session virtual file
+              if (isBrowserFile(file.name)) {
+                const params = new URLSearchParams(file.path.split('?')[1] || '');
+                const viewerUrl = params.get('viewerUrl') || '';
+                const title = params.get('title') || 'Browser Session';
+                return <BrowserViewer viewerUrl={viewerUrl} title={title} />;
+              }
+
+              if (isImageFile(file.name)) {
+                return <ImageViewer file={file} userInfo={userInfo} />;
+              } else if (isPdfFile(file.name)) {
+                return <PDFViewer file={file} userInfo={userInfo} />;
+              } else if (isDocumentFile(file.name)) {
+                return (
+                  <DocumentViewer 
+                    file={file} 
+                    userInfo={userInfo} 
+                    onSaveComplete={triggerSidebarRefresh}
+                  />
+                );
+              } else if (isSpreadsheetFile(file.name)) {
+                return (
+                  <SpreadsheetViewer 
+                    file={file} 
+                    userInfo={userInfo} 
+                    onSaveComplete={triggerSidebarRefresh}
+                  />
+                );
+              } else if (isVideoFile(file.name)) {
+                return <VideoViewer file={file} userInfo={userInfo} />;
+              } else if (isNotebookFile(file.name)) {
+                const useLab = !!CONFIG.jupyterUrl
+                if (useLab) {
+                  return <NotebookLabViewer file={file} userInfo={userInfo} />
+                }
+                return (
+                  <NotebookViewer 
+                    file={file} 
+                    userInfo={userInfo} 
+                    onSaveComplete={triggerSidebarRefresh} 
+                  />
+                )
+              } else if (isCodeFile(file.name)) {
+                return <IDE file={file} userInfo={userInfo} onSaveComplete={triggerSidebarRefresh} />;
+              } else {
+                return (
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center max-w-md">
+                      <h3 className="text-xl font-semibold text-white mb-2">File Type Not Supported</h3>
+                      <p className="text-gray-400">
+                        Preview for this file type is not available yet.
+                      </p>
+                    </div>
+                  </div>
+                );
+              }
+            }
+            if ((activeTab as any).type === 'calendar') {
+              return (
+                <CalendarViewer
+                  initialView="month"
+                  onEventClick={(ev) => {
+                    // Optionally open event details in a new panel/tab using Email-like pattern
+                  }}
+                />
+              );
+            }
+            
+            return null;
+          })()
+        ) : (
+          <div className="h-full flex items-center justify-center">
+            <div className="text-center max-w-md">
+              <h2 className="text-2xl font-bold text-white mb-4">Welcome to Workspaces</h2>
+              <p className="text-gray-300 mb-4">
+                This panel is ready for files. Select a file from the sidebar to open it here.
+              </p>
+              <p className="text-gray-400 text-sm">
+                You can also drag tabs from other panels or use the split options.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};

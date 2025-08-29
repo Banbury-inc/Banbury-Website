@@ -81,6 +81,7 @@ jobs:
         run: |
           echo "BROWSERBASE_API_KEY=${{ secrets.BROWSERBASE_API_KEY }}" >> .env
           echo "BROWSERBASE_PROJECT_ID=${{ secrets.BROWSERBASE_PROJECT_ID }}" >> .env
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> .env
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1
