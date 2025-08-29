@@ -255,7 +255,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
 
 const SYSTEM_PROMPT = 
   "You are a helpful AI assistant with advanced capabilities. " +
-  "You have access to web search, memory management, document editing, spreadsheet editing, file search, and (when enabled) Gmail tools. " +
+  "You have access to web search, memory management, document editing, spreadsheet editing, file search, and (when enabled) Gmail and X (Twitter) API tools. " +
   "Use Gmail tools like gmail_get_recent and gmail_search to retrieve message metadata when the user asks about their email. " +
   "When helping with document editing tasks (rewriting, grammar correction, translation, etc.), " +
   "ALWAYS use the tiptap_ai tool to deliver your response. This ensures that your edits can be " +
@@ -263,6 +263,13 @@ const SYSTEM_PROMPT =
   "proper document structure. For spreadsheet editing tasks (cleaning data, transforming columns, applying formulas, inserting/deleting rows/columns), " +
   "ALWAYS use the sheet_ai tool and return structured operations (setCell, setRange, insertRows, deleteRows, insertCols, deleteCols) or a replacement csvContent. " +
   "To search for files in the user's cloud storage, use the search_files tool with a search query to find files by name. " +
+  "For X (Twitter) API access, use the following tools (disabled by default): " +
+  "- x_api_get_user_info: Get user information by username or user ID " +
+  "- x_api_get_user_tweets: Get recent tweets from a user " +
+  "- x_api_search_tweets: Search for tweets using keywords " +
+  "- x_api_get_trending_topics: Get trending topics for a location " +
+  "- x_api_post_tweet: Post a new tweet " +
+  "Only use X API tools if the X API feature is enabled. " +
   "Store important information in memory for future reference and search your memories when relevant. " +
   "Provide clear citations when using web search results.";
 
@@ -287,7 +294,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = req.body as { 
       messages: any[]; 
       threadId?: string;
-      toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean; browser?: boolean; browserbase?: boolean; langgraph_mode?: boolean };
+      toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean; browser?: boolean; browserbase?: boolean; langgraph_mode?: boolean; x_api?: boolean };
       documentContext?: string;
       dateTimeContext?: {
         currentDate: string;
@@ -428,6 +435,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             gmail: prefs.gmail !== false,
             browser: browserEnabled, // single source of truth inside server context
             browserbase: browserEnabled, // maintain legacy mirror in context for any old reads
+            x_api: prefs.x_api === true, // X API is disabled by default for security
             langgraph_mode: true,
           } as any;
         })(),
