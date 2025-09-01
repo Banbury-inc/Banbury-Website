@@ -175,13 +175,16 @@ const WordViewer: React.FC<WordViewerProps> = ({
           throw new Error('Local file access not supported in web environment');
         }
         
-        setContent(htmlContent || '<p>Start editing this document...</p>');
+        const initial = htmlContent || '<p>Start editing this document...</p>';
+        setContent(initial);
+        // Propagate initial content so parent can enable Save button
+        onSave?.(initial);
         onLoad?.();
         
       } catch (err) {
         const errorMessage = `Failed to load document: ${err instanceof Error ? err.message : 'Unable to parse DOCX file'}`;
         setError(errorMessage);
-        setContent(`
+        const fallback = `
           <div>
             <h2>Document: ${fileName}</h2>
             <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; padding: 12px; border-radius: 4px; margin: 16px 0;">
@@ -193,7 +196,10 @@ const WordViewer: React.FC<WordViewerProps> = ({
             </div>
             <p>Start typing your content here...</p>
           </div>
-        `);
+        `;
+        setContent(fallback);
+        // Also propagate fallback so parent can enable Save button
+        onSave?.(fallback);
         onError?.();
       } finally {
         setLoading(false);

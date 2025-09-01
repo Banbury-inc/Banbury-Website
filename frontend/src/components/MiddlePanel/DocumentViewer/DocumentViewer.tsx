@@ -1,5 +1,5 @@
-import { AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
+import { inlineImagesInHtml } from './handlers/inlineImages';
 import { useToast } from '../../ui/use-toast';
 import WordViewer from './WordViewer';
 import { ApiService } from '../../../services/apiService';
@@ -53,7 +53,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
 
       try {
         // Download the document file content
-        const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+        const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
         if (result.success && result.url) {
           currentUrl = result.url;
           setDocumentUrl(result.url);
@@ -188,7 +188,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         return;
       }
       // Fallback to fetching if no URL is available
-      const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+      const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
       if (result.success && result.url) {
         const a = document.createElement('a');
         a.href = result.url;
@@ -208,7 +208,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
 
 
   const handleSave = async () => {
-    if (!currentFile.file_id || !userInfo?.username || !currentContent) return;
+    if (!currentFile.file_id || !currentContent) return;
     
     setSaving(true);
     try {
@@ -216,9 +216,6 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       if (documentUrl && documentUrl.startsWith('blob:')) {
         window.URL.revokeObjectURL(documentUrl);
       }
-      
-      // First delete the existing file from S3
-      await ApiService.deleteS3File(currentFile.file_id);
       
       // Determine the file extension and content format
       const fileExtension = currentFile.name.toLowerCase().split('.').pop() || '';
@@ -228,6 +225,8 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       let contentType;
       
       if (isDocxFile) {
+        // Inline external images as data URIs so they are embedded for downstream DOCX conversion
+        const { html: inlinedHtml } = await inlineImagesInHtml({ html: currentContent })
         // For DOCX files, we'll save the HTML content but mark it as a custom format
         // that our system can recognize as edited DOCX content
         const htmlContent = `<!DOCTYPE html>
@@ -242,7 +241,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     </style>
 </head>
 <body>
-    ${currentContent}
+    ${inlinedHtml}
 </body>
 </html>`;
         // Use a custom content type that indicates this is edited DOCX content
@@ -271,103 +270,28 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         contentType = 'text/html';
       }
       
-      // Extract parent path from file path
-      const parentPath = currentFile.path ? currentFile.path.split('/').slice(0, -1).join('/') : '';
-      
-      // Upload the new file to S3 with original filename
-      await ApiService.uploadToS3(
-        blob,
-        currentFile.name,  // Always use original filename
-        'web-editor',
-        currentFile.path || '',
-        parentPath
+      // Wrap Blob in a File to ensure filename and type are preserved for multipart
+      const fileToUpload = new File([blob], currentFile.name, { type: contentType })
+
+      // Update the existing file in S3 using the new update endpoint
+      const updateResult: any = await ApiService.updateS3File(
+        currentFile.file_id || currentFile.id,
+        fileToUpload,
+        currentFile.name
       );
-      
-      // Call the save complete callback first to refresh file system
-      onSaveComplete?.();
-      
-      // Attempt to reload the document with retry logic to handle S3 propagation delay
-      const reloadDocument = async (retryCount = 0) => {
-        const maxRetries = 3;
-        const retryDelay = 1000; // 1 second
-        
-        try {
-          // First, get the updated file information to get the new file ID
-          if (!userInfo?.username) {
-            throw new Error('No username available');
-          }
-          
-          const userFilesResult = await ApiService.getUserFiles(userInfo.username);
-          if (!userFilesResult.success) {
-            throw new Error('Failed to get updated file list');
-          }
-          
-          // Find the file by path since the file ID has changed
-          const updatedFile = userFilesResult.files.find(f => f.file_path === currentFile.path);
-          if (!updatedFile || !updatedFile.file_id) {
-            throw new Error('Updated file not found in file list');
-          }
-          
-          // Update our currentFile state with the new file information
-          const newFileSystemItem: FileSystemItem = {
-            id: updatedFile.file_path,
-            file_id: updatedFile.file_id,
-            name: updatedFile.file_name,
-            path: updatedFile.file_path,
-            type: 'file',
-            size: updatedFile.file_size,
-            modified: new Date(updatedFile.date_modified),
-            s3_url: updatedFile.s3_url
-          };
-          setCurrentFile(newFileSystemItem);
-          
-          // Now download the file using the new file ID
-          const result = await ApiService.downloadS3File(updatedFile.file_id, currentFile.name);
-          if (result.success && result.url) {
-            setDocumentUrl(result.url);
-            return;
-          }
-          
-          // If we get here, the download didn't succeed, try again
-          if (retryCount < maxRetries) {
-            setTimeout(() => reloadDocument(retryCount + 1), retryDelay);
-          } else {
-            throw new Error('Document download failed after retries');
-          }
-        } catch (reloadErr) {
-          if (retryCount < maxRetries) {
-            // Retry after delay
-            setTimeout(() => reloadDocument(retryCount + 1), retryDelay);
-          } else {
-            // Final failure - show warning but don't fail the save operation
-            toast({
-              title: "Document saved but reload failed",
-              description: "Document was saved successfully, but you may need to refresh to see changes.",
-              variant: "destructive",
-            });
-          }
-        }
-      };
-      
-      // Start the reload process with initial delay
-      setTimeout(() => reloadDocument(), 500);
-      
+
+      if (!updateResult.success) {
+        throw new Error('Failed to update file');
+      }
+
       // Show success toast
       toast({
         title: "Document saved successfully",
         description: `${currentFile.name} has been saved.`,
         variant: "success",
       });
-      
-    } catch (err) {
-      setError('Failed to save document');
-      
-      // Show error toast
-      toast({
-        title: "Failed to save document",
-        description: "There was an error saving your document. Please try again.",
-        variant: "error",
-      });
+     
+
     } finally {
       setSaving(false);
     }
@@ -388,7 +312,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     return (
       <div className="flex items-center justify-center h-full">
         <div className="flex flex-col items-center gap-4 text-center">
-          <AlertCircle className="h-12 w-12 text-destructive" />
+          <div className="h-12 w-12 rounded-full border-2 border-destructive flex items-center justify-center text-destructive font-bold">!</div>
           <div>
             <h3 className="text-lg font-semibold text-foreground mb-2">Failed to load document</h3>
             <p className="text-muted-foreground">{error}</p>

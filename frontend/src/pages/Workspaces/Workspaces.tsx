@@ -540,6 +540,25 @@ const Workspaces = (): JSX.Element => {
     checkAuthAndFetchUser();
   }, [router]);
 
+  // Listen for requests to reopen a file (e.g., after save generates a new file id)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const detail = (e as CustomEvent).detail || {};
+      const { newFile } = detail as { oldPath?: string; newFile: FileSystemItem };
+      if (!newFile) return;
+      // Close any tab showing the old path, then open the new file in the active panel
+      try {
+        const allTabs = getAllTabs(panelLayout);
+        const fileTabs = allTabs.filter(t => (t as any).type === 'file');
+        const targets = fileTabs.filter(t => (t as any).file.path === (detail.oldPath || newFile.path));
+        targets.forEach(t => handleCloseTabCallback((t as any).id, activePanelId));
+      } catch {}
+      openFileInTabCallback(newFile, activePanelId);
+    };
+    window.addEventListener('workspace-reopen-file', handler as EventListener);
+    return () => window.removeEventListener('workspace-reopen-file', handler as EventListener);
+  }, [panelLayout, activePanelId, openFileInTabCallback, handleCloseTabCallback]);
+
   // Listen for assistant-open-browser events to open a virtual browser tab
   useEffect(() => {
     const handler = (event: Event) => {

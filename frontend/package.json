@@ -103,6 +103,8 @@
     "exceljs": "^4.4.0",
     "framer-motion": "^12.23.12",
     "handsontable": "^16.0.1",
+    "html-docx-js": "^0.3.1",
+    "html-to-docx": "^1.8.0",
     "js-yaml": "^4.1.0",
     "langchain": "^0.3.30",
     "leaflet": "^1.9.4",
@@ -138,6 +140,8 @@
     "zod": "^3.25.76"
   },
   "devDependencies": {
+    "@jupyterlab/nbformat": "^4.2.5",
+    "@lumino/coreutils": "^2.2.1",
     "@next/eslint-plugin-next": "^14.2.7",
     "@testing-library/jest-dom": "^6.1.6",
     "@testing-library/react": "^14.1.2",
@@ -172,9 +176,7 @@
     "sass-embedded": "^1.90.0",
     "tailwindcss": "^3.4.10",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.9.2",
-    "@jupyterlab/nbformat": "^4.2.5",
-    "@lumino/coreutils": "^2.2.1"
+    "typescript": "^5.9.2"
   },
   "browserslist": {
     "production": [

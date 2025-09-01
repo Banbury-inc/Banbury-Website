@@ -84,11 +84,18 @@ export const openFileInTab = (
   
   // Create new tab
   const tabId = `${file.path}_${Date.now()}`;
+  
+  // Safely extract file extension with null checks
+  const fileName = file.name || 'Unknown File';
+  const fileExtension = fileName.includes('.') 
+    ? fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase()
+    : 'unknown';
+  
   const newTab: FileTab = {
     id: tabId,
-    fileName: file.name,
-    filePath: file.path,
-    fileType: file.name.substring(file.name.lastIndexOf('.') + 1).toLowerCase(),
+    fileName: fileName,
+    filePath: file.path || '',
+    fileType: fileExtension,
     file: file,
     type: 'file'
   };

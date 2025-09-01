@@ -41,10 +41,10 @@ import {
   Save,
   Download
 } from 'lucide-react';
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 
 
-import styles from '../styles/SimpleTiptapEditor.module.css';
+import styles from '../../../styles/SimpleTiptapEditor.module.css';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -52,10 +52,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   DropdownMenuLabel
-} from './ui/dropdown-menu';
-import { useTiptapAIContext } from '../contexts/TiptapAIContext';
-import { cn } from '../utils';
-import { changeSelectionFontFamily } from './handlers/editorFont';
+} from '../../../components/ui/dropdown-menu';
+import { useTiptapAIContext } from '../../../contexts/TiptapAIContext';
+import { cn } from '../../../utils';
+import { changeSelectionFontFamily } from '../../handlers/editorFont';
+import FileSearchModal from '../../FileSearch';
+import { insertImageFromBackendFile } from '../../handlers/editorImage';
+import { FileSystemItem } from '../../../utils/fileTreeUtils';
  
 
 interface AITiptapEditorProps {
@@ -82,6 +85,7 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
   const { setEditor, aiBridge, registerAICommands, aiCommands } = useTiptapAIContext();
   const [selection, setSelection] = useState<{ from: number; to: number; text: string } | null>(null);
   const [selectedFont, setSelectedFont] = useState<string | null>(null);
+  const [isFileSearchOpen, setIsFileSearchOpen] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -102,7 +106,9 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
       Highlight.configure({
         multicolor: true,
       }),
-      Image,
+      Image.configure({
+        allowBase64: true,
+      }),
       Typography,
       Superscript,
       Subscript,
@@ -213,11 +219,15 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
   }
 
   const addImage = () => {
-    const url = window.prompt('Enter image URL:');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
+    setIsFileSearchOpen(true);
   };
+
+  const handleS3FileSelect = (file: FileSystemItem) => {
+    const fileId = (file.file_id || (file as any).file_id) as string | undefined
+    const fileName = file.name
+    if (fileId && fileName) insertImageFromBackendFile({ editor, fileId, fileName })
+    setIsFileSearchOpen(false)
+  }
 
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href;
@@ -465,6 +475,13 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
         <div className="border-t px-3 py-2 text-xs text-muted-foreground bg-muted/50">
           Selected: {selection?.text.length} characters
         </div>
+      )}
+
+      {isFileSearchOpen && (
+        <FileSearchModal
+          onFileSelect={handleS3FileSelect}
+          onClose={() => setIsFileSearchOpen(false)}
+        />
       )}
     </div>
   );

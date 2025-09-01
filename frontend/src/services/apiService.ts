@@ -427,6 +427,13 @@ export class ApiService {
   }
 
   /**
+   * Alias for backend download from S3 endpoint semantics. Prefer this in callers.
+   */
+  static async downloadFromS3(fileId: string, fileName: string) {
+    return this.downloadS3File(fileId, fileName)
+  }
+
+  /**
    * Upload file content to S3 (if endpoint exists) and add metadata
    */
   static async uploadFile(username: string, file: File | Blob, fileName: string, filePath: string, fileType: string) {
@@ -566,6 +573,88 @@ export class ApiService {
     } catch (error) {
       console.error('moveS3File error:', error);
       throw this.enhanceError(error, 'Failed to move file');
+    }
+  }
+
+  /**
+   * Update S3 file content and/or metadata
+   */
+  static async updateS3File(fileId: string, file?: File | Blob, fileName?: string, metadata?: Record<string, any>) {
+    try {
+      // Ensure token is loaded
+      this.loadAuthToken();
+      
+      let response;
+      
+      if (file) {
+        // File update - use multipart form data
+        const formData = new FormData();
+        formData.append('file', file, fileName || 'updated_file');
+        
+        // Add metadata as form fields if provided
+        if (metadata) {
+          Object.entries(metadata).forEach(([key, value]) => {
+            formData.append(key, typeof value === 'string' ? value : JSON.stringify(value));
+          });
+        }
+
+        // Use a fresh axios instance without global JSON Content-Type
+        const multipartClient = axios.create()
+        delete (multipartClient.defaults.headers.common as any)['Content-Type']
+        response = await multipartClient.post(
+          `${this.baseURL}/files/update_s3_file/${encodeURIComponent(fileId)}/`,
+          formData,
+          {
+            headers: {
+              'Authorization': axios.defaults.headers.common['Authorization']
+              // Do NOT set Content-Type; the browser will add the correct multipart boundary
+            }
+          }
+        )
+      } else {
+        // Metadata-only update - use JSON
+        const updateData: Record<string, any> = {};
+        
+        if (fileName) {
+          updateData.file_name = fileName;
+        }
+        
+        if (metadata) {
+          Object.assign(updateData, metadata);
+        }
+        
+        if (Object.keys(updateData).length === 0) {
+          throw new Error('No update data provided');
+        }
+
+        response = await axios({
+          method: 'put',
+          url: `${this.baseURL}/files/update_s3_file/${encodeURIComponent(fileId)}/`,
+          data: updateData,
+          headers: {
+            'Authorization': axios.defaults.headers.common['Authorization'],
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+
+      if (response.data.result === 'success') {
+        return {
+          success: true,
+          message: response.data.message || 'File updated successfully',
+          file_id: response.data.file_id,
+          file_name: response.data.file_name,
+          file_size: response.data.file_size,
+          s3_key: response.data.s3_key
+        };
+      } else if (response.data.error) {
+        throw new Error(response.data.error);
+      } else {
+        throw new Error('Failed to update file');
+      }
+    } catch (error) {
+      console.error('updateS3File error:', error);
+      throw this.enhanceError(error, 'Failed to update file');
     }
   }
 

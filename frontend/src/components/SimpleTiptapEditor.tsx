@@ -33,10 +33,13 @@ import {
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon
 } from 'lucide-react';
-import React from 'react';
+import React, { useState } from 'react';
 
 // Importing as module to satisfy Next.js CSS rules
 import styles from './SimpleTiptapEditor.module.css';
+import FileSearchModal from './FileSearch';
+import { insertImageFromBackendFile } from './handlers/editorImage';
+import { FileSystemItem } from '../utils/fileTreeUtils';
 
 interface SimpleTiptapEditorProps {
   initialContent?: string;
@@ -49,6 +52,7 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
   onContentChange,
   placeholder = 'Start typing...'
 }) => {
+  const [isFileSearchOpen, setIsFileSearchOpen] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -90,10 +94,7 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
   }
 
   const addImage = () => {
-    const url = window.prompt('Enter image URL:');
-    if (url) {
-      editor.chain().focus().setImage({ src: url }).run();
-    }
+    setIsFileSearchOpen(true);
   };
 
   const setLink = () => {
@@ -318,6 +319,17 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
       </div>
 
       <EditorContent editor={editor} className={styles['simple-tiptap-content']} />
+      {isFileSearchOpen && (
+        <FileSearchModal
+          onFileSelect={(file: FileSystemItem) => {
+            const fileId = (file.file_id || (file as any).file_id) as string | undefined
+            const fileName = file.name
+            if (fileId && fileName) insertImageFromBackendFile({ editor, fileId, fileName })
+            setIsFileSearchOpen(false)
+          }}
+          onClose={() => setIsFileSearchOpen(false)}
+        />
+      )}
     </div>
   );
 };
