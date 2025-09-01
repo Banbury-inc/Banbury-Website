@@ -2,12 +2,24 @@ import * as PopoverPrimitive from "@radix-ui/react-popover"
 import * as React from "react"
 
 import { cn } from "@/lib/tiptap-utils"
-import "@/components/tiptap-ui-primitive/popover/popover.scss"
+import styles from "./popover.module.css"
 
 function Popover({
+  open,
+  defaultOpen,
+  onOpenChange,
+  modal = false,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Root>) {
-  return <PopoverPrimitive.Root {...props} />
+  return (
+    <PopoverPrimitive.Root
+      open={open}
+      defaultOpen={defaultOpen}
+      onOpenChange={onOpenChange}
+      modal={modal}
+      {...props}
+    />
+  )
 }
 
 function PopoverTrigger({
@@ -20,6 +32,9 @@ function PopoverContent({
   className,
   align = "center",
   sideOffset = 4,
+  onEscapeKeyDown,
+  onPointerDownOutside,
+  onInteractOutside,
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
@@ -27,7 +42,10 @@ function PopoverContent({
       <PopoverPrimitive.Content
         align={align}
         sideOffset={sideOffset}
-        className={cn("tiptap-popover", className)}
+        className={cn(styles["tiptap-popover"], className)}
+        onEscapeKeyDown={onEscapeKeyDown}
+        onPointerDownOutside={onPointerDownOutside}
+        onInteractOutside={onInteractOutside}
         {...props}
       />
     </PopoverPrimitive.Portal>

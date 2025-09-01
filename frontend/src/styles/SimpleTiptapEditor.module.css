@@ -230,3 +230,313 @@
   margin-top: 0.25em;
 }
 
+/* Table Styles */
+.simple-tiptap-editor table,
+.simple-tiptap-editor table * {
+  border-collapse: collapse !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-sizing: border-box !important;
+}
+
+.simple-tiptap-editor table {
+  margin: 0.25em 0 !important;
+  width: 25% !important;
+  background: white !important;
+  border-radius: 4px !important;
+  overflow: hidden !important;
+  font-size: 0.875rem !important;
+}
+
+.simple-tiptap-editor thead {
+  background: #f8fafc !important;
+}
+
+.simple-tiptap-editor th {
+  background: #f1f5f9 !important;
+  border: 1px solid #e2e8f0 !important;
+  padding: 4px 8px !important;
+  text-align: left !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  font-size: 0.75rem !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  line-height: 1.2 !important;
+}
+
+.simple-tiptap-editor td {
+  border: 1px solid #e2e8f0 !important;
+  padding: 4px 8px !important;
+  text-align: left !important;
+  vertical-align: top !important;
+  color: #1e293b !important;
+  line-height: 1.2 !important;
+  font-size: 0.875rem !important;
+}
+
+.simple-tiptap-editor tbody tr:nth-child(even) {
+  background: #fafafa;
+}
+
+.simple-tiptap-editor tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.simple-tiptap-editor .tableWrapper {
+  overflow-x: auto !important;
+  margin: 0.25em 0 !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+}
+
+.simple-tiptap-editor .tableWrapper table {
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+/* Additional aggressive table sizing */
+.simple-tiptap-editor table tr {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.simple-tiptap-editor table th,
+.simple-tiptap-editor table td {
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+}
+
+/* Force compact table layout */
+.simple-tiptap-editor table {
+  table-layout: auto !important;
+  border-spacing: 0 !important;
+}
+
+/* Selected cell styling */
+.simple-tiptap-editor .selectedCell {
+  background: #dbeafe !important;
+  border: 2px solid #3b82f6 !important;
+}
+
+/* Resizable column handles - Multiple selectors for Tiptap compatibility */
+.simple-tiptap-editor .column-resize-handle,
+.simple-tiptap-editor [data-type="column-resize-handle"],
+.simple-tiptap-editor .ProseMirror-column-resize-handle,
+.simple-tiptap-editor .resize-handle {
+  position: absolute !important;
+  top: 0 !important;
+  right: -3px !important;
+  width: 8px !important;
+  height: 100% !important;
+  background: #ef4444 !important;
+  cursor: col-resize !important;
+  opacity: 1 !important;
+  transition: all 0.2s ease !important;
+  z-index: 100 !important;
+  border-radius: 2px !important;
+}
+
+.simple-tiptap-editor .column-resize-handle:hover,
+.simple-tiptap-editor [data-type="column-resize-handle"]:hover,
+.simple-tiptap-editor .ProseMirror-column-resize-handle:hover,
+.simple-tiptap-editor .resize-handle:hover {
+  background: #dc2626 !important;
+  width: 10px !important;
+  right: -4px !important;
+}
+
+.simple-tiptap-editor .column-resize-handle.active,
+.simple-tiptap-editor [data-type="column-resize-handle"].active,
+.simple-tiptap-editor .ProseMirror-column-resize-handle.active,
+.simple-tiptap-editor .resize-handle.active {
+  background: #dc2626 !important;
+  width: 12px !important;
+  right: -5px !important;
+}
+
+/* Table cell positioning for resize handles */
+.simple-tiptap-editor table {
+  position: relative !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+}
+
+.simple-tiptap-editor th,
+.simple-tiptap-editor td {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+
+
+/* Visual feedback during resize */
+.simple-tiptap-editor table.resizing {
+  user-select: none;
+}
+
+.simple-tiptap-editor table.resizing * {
+  cursor: col-resize !important;
+}
+
+/* Cursor change on column resize areas */
+.simple-tiptap-editor th:hover,
+.simple-tiptap-editor td:hover {
+  cursor: text;
+}
+
+/* Right edge hover for column resize */
+.simple-tiptap-editor th:hover::after,
+.simple-tiptap-editor td:hover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  cursor: col-resize;
+  z-index: 5;
+}
+
+/* Ensure resize handles are visible and functional */
+.simple-tiptap-editor .column-resize-handle,
+.simple-tiptap-editor [data-type="column-resize-handle"],
+.simple-tiptap-editor .ProseMirror-column-resize-handle,
+.simple-tiptap-editor .resize-handle {
+  position: absolute !important;
+  top: 0 !important;
+  right: -4px !important;
+  width: 8px !important;
+  height: 100% !important;
+  background: #3b82f6 !important;
+  cursor: col-resize !important;
+  opacity: 1 !important;
+  transition: all 0.2s ease !important;
+  z-index: 100 !important;
+  border-radius: 2px !important;
+}
+
+.simple-tiptap-editor .column-resize-handle:hover,
+.simple-tiptap-editor [data-type="column-resize-handle"]:hover,
+.simple-tiptap-editor .ProseMirror-column-resize-handle:hover,
+.simple-tiptap-editor .resize-handle:hover {
+  background: #1d4ed8 !important;
+  width: 10px !important;
+  right: -5px !important;
+}
+
+/* Table controls for better UX */
+.simple-tiptap-editor .tableControls {
+  position: absolute;
+  top: -40px;
+  left: 0;
+  background: white;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  z-index: 10;
+}
+
+/* Image resizing styles */
+.simple-tiptap-editor .image-resizable {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.simple-tiptap-editor .image-resizable:hover {
+  border-color: #3b82f6;
+}
+
+.simple-tiptap-editor .image-resizable.selected {
+  border-color: #3b82f6;
+}
+
+.simple-tiptap-editor .image-resizable img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 50%;
+  cursor: se-resize;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.simple-tiptap-editor .image-resizable:hover .resize-handle,
+.simple-tiptap-editor .image-resizable.ProseMirror-selectednode .resize-handle,
+.simple-tiptap-editor .image-resizable.selected .resize-handle {
+  opacity: 1;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle:hover {
+  background: #1d4ed8;
+  transform: scale(1.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.top-left {
+  top: -6px;
+  left: -6px;
+  cursor: nw-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.top-right {
+  top: -6px;
+  right: -6px;
+  cursor: ne-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.bottom-left {
+  bottom: -6px;
+  left: -6px;
+  cursor: sw-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.bottom-right {
+  bottom: -6px;
+  right: -6px;
+  cursor: se-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.left {
+  left: -6px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: w-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.right {
+  right: -6px;
+  top: 50%;
+  transform: translateX(-50%);
+  cursor: e-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.top {
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: n-resize;
+}
+
+.simple-tiptap-editor .image-resizable .resize-handle.bottom {
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: s-resize;
+}
+

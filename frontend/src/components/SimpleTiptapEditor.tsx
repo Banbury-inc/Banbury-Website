@@ -33,11 +33,11 @@ import {
   Subscript as SubscriptIcon,
   Superscript as SuperscriptIcon
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React from 'react';
 
 // Importing as module to satisfy Next.js CSS rules
 import styles from './SimpleTiptapEditor.module.css';
-import FileSearchModal from './FileSearch';
+import FileSearchPopover from './FileSearchPopover';
 import { insertImageFromBackendFile } from './handlers/editorImage';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 
@@ -52,7 +52,6 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
   onContentChange,
   placeholder = 'Start typing...'
 }) => {
-  const [isFileSearchOpen, setIsFileSearchOpen] = useState(false);
   const editor = useEditor({
     immediatelyRender: false,
     extensions: [
@@ -93,8 +92,10 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
     return null;
   }
 
-  const addImage = () => {
-    setIsFileSearchOpen(true);
+  const handleFileSelect = (file: FileSystemItem) => {
+    const fileId = (file.file_id || (file as any).file_id) as string | undefined
+    const fileName = file.name
+    if (fileId && fileName) insertImageFromBackendFile({ editor, fileId, fileName })
   };
 
   const setLink = () => {
@@ -301,13 +302,14 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
           >
             <Link size={16} />
           </button>
-          <button
-            onClick={addImage}
-            className={styles['toolbar-button']}
-            title="Add Image"
-          >
-            <ImageIcon size={16} />
-          </button>
+          <FileSearchPopover onFileSelect={handleFileSelect}>
+            <button
+              className={styles['toolbar-button']}
+              title="Add Image"
+            >
+              <ImageIcon size={16} />
+            </button>
+          </FileSearchPopover>
           <button
             onClick={() => editor.chain().focus().setHorizontalRule().run()}
             className={styles['toolbar-button']}
@@ -319,17 +321,6 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
       </div>
 
       <EditorContent editor={editor} className={styles['simple-tiptap-content']} />
-      {isFileSearchOpen && (
-        <FileSearchModal
-          onFileSelect={(file: FileSystemItem) => {
-            const fileId = (file.file_id || (file as any).file_id) as string | undefined
-            const fileName = file.name
-            if (fileId && fileName) insertImageFromBackendFile({ editor, fileId, fileName })
-            setIsFileSearchOpen(false)
-          }}
-          onClose={() => setIsFileSearchOpen(false)}
-        />
-      )}
     </div>
   );
 };

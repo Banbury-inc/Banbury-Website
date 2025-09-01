@@ -3,6 +3,79 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Keyframe animations for popover components */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    transform: scale(0.95);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes zoomOut {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(0.95);
+  }
+}
+
+@keyframes slideFromTop {
+  from {
+    transform: translateY(-0.5rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideFromRight {
+  from {
+    transform: translateX(0.5rem);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromLeft {
+  from {
+    transform: translateX(-0.5rem);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideFromBottom {
+  from {
+    transform: translateY(0.5rem);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
 /* Allotment custom styles for dark theme */
 .allotment > .allotment-separator {
   background-color: #1f2937 !important; /* Gray-800 */
@@ -52,6 +125,13 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+  
+  /* Tiptap popover custom properties */
+  --white: #ffffff;
+  --tt-gray-light-a-100: rgba(156, 163, 175, 0.1);
+  --tt-gray-light-a-600: rgba(75, 85, 99, 0.6);
+  --tt-gray-dark-a-50: rgba(156, 163, 175, 0.05);
+  --tt-gray-dark-50: #f9fafb;
 }
 
 .dark {
@@ -87,6 +167,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(0 0 0);
   --sidebar-ring: oklch(0.439 0 0);
+  
+  /* Tiptap popover dark theme overrides */
+  --tt-gray-light-a-100: rgba(156, 163, 175, 0.1);
+  --tt-gray-light-a-600: rgba(75, 85, 99, 0.6);
+  --tt-gray-dark-a-50: rgba(156, 163, 175, 0.05);
+  --tt-gray-dark-50: #f9fafb;
 }
 
 :root {

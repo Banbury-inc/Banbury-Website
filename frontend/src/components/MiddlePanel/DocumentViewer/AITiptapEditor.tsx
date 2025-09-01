@@ -1,12 +1,16 @@
 import { Highlight } from '@tiptap/extension-highlight';
 import { HorizontalRule } from '@tiptap/extension-horizontal-rule';
-import { Image } from '@tiptap/extension-image';
+import { ResizableImage } from '../../extensions/ResizableImage';
 import { Link } from '@tiptap/extension-link';
 import { TaskList } from '@tiptap/extension-list';
 import { TaskItem } from '@tiptap/extension-list';
 import { Placeholder } from '@tiptap/extension-placeholder';
 import { Subscript } from '@tiptap/extension-subscript';
 import { Superscript } from '@tiptap/extension-superscript';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { TextAlign } from '@tiptap/extension-text-align';
 import { Typography } from '@tiptap/extension-typography';
 import { Underline } from '@tiptap/extension-underline';
@@ -39,7 +43,11 @@ import {
   Wand2,
   MoreHorizontal,
   Save,
-  Download
+  Download,
+  ChevronDown,
+  Table as TableIcon,
+  Search,
+  FileImage
 } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 
@@ -56,9 +64,9 @@ import {
 import { useTiptapAIContext } from '../../../contexts/TiptapAIContext';
 import { cn } from '../../../utils';
 import { changeSelectionFontFamily } from '../../handlers/editorFont';
-import FileSearchModal from '../../FileSearch';
 import { insertImageFromBackendFile } from '../../handlers/editorImage';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
+import { ApiService } from '../../../services/apiService';
  
 
 interface AITiptapEditorProps {
@@ -85,7 +93,46 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
   const { setEditor, aiBridge, registerAICommands, aiCommands } = useTiptapAIContext();
   const [selection, setSelection] = useState<{ from: number; to: number; text: string } | null>(null);
   const [selectedFont, setSelectedFont] = useState<string | null>(null);
-  const [isFileSearchOpen, setIsFileSearchOpen] = useState(false);
+
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    isTable: boolean;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    isTable: false,
+  });
+
+  // Image dropdown local search state
+  const [isImageMenuOpen, setIsImageMenuOpen] = useState(false)
+  const [imageQuery, setImageQuery] = useState('')
+  const [imageResults, setImageResults] = useState<Array<{
+    file_id: string
+    file_name: string
+    file_path: string
+    file_size: number
+    date_modified: string
+    device_name: string
+    s3_url: string
+  }>>([])
+  const [isImageSearching, setIsImageSearching] = useState(false)
+
+  // Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (contextMenu.isOpen) {
+        setContextMenu(prev => ({ ...prev, isOpen: false }))
+      }
+    }
+
+    if (contextMenu.isOpen) {
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [contextMenu.isOpen])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -103,11 +150,23 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
       TaskItem.configure({
         nested: true,
       }),
+      Table.configure({
+        resizable: true,
+        handleWidth: 8,
+        cellMinWidth: 50,
+        lastColumnResizable: true,
+      }),
+      TableRow,
+      TableCell,
+      TableHeader,
       Highlight.configure({
         multicolor: true,
       }),
-      Image.configure({
+      ResizableImage.configure({
         allowBase64: true,
+        HTMLAttributes: {
+          class: 'image-resizable',
+        },
       }),
       Typography,
       Superscript,
@@ -212,21 +271,89 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
     };
   }, [editor]);
 
+  // Image search effect
+  useEffect(() => {
+    if (!isImageMenuOpen) {
+      setImageQuery('')
+      setImageResults([])
+      setIsImageSearching(false)
+      return
+    }
+
+    const t = setTimeout(async () => {
+      const q = imageQuery.trim()
+      if (!q) {
+        setImageResults([])
+        return
+      }
+      setIsImageSearching(true)
+      try {
+        const res = await ApiService.searchS3Files(q)
+        if (res.result === 'success') setImageResults(res.files || [])
+        else setImageResults([])
+      } catch {
+        setImageResults([])
+      } finally {
+        setIsImageSearching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(t)
+  }, [imageQuery, isImageMenuOpen])
+
   // no-op
 
   if (!editor) {
     return null;
   }
 
-  const addImage = () => {
-    setIsFileSearchOpen(true);
-  };
-
   const handleS3FileSelect = (file: FileSystemItem) => {
     const fileId = (file.file_id || (file as any).file_id) as string | undefined
     const fileName = file.name
     if (fileId && fileName) insertImageFromBackendFile({ editor, fileId, fileName })
-    setIsFileSearchOpen(false)
+  }
+
+  const handleContextMenu = (event: React.MouseEvent) => {
+    event.preventDefault()
+    const target = event.target as HTMLElement
+    const isTable = target.closest('table') !== null
+    
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      isTable,
+    })
+  }
+
+  const closeContextMenu = () => {
+    setContextMenu(prev => ({ ...prev, isOpen: false }))
+  }
+
+  const handleTableAction = (action: () => void) => {
+    action()
+    closeContextMenu()
+  }
+
+  // Adjust context menu position if it goes off-screen
+  const getAdjustedPosition = (x: number, y: number) => {
+    const menuWidth = 200
+    const menuHeight = 300
+    const windowWidth = window.innerWidth
+    const windowHeight = window.innerHeight
+
+    let adjustedX = x
+    let adjustedY = y
+
+    if (x + menuWidth > windowWidth) {
+      adjustedX = x - menuWidth
+    }
+
+    if (y + menuHeight > windowHeight) {
+      adjustedY = y - menuHeight
+    }
+
+    return { x: adjustedX, y: adjustedY }
   }
 
   const setLink = () => {
@@ -317,6 +444,30 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
             >
               <Code size={16} />
             </button>
+            <button
+              onClick={() => editor.chain().focus().toggleHighlight().run()}
+              disabled={!editor.can().chain().focus().toggleHighlight().run()}
+              className={`${styles['toolbar-button']} ${editor.isActive('highlight') ? styles['active'] : ''}`}
+              title="Highlight"
+            >
+              <Highlighter size={16} />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleSubscript().run()}
+              disabled={!editor.can().chain().focus().toggleSubscript().run()}
+              className={`${styles['toolbar-button']} ${editor.isActive('subscript') ? styles['active'] : ''}`}
+              title="Subscript"
+            >
+              <SubscriptIcon size={16} />
+            </button>
+            <button
+              onClick={() => editor.chain().focus().toggleSuperscript().run()}
+              disabled={!editor.can().chain().focus().toggleSuperscript().run()}
+              className={`${styles['toolbar-button']} ${editor.isActive('superscript') ? styles['active'] : ''}`}
+              title="Superscript"
+            >
+              <SuperscriptIcon size={16} />
+            </button>
           </div>
 
           <div className={styles['toolbar-separator']} />
@@ -351,6 +502,54 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
             >
               <AlignJustify size={16} />
             </button>
+          </div>
+
+          <div className={styles['toolbar-separator']} />
+
+          {/* Headings */}
+          <div className={styles['toolbar-group']}>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button 
+                  className={styles['toolbar-button']}
+                  title="Headings"
+                >
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {editor.isActive('heading', { level: 1 }) && 'H1'}
+                    {editor.isActive('heading', { level: 2 }) && 'H2'}
+                    {editor.isActive('heading', { level: 3 }) && 'H3'}
+                    {!editor.isActive('heading') && 'H'}
+                    <ChevronDown size={12} />
+                  </span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem 
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                  className={editor.isActive('heading', { level: 1 }) ? 'bg-accent' : ''}
+                >
+                  H1
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                  className={editor.isActive('heading', { level: 2 }) ? 'bg-accent' : ''}
+                >
+                  H2
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+                  className={editor.isActive('heading', { level: 3 }) ? 'bg-accent' : ''}
+                >
+                  H3
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={() => editor.chain().focus().setParagraph().run()}
+                >
+                  Paragraph
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
           <div className={styles['toolbar-separator']} />
@@ -411,6 +610,155 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
 
           <div className={styles['toolbar-separator']} />
 
+          {/* Insert Table */}
+          <div className={styles['toolbar-group']}>
+            <button
+              onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
+              className={styles['toolbar-button']}
+              title="Insert Table"
+            >
+              <TableIcon size={16} />
+            </button>
+          </div>
+
+          <div className={styles['toolbar-separator']} />
+
+          {/* Image and Link */}
+          <div className={styles['toolbar-group']}>
+            <DropdownMenu open={isImageMenuOpen} onOpenChange={setIsImageMenuOpen}>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className={styles['toolbar-button']}
+                  title="Add Image"
+                >
+                  <ImageIcon size={16} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-96 p-0 bg-zinc-900/95 backdrop-blur-sm border border-zinc-700/50 shadow-2xl rounded-xl overflow-hidden">
+                {/* Header */}
+                <div className="px-4 py-3 border-b border-zinc-700/50 bg-gradient-to-r from-zinc-800/50 to-zinc-700/50">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                      <ImageIcon className="h-4 w-4 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-semibold text-white">Insert Image</h3>
+                      <p className="text-xs text-zinc-400">Search your files or enter a URL</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Search Input */}
+                <div className="px-4 py-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-zinc-400" />
+                    <input
+                      value={imageQuery}
+                      onChange={(e) => setImageQuery(e.target.value)}
+                      placeholder="Search files..."
+                      className="w-full pl-10 pr-4 py-2.5 rounded-lg bg-zinc-800/80 text-white placeholder-zinc-400 border border-zinc-600/50 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all duration-200"
+                    />
+                  </div>
+                </div>
+
+                {/* Results */}
+                <div className="max-h-72 overflow-y-auto">
+                  {isImageSearching && (
+                    <div className="px-4 py-6 text-center">
+                      <div className="inline-flex items-center gap-2 text-zinc-400">
+                        <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-500 border-t-transparent"></div>
+                        <span className="text-sm">Searching files...</span>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!isImageSearching && imageQuery.trim() && imageResults.length === 0 && (
+                    <div className="px-4 py-6 text-center">
+                      <div className="text-zinc-400">
+                        <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No files found</p>
+                        <p className="text-xs text-zinc-500 mt-1">Try a different search term</p>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {!isImageSearching && imageResults.length > 0 && (
+                    <div className="px-2 pb-2">
+                      <div className="px-2 py-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                        Found {imageResults.length} result{imageResults.length !== 1 ? 's' : ''}
+                      </div>
+                      {imageResults.map((r) => (
+                        <button
+                          key={r.file_id}
+                          className="w-full text-left px-3 py-3 rounded-lg hover:bg-zinc-800/60 hover:border-zinc-600/50 border border-transparent transition-all duration-200 group"
+                          onClick={() => {
+                            handleS3FileSelect({
+                              id: r.file_id,
+                              file_id: r.file_id,
+                              name: r.file_name,
+                              type: 'file',
+                              path: r.file_path,
+                              size: r.file_size,
+                              modified: new Date(r.date_modified),
+                              s3_url: r.s3_url,
+                            })
+                            setIsImageMenuOpen(false)
+                          }}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="p-2 rounded-lg bg-zinc-700/50 group-hover:bg-zinc-600/50 transition-colors duration-200">
+                              <FileImage className="h-4 w-4 text-blue-400" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium text-white group-hover:text-blue-100 transition-colors duration-200 truncate">
+                                {r.file_name}
+                              </div>
+                              <div className="text-xs text-zinc-400 group-hover:text-zinc-300 transition-colors duration-200 truncate mt-0.5">
+                                {r.file_path}
+                              </div>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-xs text-zinc-500 bg-zinc-800/50 px-2 py-1 rounded-md">
+                                  {Math.round(r.file_size / 1024)} KB
+                                </span>
+                                <span className="text-xs text-zinc-500">
+                                  {new Date(r.date_modified).toLocaleDateString()}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="px-4 py-3 border-t border-zinc-700/50 bg-gradient-to-r from-zinc-800/30 to-zinc-700/30">
+                  <button
+                    onClick={() => {
+                      const url = window.prompt('Enter image URL:')
+                      if (url) editor.chain().focus().setImage({ src: url }).run()
+                      setIsImageMenuOpen(false)
+                    }}
+                    className="w-full px-3 py-2 text-sm text-zinc-300 hover:text-white bg-zinc-800/50 hover:bg-zinc-700/50 rounded-lg border border-zinc-600/50 hover:border-zinc-500/50 transition-all duration-200 flex items-center justify-center gap-2"
+                  >
+                    <LinkIcon className="h-4 w-4" />
+                    Insert from URL
+                  </button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <button
+              onClick={setLink}
+              className={styles['toolbar-button']}
+              title="Add Link"
+            >
+              <LinkIcon size={16} />
+            </button>
+          </div>
+
+          <div className={styles['toolbar-separator']} />
+
           {/* AI Features */}
           <div className={styles['toolbar-group']}>
             <DropdownMenu>
@@ -420,19 +768,17 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={addImage}>
-                  <ImageIcon className="h-4 w-4 mr-2" />
-                  Add Image
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={setLink}>
-                  <LinkIcon className="h-4 w-4 mr-2" />
-                  Add Link
-                </DropdownMenuItem>
                 <DropdownMenuItem 
                   onClick={() => editor.chain().focus().setHorizontalRule().run()}
                 >
                   <Minus className="h-4 w-4 mr-2" />
                   Horizontal Rule
+                </DropdownMenuItem>
+                <DropdownMenuItem 
+                  onClick={() => editor.chain().focus().insertContent('™').run()}
+                >
+                  <Type className="h-4 w-4 mr-2" />
+                  Typography
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -468,7 +814,11 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
         )}
       </div>
 
-      <EditorContent editor={editor} className={styles['simple-tiptap-content']} />
+      <EditorContent 
+        editor={editor} 
+        className={styles['simple-tiptap-content']}
+        onContextMenu={handleContextMenu}
+      />
       
       {/* Status Bar */}
       {hasSelection && (
@@ -477,12 +827,79 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
         </div>
       )}
 
-      {isFileSearchOpen && (
-        <FileSearchModal
-          onFileSelect={handleS3FileSelect}
-          onClose={() => setIsFileSearchOpen(false)}
-        />
+      {/* Table Context Menu */}
+      {contextMenu.isOpen && contextMenu.isTable && (
+        <div
+          className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg py-2 min-w-[200px]"
+          style={{
+            left: getAdjustedPosition(contextMenu.x, contextMenu.y).x,
+            top: getAdjustedPosition(contextMenu.x, contextMenu.y).y,
+          }}
+        >
+          <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100">
+            💡 Drag column borders to resize
+          </div>
+          <div className="py-1">
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().addColumnBefore().run())}
+              disabled={!editor.can().addColumnBefore()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Column Before
+            </button>
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().addColumnAfter().run())}
+              disabled={!editor.can().addColumnAfter()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Column After
+            </button>
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().deleteColumn().run())}
+              disabled={!editor.can().deleteColumn()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete Column
+            </button>
+          </div>
+          
+          <div className="border-t border-gray-100 py-1">
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().addRowBefore().run())}
+              disabled={!editor.can().addRowBefore()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Row Before
+            </button>
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().addRowAfter().run())}
+              disabled={!editor.can().addRowAfter()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Add Row After
+            </button>
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().deleteRow().run())}
+              disabled={!editor.can().deleteRow()}
+              className="w-full text-left px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete Row
+            </button>
+          </div>
+          
+          <div className="border-t border-gray-100 py-1">
+            <button
+              onClick={() => handleTableAction(() => editor.chain().focus().deleteTable().run())}
+              disabled={!editor.can().deleteTable()}
+              className="w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Delete Table
+            </button>
+          </div>
+        </div>
       )}
+
+
     </div>
   );
 };
