@@ -76,15 +76,8 @@ export const handleCreateWordDocument = async (
     // Create simple document content
     const content = `New Document
 
-Welcome to your new Word document! This document was created from the Banbury workspace.
+Welcome to your new Word document!`;
 
-You can edit this document directly in the browser with formatting support. The document includes:
-• Rich text formatting 
-• Multiple paragraphs
-• Professional document structure
-• Real-time editing capabilities
-
-Created on: ${new Date().toLocaleDateString()}`;
 
     // Generate filename - use provided name or default
     const fileName = documentName 
