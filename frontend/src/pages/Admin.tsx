@@ -676,10 +676,6 @@ export default function Admin() {
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h1 className="text-2xl font-bold text-white">User Management</h1>
-                <Button className="bg-zinc-800 hover:bg-zinc-700">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add
-                </Button>
               </div>
               
               <Card className="bg-zinc-900 border-zinc-700">

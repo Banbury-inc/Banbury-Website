@@ -1,5 +1,5 @@
 import { Table, CheckCircle, AlertCircle } from 'lucide-react';
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -39,6 +39,7 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
   const { action, sheetName, operations, csvContent, note } = props.args || props;
   const [applied, setApplied] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const hasAppliedRef = useRef(false);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -49,12 +50,29 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
-  const handleApply = () => {
+  const handleApply = useCallback(() => {
+    if (hasAppliedRef.current) return; // Prevent multiple applications
+    
     const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note };
     window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
     setApplied(true);
+    hasAppliedRef.current = true;
+    
     setTimeout(() => setApplied(false), 2000);
-  };
+  }, [action, sheetName, operations, csvContent, note]);
+
+  // Automatically apply changes when the component mounts - only once
+  useEffect(() => {
+    const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
+    if (hasContent && !hasAppliedRef.current) {
+      // Apply changes automatically after a short delay to ensure UI is ready
+      const timer = setTimeout(() => {
+        handleApply();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, []); // Empty dependency array - only run once on mount
 
   const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
 
@@ -77,19 +95,11 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Table className="h-4 w-4" />
-            <CardTitle className="text-base">AI Spreadsheet Suggestion</CardTitle>
-            <Badge variant="default">{action || 'Edits'}</Badge>
-            {sheetName && <Badge variant="outline">Sheet: {sheetName}</Badge>}
+            <CardTitle className="text-base">AI Spreadsheet Changes</CardTitle>
           </div>
-          {applied && (
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm">Applied!</span>
-            </div>
-          )}
         </div>
         <CardDescription>
-          {note ? note : 'Review the suggested spreadsheet changes and apply them to the open sheet.'}
+          {note ? note : 'AI spreadsheet changes have been automatically applied to the open sheet.'}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -111,19 +121,12 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
         )}
 
         <div className="flex items-center gap-2 pt-2">
-          <Button onClick={handleApply} disabled={applied} className="flex items-center gap-2">
-            {applied ? (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Applied
-              </>
-            ) : (
-              <>
-                <Table className="h-4 w-4" />
-                Apply to Spreadsheet
-              </>
-            )}
-          </Button>
+          {applied && (
+            <div className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-4 w-4" />
+              <span className="text-sm">Changes applied automatically</span>
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
             {showPreview ? 'Hide' : 'Preview'}
           </Button>

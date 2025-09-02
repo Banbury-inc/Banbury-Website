@@ -1,0 +1,211 @@
+interface CSVLoadHandlerParams {
+  src: string
+  srcBlob?: Blob
+  fileName?: string
+  onLoad?: () => void
+  onError?: () => void
+  setLoading: (loading: boolean) => void
+  setError: (error: string | null) => void
+  setData: (data: any[][]) => void
+  setCellFormats: (formats: { [k: string]: { className?: string } }) => void
+  setCellStyles: (styles: { [k: string]: React.CSSProperties }) => void
+  pendingCellMetaRef: React.MutableRefObject<any>
+  parseCSVWithMeta: (text: string) => { parsed: any[][] }
+}
+
+export function createCSVLoadHandler({
+  src,
+  srcBlob,
+  fileName,
+  onLoad,
+  onError,
+  setLoading,
+  setError,
+  setData,
+  setCellFormats,
+  setCellStyles,
+  pendingCellMetaRef,
+  parseCSVWithMeta
+}: CSVLoadHandlerParams) {
+  return async function loadCSVContent() {
+    try {
+      setLoading(true)
+      setError(null)
+
+      let filePath = src
+      
+      // Remove file:// protocol if present
+      if (filePath.startsWith('file://')) {
+        filePath = filePath.replace('file://', '')
+      }
+      
+      const parseXlsx = async (blob: Blob) => {
+        const ExcelJSImport = await import('exceljs')
+        const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport
+        const wb = new ExcelJS.Workbook()
+        const ab = await blob.arrayBuffer()
+        await wb.xlsx.load(ab)
+        const ws = wb.worksheets[0]
+        const maxRow = ws.actualRowCount || ws.rowCount || 0
+        const maxCol = ws.actualColumnCount || (ws.columns ? ws.columns.length : 0) || 0
+        const nextData: any[][] = []
+        const nextMeta: {[k:string]: { type: 'dropdown' | 'checkbox'; source?: string[] }} = {}
+        const nextFormats: {[k:string]: {className?: string}} = {}
+        const nextStyles: {[k:string]: React.CSSProperties} = {}
+        const argbToCss = (argb?: string) => {
+          if (!argb) return undefined
+          const hex = argb.replace(/^FF/i, '')
+          if (hex.length === 6) return `#${hex}`
+          if (hex.length === 8) return `#${hex.slice(2)}`
+          return undefined
+        }
+        for (let r = 1; r <= maxRow; r++) {
+          const rowArr: any[] = []
+          for (let c = 1; c <= maxCol; c++) {
+            const cell = ws.getCell(r, c) as any
+            let value: any = cell.value
+            if (value && typeof value === 'object') {
+              if (value.text != null) value = value.text
+              else if (value.result != null) value = value.result
+              else if (value.richText) value = value.richText.map((t:any)=>t.text).join('')
+            }
+            const wasDate = value instanceof Date
+            if (wasDate) value = (value as Date).toISOString()
+            // Capture checkbox if boolean
+            if (typeof value === 'boolean') {
+              nextMeta[`${r-1}-${c-1}`] = { type: 'checkbox' }
+            }
+            rowArr.push(value == null ? '' : value)
+
+            const key = `${r-1}-${c-1}`
+            const classes: string[] = []
+            const styles: React.CSSProperties = {}
+            const f = cell.font || {}
+            if (f.bold) classes.push('ht-bold')
+            if (f.italic) classes.push('ht-italic')
+            if (f.underline) classes.push('ht-underline')
+            if (f.size) styles.fontSize = `${f.size}px` as any
+            if (f.color?.argb) styles.color = argbToCss(f.color.argb) as any
+            const fill = cell.fill
+            if (fill && fill.fgColor?.argb) styles.backgroundColor = argbToCss(fill.fgColor.argb) as any
+            const align = cell.alignment || {}
+            if (align.horizontal === 'left') classes.push('ht-align-left')
+            if (align.horizontal === 'center') classes.push('ht-align-center')
+            if (align.horizontal === 'right') classes.push('ht-align-right')
+            const b = cell.border || {}
+            const cssFor = (edge?: any) => edge ? `${edge.style === 'thick' ? '2px' : '1px'} ${edge.style === 'dashed' ? 'dashed' : 'solid'} ${argbToCss(edge.color?.argb) || '#000'}` : undefined
+            if (b.top) styles.borderTop = cssFor(b.top) as any
+            if (b.right) styles.borderRight = cssFor(b.right) as any
+            if (b.bottom) styles.borderBottom = cssFor(b.bottom) as any
+            if (b.left) styles.borderLeft = cssFor(b.left) as any
+            // Capture dropdown data validation if present and literal list
+            const dv = (cell as any).dataValidation
+            if (dv && dv.type === 'list' && Array.isArray(dv.formulae) && typeof dv.formulae[0] === 'string') {
+              const f = String(dv.formulae[0])
+              const m = f.match(/^"([\s\S]*)"$/)
+              if (m) {
+                const options = m[1].split(',').map((s) => s.trim()).filter(Boolean)
+                if (options.length > 0) nextMeta[key] = { type: 'dropdown', source: options }
+              }
+            }
+            // Capture date formatting from Excel if present
+            const numFmt: string | undefined = (cell as any).numFmt
+            const looksLikeDateFmt = (fmt?: string) => {
+              if (!fmt) return false
+              const f = String(fmt).toLowerCase()
+              // Enhanced check: contains date format patterns
+              return f.includes('y') && (f.includes('m') || f.includes('mm')) && (f.includes('d') || f.includes('dd'))
+            }
+            
+            // Check if this cell should be treated as a date
+            if (wasDate || looksLikeDateFmt(numFmt)) {
+              // Map Excel date formats to our format
+              let dateFormat = 'MM/DD/YYYY' // Default
+              if (numFmt) {
+                const f = String(numFmt).toLowerCase()
+                
+                // Map common Excel date formats to our formats
+                if (f.includes('mm/dd/yyyy') || f.includes('m/d/yyyy')) {
+                  dateFormat = 'MM/DD/YYYY'
+                } else if (f.includes('dd/mm/yyyy') || f.includes('d/m/yyyy')) {
+                  dateFormat = 'DD/MM/YYYY'
+                } else if (f.includes('yyyy-mm-dd') || f.includes('yyyy-m-d')) {
+                  dateFormat = 'YYYY-MM-DD'
+                } else if (f.includes('dd-mm-yyyy') || f.includes('d-m-yyyy')) {
+                  dateFormat = 'DD-MM-YYYY'
+                } else if (f.includes('mm-dd-yyyy') || f.includes('m-d-yyyy')) {
+                  dateFormat = 'MM-DD-YYYY'
+                }
+              }
+              nextMeta[key] = { ...(nextMeta[key] || {}), type: 'date', dateFormat } as any
+            }
+            if (classes.length) nextFormats[key] = { className: classes.join(' ') }
+            if (Object.keys(styles).length) nextStyles[key] = styles
+          }
+          nextData.push(rowArr)
+        }
+        setData(nextData)
+        setCellFormats(nextFormats)
+        setCellStyles(nextStyles)
+        if (Object.keys(nextMeta).length) {
+          pendingCellMetaRef.current = nextMeta
+        }
+      }
+
+      const needsXlsx = async (name: string, blob?: Blob) => {
+        if (name.toLowerCase().endsWith('.xlsx')) return true
+        if (blob && /spreadsheetml|officedocument\.spreadsheetml\.sheet/i.test(blob.type)) return true
+        if (blob) {
+          try {
+            const header = new Uint8Array(await blob.slice(0, 4).arrayBuffer())
+            // XLSX is a ZIP: PK\x03\x04
+            if (header.length >= 4 && header[0] === 0x50 && header[1] === 0x4b && header[2] === 0x03 && header[3] === 0x04) {
+              return true
+            }
+          } catch {}
+        }
+        return false
+      }
+
+      if (srcBlob) {
+        if (await needsXlsx(fileName || '', srcBlob)) {
+          await parseXlsx(srcBlob)
+        } else {
+          const text = await srcBlob.text()
+          const { parsed } = parseCSVWithMeta(text)
+          setData(parsed)
+        }
+      } else if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
+        const response = await fetch(filePath)
+        const blob = await response.blob()
+        if (await needsXlsx(fileName || filePath, blob)) {
+          await parseXlsx(blob)
+        } else {
+          const text = await blob.text()
+          const { parsed } = parseCSVWithMeta(text)
+          setData(parsed)
+        }
+      } else {
+        const response = await fetch(filePath)
+        const contentType = response.headers.get('Content-Type') || ''
+        if (/spreadsheetml|officedocument\.spreadsheetml\.sheet/i.test(contentType) || (fileName || filePath).toLowerCase().endsWith('.xlsx')) {
+          const blob = await response.blob()
+          await parseXlsx(blob)
+        } else {
+          const text = await response.text()
+          const { parsed } = parseCSVWithMeta(text)
+          setData(parsed)
+        }
+      }
+      
+      onLoad?.()
+    } catch (err) {
+      const errorMessage = `Failed to load CSV: ${err instanceof Error ? err.message : 'Unable to parse CSV file'}`
+      setError(errorMessage)
+      // Keep default data on error
+      onError?.()
+    } finally {
+      setLoading(false)
+    }
+  }
+}
