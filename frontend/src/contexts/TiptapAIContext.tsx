@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 
 import { useTiptapAI, type TiptapAIAction, type TiptapAIBridge } from '../hooks/useTiptapAI';
+import { setCurrentTiptapEditor } from '../components/RightPanel/handlers/handle-docx-ai-response';
 
 import type { Editor } from '@tiptap/react';
 
@@ -40,6 +41,11 @@ export const TiptapAIProvider: React.FC<TiptapAIProviderProps> = ({ children }) 
   const [editor, setEditor] = useState<Editor | null>(null);
   const aiBridge = useTiptapAI(editor);
   const commandsRef = useRef<AICommand[]>([]);
+
+  // Update global editor reference when editor changes
+  useEffect(() => {
+    setCurrentTiptapEditor(editor);
+  }, [editor]);
 
   const executeAIAction = useCallback(async (action: TiptapAIAction): Promise<boolean> => {
     if (!aiBridge) return false;

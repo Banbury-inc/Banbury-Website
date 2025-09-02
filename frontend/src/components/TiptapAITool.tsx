@@ -34,7 +34,6 @@ interface TiptapAIToolProps {
 }
 
 export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
-
   // Extract values from either args object or direct props
   const {
     action,
@@ -46,6 +45,14 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
   } = props.args || props;
   const [applied, setApplied] = useState(false);
   const [preview, setPreview] = useState(false);
+
+  // Auto-apply the changes to the document when the tool result is received
+  useEffect(() => {
+    if (content && actionType && !applied) {
+      handleAIResponse(content, actionType, selection);
+      setApplied(true);
+    }
+  }, [content, actionType, selection, applied]);
 
   const handleApplyToEditor = () => {
     if (content && actionType) {
@@ -160,24 +167,21 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
           </div>
         </div>
         
-        {/* Action Buttons */}
+        {/* Action Status */}
         <div className="flex items-center gap-2 pt-2">
+          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+            <CheckCircle className="h-4 w-4" />
+            <span className="text-sm font-medium">Automatically Applied to Document</span>
+          </div>
+          
           <Button
+            variant="outline"
             onClick={handleApplyToEditor}
-            disabled={applied}
+            size="sm"
             className="flex items-center gap-2"
           >
-            {applied ? (
-              <>
-                <CheckCircle className="h-4 w-4" />
-                Applied
-              </>
-            ) : (
-              <>
-                <Wand2 className="h-4 w-4" />
-                Apply to Document
-              </>
-            )}
+            <Wand2 className="h-4 w-4" />
+            Re-apply
           </Button>
           
           <Button

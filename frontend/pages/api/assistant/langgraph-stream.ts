@@ -257,10 +257,7 @@ const SYSTEM_PROMPT =
   "You are a helpful AI assistant with advanced capabilities. " +
   "You have access to web search, memory management, document editing, spreadsheet editing, file search, and (when enabled) Gmail and X (Twitter) API tools. " +
   "Use Gmail tools like gmail_get_recent and gmail_search to retrieve message metadata when the user asks about their email. " +
-  "When helping with document editing tasks (rewriting, grammar correction, translation, etc.), " +
-  "ALWAYS use the tiptap_ai tool to deliver your response. This ensures that your edits can be " +
-  "applied directly to the document editor. Provide clean HTML-formatted content that maintains " +
-  "proper document structure. For spreadsheet editing tasks (cleaning data, transforming columns, applying formulas, inserting/deleting rows/columns), " +
+  "For spreadsheet editing tasks (cleaning data, transforming columns, applying formulas, inserting/deleting rows/columns), " +
   "ALWAYS use the sheet_ai tool and return structured operations (setCell, setRange, insertRows, deleteRows, insertCols, deleteCols) or a replacement csvContent. " +
   "To search for files in the user's cloud storage, use the search_files tool with a search query to find files by name. " +
   "For X (Twitter) API access, use the following tools (disabled by default): " +
@@ -294,7 +291,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const body = req.body as { 
       messages: any[]; 
       threadId?: string;
-      toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean; browser?: boolean; browserbase?: boolean; langgraph_mode?: boolean; x_api?: boolean };
+      toolPreferences?: { web_search?: boolean; read_file?: boolean; gmail?: boolean; browser?: boolean; browserbase?: boolean; langgraph_mode?: boolean; x_api?: boolean };
       documentContext?: string;
       dateTimeContext?: {
         currentDate: string;

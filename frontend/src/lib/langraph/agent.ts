@@ -149,35 +149,9 @@ const webSearchTool = tool(
   }
 );
 
-const tiptapAiTool = tool(
-  async (input: { action: string; content: string; selection?: { from: number; to: number; text: string }; targetText?: string; actionType: string; language?: string }) => {
-    // This tool formats AI-generated content for Tiptap editor integration
-    return {
-      action: input.action,
-      content: input.content,
-      selection: input.selection,
-      targetText: input.targetText,
-      actionType: input.actionType,
-      language: input.language
-    };
-  },
-  {
-    name: "tiptap_ai",
-    description: "Use this tool to deliver AI-generated content that should be applied to the Tiptap document editor. This tool formats responses for direct integration with the editor.",
-    schema: z.object({
-      action: z.string().describe("Description of the action performed (e.g. 'Rewrite', 'Grammar correction', 'Translation')"),
-      content: z.string().describe("The AI-generated HTML content to be applied to the editor"),
-      selection: z.object({
-        from: z.number(),
-        to: z.number(),
-        text: z.string()
-      }).optional().describe("The original text selection that was modified"),
-      targetText: z.string().optional().describe("The original text that was being modified"),
-      actionType: z.enum(['rewrite', 'correct', 'expand', 'translate', 'summarize', 'outline', 'insert']).describe("The type of action performed"),
-      language: z.string().optional().describe("Target language for translation actions")
-    })
-  }
-);
+
+
+
 
 // Spreadsheet editing tool to apply AI-driven spreadsheet operations
 const sheetAiTool = tool(
@@ -229,6 +203,82 @@ const sheetAiTool = tool(
         .optional()
         .describe('List of spreadsheet operations to apply'),
       csvContent: z.string().optional().describe('Optional full CSV content to replace the current sheet'),
+      note: z.string().optional().describe('Optional notes/instructions for the user'),
+    }),
+  }
+);
+
+// DOCX editing tool to apply AI-driven document operations
+const docxAiTool = tool(
+  async (input: {
+    action: string;
+    documentName?: string;
+    operations?: Array<
+      | { type: 'insertText'; position: number; text: string }
+      | { type: 'replaceText'; startPosition: number; endPosition: number; text: string }
+      | { type: 'insertParagraph'; position: number; text: string; style?: string }
+      | { type: 'replaceParagraph'; paragraphIndex: number; text: string; style?: string }
+      | { type: 'insertHeading'; position: number; text: string; level: number }
+      | { type: 'replaceHeading'; headingIndex: number; text: string; level?: number }
+      | { type: 'insertList'; position: number; items: string[]; listType: 'bulleted' | 'numbered' }
+      | { type: 'insertTable'; position: number; rows: string[][]; hasHeaders?: boolean }
+      | { type: 'formatText'; startPosition: number; endPosition: number; formatting: { bold?: boolean; italic?: boolean; underline?: boolean; fontSize?: number; color?: string } }
+      | { type: 'insertImage'; position: number; imageUrl: string; alt?: string; width?: number; height?: number }
+      | { type: 'setPageSettings'; margins?: { top: number; bottom: number; left: number; right: number }; orientation?: 'portrait' | 'landscape' }
+    >;
+    htmlContent?: string;
+    note?: string;
+  }) => {
+    // Return payload for the frontend DOCX editor to apply
+    return {
+      action: input.action,
+      documentName: input.documentName,
+      operations: input.operations || [],
+      htmlContent: input.htmlContent,
+      note: input.note,
+    };
+  },
+  {
+    name: 'docx_ai',
+    description:
+      'Use this tool to deliver AI-generated DOCX document edits. Provide either a list of operations (preferred) or full htmlContent to replace the document.',
+    schema: z.object({
+      action: z.string().describe("Description of the action performed (e.g. 'Add heading', 'Format text', 'Insert table', 'Restructure document')"),
+      documentName: z.string().optional().describe('Optional document name for context'),
+      operations: z
+        .array(
+          z.union([
+            z.object({ type: z.literal('insertText'), position: z.number(), text: z.string() }),
+            z.object({ type: z.literal('replaceText'), startPosition: z.number(), endPosition: z.number(), text: z.string() }),
+            z.object({ type: z.literal('insertParagraph'), position: z.number(), text: z.string(), style: z.string().optional() }),
+            z.object({ type: z.literal('replaceParagraph'), paragraphIndex: z.number(), text: z.string(), style: z.string().optional() }),
+            z.object({ type: z.literal('insertHeading'), position: z.number(), text: z.string(), level: z.number() }),
+            z.object({ type: z.literal('replaceHeading'), headingIndex: z.number(), text: z.string(), level: z.number().optional() }),
+            z.object({ type: z.literal('insertList'), position: z.number(), items: z.array(z.string()), listType: z.enum(['bulleted', 'numbered']) }),
+            z.object({ type: z.literal('insertTable'), position: z.number(), rows: z.array(z.array(z.string())), hasHeaders: z.boolean().optional() }),
+            z.object({ 
+              type: z.literal('formatText'), 
+              startPosition: z.number(), 
+              endPosition: z.number(), 
+              formatting: z.object({
+                bold: z.boolean().optional(),
+                italic: z.boolean().optional(),
+                underline: z.boolean().optional(),
+                fontSize: z.number().optional(),
+                color: z.string().optional()
+              })
+            }),
+            z.object({ type: z.literal('insertImage'), position: z.number(), imageUrl: z.string(), alt: z.string().optional(), width: z.number().optional(), height: z.number().optional() }),
+            z.object({ 
+              type: z.literal('setPageSettings'), 
+              margins: z.object({ top: z.number(), bottom: z.number(), left: z.number(), right: z.number() }).optional(),
+              orientation: z.enum(['portrait', 'landscape']).optional()
+            }),
+          ])
+        )
+        .optional()
+        .describe('List of document operations to apply'),
+      htmlContent: z.string().optional().describe('Optional full HTML content to replace the current document'),
       note: z.string().optional().describe('Optional notes/instructions for the user'),
     }),
   }
@@ -2003,8 +2053,8 @@ const xApiPostTweetTool = tool(
 // Bind tools to the model and also prepare tools array for React agent
 const tools = [
   webSearchTool,
-  tiptapAiTool,
   sheetAiTool,
+  docxAiTool,
   generateImageTool,
   createMemoryTool,
   searchMemoryTool,
@@ -2057,10 +2107,10 @@ async function agentNode(state: AgentState): Promise<AgentState> {
       }
       
       const systemMessage = new SystemMessage(
-        "You are Athena, a helpful AI assistant with advanced capabilities. " +
-        "You have access to web search, memory management, document editing, spreadsheet editing, file creation, file downloading, file search, datetime tools, X (Twitter) API, and browser automation. " +
-        "When helping with document editing tasks, use the tiptap_ai tool to deliver your response. " +
+        "You are a helpful AI assistant with advanced capabilities. " +
+        "You have access to web search, memory management, spreadsheet editing, DOCX document editing, file creation, file downloading, file search, datetime tools, X (Twitter) API, and browser automation. " +
         "When helping with spreadsheet editing tasks (cleaning, transformations, formulas, row/column edits), use the sheet_ai tool to deliver structured operations. " +
+        "When helping with DOCX document editing tasks (adding content, formatting text, inserting tables/lists/images, restructuring), use the docx_ai tool to deliver structured document operations. The docx_ai tool supports operations like insertText, replaceText, insertParagraph, insertHeading, insertList, insertTable, formatText, insertImage, and setPageSettings. " +
         "To create a new file in the user's cloud workspace, use the create_file tool with file name, full path (including the file name), and content. " +
         "To download a file from a URL and save it to the user's cloud workspace, use the download_from_url tool with the URL and optionally a custom file name and path. " +
         "To search for files in the user's cloud storage, use the search_files tool with a search query to find files by name. " +
@@ -2124,11 +2174,11 @@ async function toolNode(state: AgentState): Promise<AgentState> {
         case "web_search":
           result = await webSearchTool.invoke(toolCall.args);
           break;
-        case "tiptap_ai":
-          result = JSON.stringify(await tiptapAiTool.invoke(toolCall.args));
-          break;
         case "sheet_ai":
           result = JSON.stringify(await sheetAiTool.invoke(toolCall.args));
+          break;
+        case "docx_ai":
+          result = JSON.stringify(await docxAiTool.invoke(toolCall.args));
           break;
         case "generate_image":
           result = await generateImageTool.invoke(toolCall.args);
@@ -2219,6 +2269,9 @@ async function toolNode(state: AgentState): Promise<AgentState> {
       toolMessages.push(new ToolMessage({
         content: result,
         tool_call_id: toolCall.id || "",
+        additional_kwargs: {
+          tool_name: toolCall.name
+        }
       }));
     }
     
@@ -2297,4 +2350,4 @@ export function createInitialState(messages: BaseMessage[]): AgentState {
   };
 }
 
-export { webSearchTool, tiptapAiTool, createMemoryTool, searchMemoryTool, getCurrentDateTimeTool };
+export { webSearchTool, createMemoryTool, searchMemoryTool, getCurrentDateTimeTool };

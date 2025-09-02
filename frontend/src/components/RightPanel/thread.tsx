@@ -26,6 +26,7 @@ import { useState, useEffect, useRef } from "react";
 
 import { ChatTiptapComposer } from "../ChatTiptapComposer";
 import { DocumentAITool } from "../DocumentAITool";
+import { DocxAITool } from "../DocxAITool";
 import { FileAttachment } from "../file-attachment";
 import { FileAttachmentDisplay } from "../file-attachment-display";
 import { MarkdownText } from "./markdown-text";
@@ -45,6 +46,8 @@ import {
 } from "../ui/dropdown-menu";
 import { WebSearchTool } from "./web-search-result";
 import { toggleXTool, type ToolPreferences as XToolPrefs } from "./handlers/toggle-x-tool";
+import { handleDocxAIResponse } from "./handlers/handle-docx-ai-response";
+import { ToolUI } from "./ToolUI";
 import { BrowserTool } from "../MiddlePanel/BrowserViewer/BrowserTool";
 import { ApiService } from "../../services/apiService";
 import { extractEmailContent } from "../../utils/emailUtils";
@@ -91,7 +94,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         const parsed = JSON.parse(saved);
         // Always force langgraph_mode to true; map legacy 'browserbase' to new 'browser' (default OFF)
         const mappedBrowser = (typeof parsed.browser === 'boolean') ? parsed.browser : (typeof parsed.browserbase === 'boolean' ? Boolean(parsed.browserbase) : false);
-        // Return only supported keys to drop legacy fields like 'browserbase'
+        // Return only supported keys to drop legacy fields like 'browserbase' and 'tiptap_ai'
         return {
           web_search: parsed.web_search !== false,
           tiptap_ai: parsed.tiptap_ai !== false,
@@ -683,6 +686,16 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     }
   }, [userInfo?.username]);
 
+  // Listen for DOCX AI response events
+  useEffect(() => {
+    const handleDocxResponse = (event: CustomEvent) => {
+      handleDocxAIResponse(event.detail);
+    };
+
+    window.addEventListener('docx-ai-response', handleDocxResponse as EventListener);
+    return () => window.removeEventListener('docx-ai-response', handleDocxResponse as EventListener);
+  }, []);
+
   // Keep a copy of attachments in localStorage so the runtime can inject them
   useEffect(() => {
     try {
@@ -842,6 +855,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
             UserMessage,
             EditComposer,
             AssistantMessage,
+            ToolUI,
           }}
         />
 
@@ -863,7 +877,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         isWebSearchEnabled={isWebSearchEnabled}
         onToggleWebSearch={toggleWebSearch}
         toolPreferences={toolPreferences}
-        onUpdateToolPreferences={setToolPreferences}
+        onUpdateToolPreferences={(prefs) => setToolPreferences(prefs)}
         attachmentPayloads={attachmentPayloads}
       />
 
@@ -1006,8 +1020,8 @@ interface ComposerProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean }) => void;
+  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean };
+  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }) => void;
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
   onSend?: () => void;
 }
@@ -1263,7 +1277,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
             isWebSearchEnabled={isWebSearchEnabled}
             onToggleWebSearch={onToggleWebSearch}
             toolPreferences={toolPreferences}
-            onUpdateToolPreferences={onUpdateToolPreferences}
+            onUpdateToolPreferences={(prefs) => onUpdateToolPreferences(prefs)}
             onSend={handleSend}
           />
         </ComposerPrimitive.Root>
@@ -1285,8 +1299,8 @@ interface ComposerActionProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean }) => void;
+  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean };
+  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }) => void;
   onSend: () => void;
 }
 
@@ -1419,15 +1433,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
                 <span className="text-xs text-muted-foreground">Enhanced with content enrichment</span>
               </div>
             </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.tiptap_ai}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, tiptap_ai: Boolean(checked) })}
-            >
-              <div className="flex flex-col">
-                <span>Document Editing</span>
-                <span className="text-xs text-muted-foreground">Document editing workflows</span>
-              </div>
-            </DropdownMenuCheckboxItem>
+
             <DropdownMenuCheckboxItem
               checked={toolPreferences.read_file}
               onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, read_file: Boolean(checked) })}
@@ -1644,6 +1650,7 @@ const AssistantMessage: FC = () => {
                   web_search: WebSearchTool,
                   tiptap_ai: TiptapAITool,
                   sheet_ai: SheetAITool,
+                  docx_ai: DocxAITool,
                   document_ai: DocumentAITool,
                   browser: BrowserTool,
                 },

@@ -67,6 +67,7 @@ import { changeSelectionFontFamily } from '../../handlers/editorFont';
 import { insertImageFromBackendFile } from '../../handlers/editorImage';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
 import { ApiService } from '../../../services/apiService';
+import { registerTiptapEditor, unregisterTiptapEditor } from '../../RightPanel/handlers/handle-docx-ai-response';
  
 
 interface AITiptapEditorProps {
@@ -201,14 +202,19 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
     },
   });
 
-  // Register the editor with the AI context
+  // Register the editor with the AI context and DOCX handler
   useEffect(() => {
     if (editor) {
       setEditor(editor);
       registerAICommands();
+      // Register for DOCX AI operations
+      registerTiptapEditor(editor);
     }
     
     return () => {
+      if (editor) {
+        unregisterTiptapEditor(editor);
+      }
       setEditor(null);
     };
   }, [editor, setEditor, registerAICommands]);
