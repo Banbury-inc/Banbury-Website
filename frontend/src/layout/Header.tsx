@@ -119,7 +119,7 @@ const Header = (): JSX.Element => {
               fontWeight: 400,
             }}
           >
-            <Link href="/features">Features</Link>
+            <Link href="/pricing">Pricing</Link>
           </Button>
           <Button 
             asChild 
@@ -131,7 +131,7 @@ const Header = (): JSX.Element => {
               fontWeight: 400,
             }}
           >
-            <Link href="/pricing">Pricing</Link>
+            <Link href="/docs">Docs</Link>
           </Button>
           <Button 
             asChild 
