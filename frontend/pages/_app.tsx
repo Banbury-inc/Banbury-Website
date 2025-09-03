@@ -10,7 +10,7 @@ import { ClaudeRuntimeProvider } from '@/assistant/ClaudeRuntimeProvider';
 import { Toaster } from '@/components/ui/toaster';
 import '@/index.css';
 import { useRouter } from 'next/router';
-import { attachRouteTracking } from './handlers/routeTracking';
+import { attachRouteTracking } from '@/handlers/routeTracking';
 
 function AppInner({ Component, pageProps }: AppProps) {
   const [mode, setMode] = useState<'light' | 'dark'>('dark');
