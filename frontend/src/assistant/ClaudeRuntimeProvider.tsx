@@ -2,6 +2,7 @@ import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import { useEffect } from "react";
 
 import { ApiService } from "../services/apiService";
+import { getLangGraphConfig } from "../lib/langraph/config";
 
 import type { FC, PropsWithChildren } from "react";
 
@@ -16,6 +17,9 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
 
       // Get auth token for file access
       const token = localStorage.getItem('authToken');
+
+      // Get LangGraph configuration for recursion limits
+      const langGraphConfig = getLangGraphConfig();
 
       // Ensure attachments are included in the request payload as content parts (only for the latest user message)
       const messagesWithAttachmentParts = Array.isArray(options.messages)
@@ -179,7 +183,8 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         messages: messagesWithAttachmentParts, 
         toolPreferences,
         documentContext: documentContext || undefined,
-        dateTimeContext
+        dateTimeContext,
+        recursionLimit: langGraphConfig.recursionLimit, // Add recursion limit
       };
       console.log('[ClaudeRuntimeProvider] DEBUG - Request body documentContext:', requestBody.documentContext?.slice(0, 200));
       console.log('[ClaudeRuntimeProvider] DEBUG - Full request body:', JSON.stringify(requestBody, null, 2).slice(0, 1000));

@@ -300,6 +300,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         isoString: string;
         formatted: string;
       };
+      recursionLimit?: number; // Added recursion limit to body
     };
     
     // Normalize messages like in athena-intelligence
@@ -439,7 +440,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         dateTimeContext: body.dateTimeContext
       }, async () => {
         // Use a custom streaming approach for character-by-character updates
-        const stream = await reactAgent.stream({ messages: allMessages }, { streamMode: "values" });
+        const stream = await reactAgent.stream(
+          { messages: allMessages }, 
+          { 
+            streamMode: "values",
+            recursionLimit: body.recursionLimit || 1000 // Use recursion limit from request or default to 1000
+          }
+        );
 
       // Track processed content to avoid sending duplicate text
       let processedAiMessages = new Set<string>();
