@@ -6,7 +6,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { SplitPreview } from '../SplitPreview';
 
-import type { ElementDropTargetGetFeedbackArgs } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
 import type { Edge } from '@atlaskit/pragmatic-drag-and-drop-hitbox/types';
 
 export interface Tab {
@@ -207,7 +206,7 @@ export const Tabs: React.FC<TabsProps> = ({
             console.log('Tab draggable init:', { id: tab.id, index, type: 'tab', dragContext });
             return { id: tab.id, index, type: 'tab', ...(dragContext || {}) };
           },
-          onGenerateDragPreview: ({ nativeSetDragImage }) => {
+          onGenerateDragPreview: ({ nativeSetDragImage }: { nativeSetDragImage?: (element: Element, x: number, y: number) => void }) => {
             if (!nativeSetDragImage) return;
             const previewEl = document.createElement('div');
             previewEl.style.position = 'fixed';
@@ -224,7 +223,7 @@ export const Tabs: React.FC<TabsProps> = ({
               document.body.removeChild(previewEl);
             }, 0);
           },
-          onDrag: ({ location }) => {
+          onDrag: ({ location }: { location: { current: { input: { clientX?: number; clientY?: number } } } }) => {
             // Handle split preview logic
             const mousePosition = location.current.input.clientX !== undefined && location.current.input.clientY !== undefined
               ? { x: location.current.input.clientX, y: location.current.input.clientY }
@@ -304,7 +303,7 @@ export const Tabs: React.FC<TabsProps> = ({
         }),
         dropTargetForElements({
           element,
-          getData: (args: ElementDropTargetGetFeedbackArgs) => attachClosestEdge(
+          getData: (args: any) => attachClosestEdge(
             { id: tab.id, index, type: 'tab' },
             {
               element,
@@ -312,7 +311,7 @@ export const Tabs: React.FC<TabsProps> = ({
               allowedEdges: ['left', 'right'],
             }
           ),
-          onDrag(args) {
+          onDrag(args: { self: { data: unknown } }) {
             const edge = extractClosestEdge(args.self.data);
             if (edge) {
               const rect = element.getBoundingClientRect();
