@@ -16,6 +16,7 @@ interface SaveSpreadsheetParams {
   cellStyles?: {[key: string]: React.CSSProperties};
   cellTypeMeta?: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }};
   columnWidths?: {[key: string]: number};
+  conditionalFormatting?: any[];
 }
 
 // Convert table data to XLSX blob using ExcelJS with formatting
@@ -24,7 +25,8 @@ export async function convertToXLSX(
   cellFormats?: {[key: string]: {className?: string}}, 
   cellStyles?: {[key: string]: React.CSSProperties},
   cellTypeMeta?: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }},
-  columnWidths?: {[key: string]: number}
+  columnWidths?: {[key: string]: number},
+  conditionalFormatting?: any[]
 ): Promise<Blob> {
   const ExcelJSImport = await import('exceljs');
   const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport;
@@ -56,7 +58,12 @@ export async function convertToXLSX(
   data.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const excelCell = worksheet.getCell(rowIndex + 1, colIndex + 1);
-      excelCell.value = cell ?? '';
+      // Preserve formulas on save: if cell is a string starting with '=', write as Excel formula
+      if (typeof cell === 'string' && cell.startsWith('=')) {
+        excelCell.value = { formula: cell.slice(1) } as any
+      } else {
+        excelCell.value = cell ?? ''
+      }
       
       const cellKey = `${rowIndex}-${colIndex}`;
       const formats = cellFormats?.[cellKey];
@@ -177,6 +184,14 @@ export async function convertToXLSX(
   });
   
   // Generate XLSX buffer and return as blob
+  // Persist conditional formatting rules in a hidden metadata sheet for round-trip
+  if (conditionalFormatting && Array.isArray(conditionalFormatting)) {
+    try {
+      const metaSheet = workbook.addWorksheet('_banbury_meta', { state: 'veryHidden' } as any)
+      metaSheet.getCell(1,1).value = 'BANBURY_META_JSON'
+      metaSheet.getCell(2,1).value = JSON.stringify({ conditionalFormatting })
+    } catch {}
+  }
   const buffer = await workbook.xlsx.writeBuffer();
   return new Blob([buffer], { 
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
@@ -193,7 +208,8 @@ export async function handleSpreadsheetSave({
   cellFormats,
   cellStyles,
   cellTypeMeta,
-  columnWidths
+  columnWidths,
+  conditionalFormatting
 }: SaveSpreadsheetParams): Promise<void> {
   if (!currentFile.file_id) return;
   if (!latestData || latestData.length === 0) return;
@@ -205,7 +221,7 @@ export async function handleSpreadsheetSave({
     }
     
     // Create XLSX blob from the current data with formatting
-    const xlsxBlob = await convertToXLSX(latestData, cellFormats, cellStyles, cellTypeMeta, columnWidths);
+    const xlsxBlob = await convertToXLSX(latestData, cellFormats, cellStyles, cellTypeMeta, columnWidths, conditionalFormatting);
     
     // Ensure the filename has .xlsx extension
     let fileName = currentFile.name;

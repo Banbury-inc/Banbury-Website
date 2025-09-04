@@ -69,7 +69,8 @@ function createDataChangeHandler({
       setHasChanges(true);
       
       if (source === 'edit' || source === 'paste' || source === 'autofill' || source === 'cut') {
-        const currentData = hotInstance.getData();
+        // Use source data to preserve formulas (strings beginning with '=')
+        const currentData = hotInstance.getSourceData ? hotInstance.getSourceData() : hotInstance.getData();
         // Use requestAnimationFrame to defer state updates until after batch completes
         requestAnimationFrame(() => {
           setData(currentData);

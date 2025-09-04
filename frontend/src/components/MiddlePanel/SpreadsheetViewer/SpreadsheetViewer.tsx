@@ -30,6 +30,7 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
     cellStyles: {[key: string]: React.CSSProperties};
     cellTypeMeta: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }};
     columnWidths: {[key: string]: number};
+    conditionalFormatting: any[];
   } | null>(null);
   const { toast } = useToast();
 
@@ -129,7 +130,8 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
         cellFormats: latestFormatting?.cellFormats,
         cellStyles: latestFormatting?.cellStyles,
         cellTypeMeta: latestFormatting?.cellTypeMeta,
-        columnWidths: latestFormatting?.columnWidths
+        columnWidths: latestFormatting?.columnWidths,
+        conditionalFormatting: latestFormatting?.conditionalFormatting
       });
     } catch (err) {
       // Error handling is done in the handler function

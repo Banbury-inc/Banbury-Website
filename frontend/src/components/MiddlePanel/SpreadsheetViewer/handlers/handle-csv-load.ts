@@ -1,4 +1,4 @@
-interface CSVLoadHandlerParams {
+export interface CSVLoadHandlerParams {
   src: string
   srcBlob?: Blob
   fileName?: string
@@ -11,6 +11,7 @@ interface CSVLoadHandlerParams {
   setCellStyles: (styles: { [k: string]: React.CSSProperties }) => void
   pendingCellMetaRef: React.MutableRefObject<any>
   parseCSVWithMeta: (text: string) => { parsed: any[][] }
+  setConditionalRulesFromLoad?: (rules: any[]) => void
 }
 
 export function createCSVLoadHandler({
@@ -25,7 +26,8 @@ export function createCSVLoadHandler({
   setCellFormats,
   setCellStyles,
   pendingCellMetaRef,
-  parseCSVWithMeta
+  parseCSVWithMeta,
+  setConditionalRulesFromLoad
 }: CSVLoadHandlerParams) {
   return async function loadCSVContent() {
     try {
@@ -65,7 +67,9 @@ export function createCSVLoadHandler({
             const cell = ws.getCell(r, c) as any
             let value: any = cell.value
             if (value && typeof value === 'object') {
-              if (value.text != null) value = value.text
+              // Prefer preserving formulas when present
+              if (value.formula != null) value = `=${value.formula}`
+              else if (value.text != null) value = value.text
               else if (value.result != null) value = value.result
               else if (value.richText) value = value.richText.map((t:any)=>t.text).join('')
             }
@@ -150,6 +154,19 @@ export function createCSVLoadHandler({
         if (Object.keys(nextMeta).length) {
           pendingCellMetaRef.current = nextMeta
         }
+        // Load conditional formatting metadata from hidden sheet, if present
+        try {
+          const metaSheet = wb.getWorksheet('_banbury_meta') as any
+          const key = metaSheet?.getCell(1,1)?.value
+          const payload = metaSheet?.getCell(2,1)?.value
+          if (key === 'BANBURY_META_JSON' && typeof payload === 'string') {
+            const parsed = JSON.parse(payload)
+            if (Array.isArray(parsed?.conditionalFormatting)) {
+              const event = new CustomEvent('spreadsheet-conditional-formatting-loaded', { detail: { rules: parsed.conditionalFormatting } })
+              window.dispatchEvent(event)
+            }
+          }
+        } catch {}
       }
 
       const needsXlsx = async (name: string, blob?: Blob) => {

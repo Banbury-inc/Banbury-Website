@@ -27,13 +27,14 @@ import {
 } from "lucide-react"
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { toggleFileSelection, collectSelectedFileItems } from "./handlers/handle-multi-select"
 
 import { EmailTab } from "./EmailTab"
 import { CalendarTab } from "./CalendarTab"
 import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { ApiService } from "../../services/apiService"
-import { buildFileTree, FileSystemItem, S3FileInfo } from "../../utils/fileTreeUtils"
+import { buildFileTree, FileSystemItem } from "../../utils/fileTreeUtils"
 import InlineFileSearch from "../InlineFileSearch"
 import { useToast } from "../ui/use-toast"
 
@@ -97,6 +98,10 @@ interface FileTreeItemProps {
   onDragOver: (item: FileSystemItem) => void
   onDragLeave: () => void
   onDrop: (targetItem: FileSystemItem, draggedItem: FileSystemItem) => void
+  selectedIds: Set<string>
+  onShiftToggleSelection: (item: FileSystemItem, e?: React.MouseEvent) => void
+  selectionCount: number
+  onDeleteSelectedFiles: () => void
 }
 
 // Comprehensive file type detection functions
@@ -226,9 +231,10 @@ interface FileContextMenuProps {
   onUploadFile?: () => void
   onUploadFolder?: () => void
   isFolder?: boolean
+  deleteLabel?: string
 }
 
-function FileContextMenu({ children, onRename, onDelete, onNewFolder, onUploadFile, onUploadFolder, isFolder }: FileContextMenuProps) {
+function FileContextMenu({ children, onRename, onDelete, onNewFolder, onUploadFile, onUploadFolder, isFolder, deleteLabel }: FileContextMenuProps) {
   return (
     <ContextMenu.Root>
       <ContextMenu.Trigger asChild>
@@ -276,7 +282,7 @@ function FileContextMenu({ children, onRename, onDelete, onNewFolder, onUploadFi
               onSelect={onDelete}
             >
               <Trash2 className="w-4 h-4" />
-              Delete
+              {deleteLabel || 'Delete'}
             </ContextMenu.Item>
           )}
         </ContextMenu.Content>
@@ -305,7 +311,11 @@ function FileTreeItem({
   onDragEnd, 
   onDragOver, 
   onDragLeave, 
-  onDrop 
+  onDrop,
+  selectedIds,
+  onShiftToggleSelection,
+  selectionCount,
+  onDeleteSelectedFiles
 }: FileTreeItemProps) {
   
   // Helper function to select filename without extension
@@ -322,6 +332,7 @@ function FileTreeItem({
   const isExpanded = expandedItems.has(item.id)
   const hasChildren = item.children && item.children.length > 0
   const isSelected = selectedFile?.id === item.id
+  const isMultiSelected = selectedIds.has(item.id)
   const [isRenaming, setIsRenaming] = useState(false)
   const [newName, setNewName] = useState(item.name)
   const [isCreatingFolder, setIsCreatingFolder] = useState(false)
@@ -397,8 +408,12 @@ function FileTreeItem({
     }
   }
   
-  const handleClick = () => {
+  const handleClick = (e?: React.MouseEvent) => {
     if (isRenaming) return; // Don't handle clicks while renaming
+    if (e?.shiftKey && item.type === 'file') {
+      onShiftToggleSelection(item, e)
+      return
+    }
     if (hasChildren) {
       toggleExpanded(item.id)
     } else if (item.type === 'file' && onFileSelect) {
@@ -413,9 +428,6 @@ function FileTreeItem({
 
   const handleDelete = async () => {
     if (!item.file_id) return
-    
-    const confirmed = window.confirm(`Are you sure you want to delete "${item.name}"? This action cannot be undone.`)
-    if (!confirmed) return
     
     try {
       await ApiService.deleteS3File(item.file_id)
@@ -539,7 +551,7 @@ function FileTreeItem({
     isRenaming ? (
       <div
         className={`w-full flex items-center gap-2 text-left px-3 py-2 min-w-0 ${
-          isSelected ? 'bg-zinc-800 text-white' : 'text-zinc-300'
+          (isSelected || isMultiSelected) ? 'bg-zinc-800 text-white' : 'text-zinc-300'
         }`}
         style={{ paddingLeft: `${(level * 12) + 12}px` }}
       >
@@ -565,7 +577,7 @@ function FileTreeItem({
       </div>
     ) : (
       <button
-        onClick={handleClick}
+        onClick={(e) => handleClick(e)}
         draggable={item.type === 'file' && item.file_id ? true : false}
         onDragStart={handleDragStart}
         onDragEnd={onDragEnd}
@@ -573,7 +585,7 @@ function FileTreeItem({
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         className={`w-full flex items-center gap-2 text-left px-3 py-2 min-w-0 hover:bg-zinc-800 hover:text-white transition-colors ${
-          isSelected ? 'bg-zinc-800 text-white' : 'text-zinc-300'
+          (isSelected || isMultiSelected) ? 'bg-zinc-800 text-white' : 'text-zinc-300'
         } ${isDragged ? 'opacity-50' : ''} ${isDropTarget ? 'bg-zinc-700 ring-2 ring-blue-500' : ''}`}
         style={{ paddingLeft: `${(level * 12) + 12}px` }}
       >
@@ -595,7 +607,16 @@ function FileTreeItem({
         {(item.type === 'file' && item.file_id) || item.type === 'folder' ? (
           <FileContextMenu 
             onRename={handleRename} 
-            onDelete={item.type === 'file' && item.file_id ? handleDelete : (item.type === 'folder' ? handleDeleteFolder : undefined)} 
+            onDelete={
+              item.type === 'file' && item.file_id
+                ? (selectionCount > 1 && isMultiSelected ? onDeleteSelectedFiles : handleDelete)
+                : (item.type === 'folder' ? handleDeleteFolder : undefined)
+            } 
+            deleteLabel={
+              item.type === 'file' && selectionCount > 1 && isMultiSelected
+                ? `Delete ${selectionCount} files`
+                : undefined
+            }
             onNewFolder={item.type === 'folder' ? handleCreateFolder : undefined}
             onUploadFile={onUploadFile}
             onUploadFolder={onUploadFolder}
@@ -668,6 +689,10 @@ function FileTreeItem({
               onDragOver={onDragOver}
               onDragLeave={onDragLeave}
               onDrop={onDrop}
+              selectedIds={selectedIds}
+              onShiftToggleSelection={onShiftToggleSelection}
+              selectionCount={selectionCount}
+              onDeleteSelectedFiles={onDeleteSelectedFiles}
             />
           ))}
         </>
@@ -681,6 +706,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [isCreatingRootFolder, setIsCreatingRootFolder] = useState(false)
   const [newRootFolderName, setNewRootFolderName] = useState('New Folder')
   const [isCreatingRootFolderPending, setIsCreatingRootFolderPending] = useState(false)
@@ -818,6 +844,13 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
     // Propagate up if parent wants to react (e.g., close tabs)
     onFolderDeleted?.(folderPath)
   }
+
+  const onShiftToggleSelection = (item: FileSystemItem, e?: React.MouseEvent) => {
+    const next = toggleFileSelection({ selectedIds, itemId: item.id, isShiftKey: true })
+    setSelectedIds(next)
+  }
+
+  const clearSelection = () => setSelectedIds(new Set())
 
   const fetchUserFiles = useCallback(async () => {
     if (!userInfo?.username) return
@@ -1196,6 +1229,23 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   }
   
   const router = useRouter()
+  const selectionCount = selectedIds.size
+
+  const onDeleteSelectedFiles = async () => {
+    const selectedItems = collectSelectedFileItems(fileSystem, selectedIds)
+    if (!selectedItems.length) return
+    try {
+      await Promise.all(
+        selectedItems.map(async it => it.file_id ? ApiService.deleteS3File(it.file_id) : Promise.resolve())
+      )
+      fetchUserFiles()
+      selectedItems.forEach(it => it.file_id && onFileDeleted?.(it.file_id))
+    } catch (error) {
+      alert('Failed to delete some files. Please try again.')
+    } finally {
+      clearSelection()
+    }
+  }
 
   return (
     <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10">
@@ -1602,6 +1652,10 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
+                selectedIds={selectedIds}
+                onShiftToggleSelection={onShiftToggleSelection}
+                selectionCount={selectionCount}
+                onDeleteSelectedFiles={onDeleteSelectedFiles}
               />
             ))}
           </div>

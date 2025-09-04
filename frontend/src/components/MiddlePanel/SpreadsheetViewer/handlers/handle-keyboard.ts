@@ -1,12 +1,13 @@
 interface KeyboardHandlerParams {
   isEditorFocused: boolean
+  isSearchOpen: boolean
+  hotTableRef: React.RefObject<any>
   handleBold: () => void
   handleItalic: () => void
   handleUnderline: () => void
   handleRedo: () => void
   handleUndo: () => void
   handleCopy: () => void
-  handlePaste: () => void
   handleCut: () => void
   handleSelectAll: () => void
   handleSearch: () => void
@@ -19,13 +20,14 @@ interface KeyboardHandlerParams {
 
 export function createKeyboardHandler({
   isEditorFocused,
+  isSearchOpen,
+  hotTableRef,
   handleBold,
   handleItalic,
   handleUnderline,
   handleRedo,
   handleUndo,
   handleCopy,
-  handlePaste,
   handleCut,
   handleSelectAll,
   handleSearch,
@@ -82,8 +84,7 @@ export function createKeyboardHandler({
           handleCopy()
           break
         case 'v':
-          event.preventDefault()
-          handlePaste()
+          // Let the browser/Handsontable handle native paste
           break
         case 'x':
           event.preventDefault()
@@ -95,6 +96,8 @@ export function createKeyboardHandler({
           break
         case 'f':
           event.preventDefault()
+          event.stopPropagation()
+          hotTableRef.current.hotInstance?.deselectCell()
           handleSearch()
           break
         case 'k':
@@ -120,6 +123,13 @@ export function createKeyboardHandler({
     switch (key) {
       case 'delete':
       case 'backspace':
+        if (isSearchOpen) {
+          event.preventDefault()
+          event.stopPropagation()
+          hotTableRef.current.hotInstance?.deselectCell()
+          hotTableRef.current.hotInstance?.render()
+          return
+        }
         if (!isCtrl) {
           event.preventDefault()
           handleClear()
@@ -130,12 +140,21 @@ export function createKeyboardHandler({
         // F2 to edit cell (this is handled by Handsontable by default)
         break
       case 'escape':
-        event.preventDefault()
-        // Escape to cancel editing (this is handled by Handsontable by default)
+        if (isSearchOpen) {
+          event.preventDefault()
+          event.stopPropagation()
+          return
+        }
+        // Otherwise let Handsontable handle cancel editing
         break
       case 'enter':
         if (!isCtrl) {
-          // Enter to move to next cell (this is handled by Handsontable by default)
+          if (isSearchOpen) {
+            event.preventDefault()
+            event.stopPropagation()
+            return
+          }
+          // Otherwise let HOT handle moving/editing
           break
         }
         break

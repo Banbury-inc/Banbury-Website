@@ -28,6 +28,7 @@ import {
   Help,
   Clear,
   FilterList,
+  Rule,
 } from '@mui/icons-material';
 import { 
   Box, 
@@ -112,6 +113,8 @@ interface CSVEditorToolbarProps {
   handleAlignRight: () => void;
   handleMergeCells: () => void;
   handleToggleFilters: () => void;
+  // Conditional formatting panel opener
+  onOpenConditionalPanel: () => void;
   
   // Font size handlers
   fontSize: number;
@@ -155,6 +158,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
   handleAlignRight,
   handleMergeCells,
   handleToggleFilters,
+  onOpenConditionalPanel,
   fontSize,
   handleFontSizeChange,
   handleFontSizeIncrement,
@@ -254,6 +258,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
     { id: 'merge', handler: () => handleMergeCells(), icon: <MergeCellsIcon sx={{ fontSize: 16 }} />, title: 'Merge Selected Cells' },
     { id: 'alignment', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleAlignmentClick(e) : handleAlignmentClick({} as any), icon: <><FormatAlignLeft sx={{ fontSize: 16 }} /><KeyboardArrowDown sx={{ fontSize: 12, ml: 0.5 }} /></>, title: 'Text Alignment' },
     { id: 'filters', handler: () => handleToggleFilters(), icon: <FilterList sx={{ fontSize: 16 }} />, title: 'Toggle Filters (Ctrl+K)' },
+    { id: 'conditional', handler: () => onOpenConditionalPanel(), icon: <Rule sx={{ fontSize: 16 }} />, title: 'Conditional Formatting' },
   ];
 
   // Calculate which buttons should be visible based on available space
@@ -381,6 +386,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
       {/* Responsive Toolbar */}
       <Box 
         ref={toolbarRef}
+        data-role="csv-toolbar"
         sx={{ 
           borderBottom: 1, 
           borderColor: 'divider',
@@ -709,6 +715,8 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
         <Divider />
         <MenuItem onMouseDown={(e: React.MouseEvent<HTMLLIElement>) => e.preventDefault()} onClick={() => { handleTextColorClose(); setTimeout(() => removeCellStyle('color'), 0); }}>Clear text color</MenuItem>
       </Menu>
+
+      {/* Conditional Formatting Popover was removed; opening a right-side panel instead */}
 
       {/* Fill Color Menu */}
       <Menu

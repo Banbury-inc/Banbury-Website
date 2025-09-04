@@ -12,12 +12,21 @@ import { createFormatHandlers } from './handlers/handle-formats';
 import { createFontHandlers } from './handlers/handle-font';
 import { createKeyboardHandler } from './handlers/handle-keyboard';
 import { createCSVLoadHandler } from './handlers/handle-csv-load';
+import { createFormulaEngine } from './handlers/handle-formulas';
 import { createCopyPasteHandlers } from './handlers/handle-copy-paste';
 import { createTableOperationsHandlers } from './handlers/handle-table-operations';
 import { handleEditDropdownOptions } from './handlers/handle-edit-dropdown-options';
 import { parseCSV, convertToCSV, convertToCSVWithMeta } from './utils/csv-parser';
+import { createFormulaSuggestionHandlers } from './handlers/handle-formula-suggestions';
 import CSVEditorToolbar from './components/CSVEditorToolbar';
-import { Box, Typography, Alert, CircularProgress } from '@mui/material';
+import { Button } from '../../ui/button'
+import { Input } from '../../ui/input'
+import { Label } from '../../ui/label'
+import { Separator } from '../../ui/separator'
+import { ArrowUpward, ArrowDownward, BorderAll as BorderAllIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { createConditionalFormattingHandlers, computeConditionalFormats } from './handlers/handle-conditional-formatting';
+import { createAddCFRuleHandler } from './handlers/handle-add-cf-rule'
+import type { ConditionalFormattingRule } from './handlers/handle-conditional-formatting';
 // Register all Handsontable modules
 registerAllModules();
 
@@ -35,6 +44,7 @@ interface CSVEditorProps {
     cellStyles: {[key: string]: React.CSSProperties};
     cellTypeMeta: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }};
     columnWidths: {[key: string]: number};
+    conditionalFormatting: ConditionalFormattingRule[];
   }) => void;
   onSaveDocument?: () => void;
   onDownloadDocument?: () => void;
@@ -57,9 +67,6 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   canSave = false,
 }) => {
   const [data, setData] = useState<any[][]>([
-    ['Name', 'Email', 'Phone', 'Department'],
-    ['John Doe', 'john@example.com', '555-0101', 'Engineering'],
-    ['Jane Smith', 'jane@example.com', '555-0102', 'Marketing'],
     ['', '', '', '']
   ]);
   const [loading, setLoading] = useState(true);
@@ -76,6 +83,17 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const [customBordersDefs, setCustomBordersDefs] = useState<any[]>([]);
   const [cellTypeMeta, setCellTypeMeta] = useState<{[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }} >({});
   const [columnWidths, setColumnWidths] = useState<{[key: string]: number}>({});
+  const [conditionalRules, setConditionalRules] = useState<ConditionalFormattingRule[]>([]);
+  const [conditionalClassOverlay, setConditionalClassOverlay] = useState<{[key: string]: string}>({});
+  const [conditionalStyleOverlay, setConditionalStyleOverlay] = useState<{[key: string]: React.CSSProperties}>({});
+  const [queryResultIndex, setQueryResultIndex] = useState<number>(0);
+
+  // Search state
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [searchResultCount, setSearchResultCount] = useState(0);
+  const searchMatchesRef = useRef<Array<{ row: number; col: number }>>([]);
+  const searchCurrentIndexRef = useRef<number>(-1);
 
   const pendingCellMetaRef = useRef<Record<string, { 
     type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; 
@@ -160,6 +178,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
               return prev;
             });
           }
+          // Load conditional formatting rules if present
+          if (metaObj.conditionalFormatting && Array.isArray(metaObj.conditionalFormatting)) {
+            try { setConditionalRules(metaObj.conditionalFormatting) } catch {}
+          }
         }
       } catch {
         // Invalid metadata, ignore
@@ -196,6 +218,18 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       window.removeEventListener('resize', handleResize);
     };
   }, []);
+
+  // Create HyperFormula engine and store it for HotTable formulas config
+  const [formulaEngine, setFormulaEngine] = useState<any | null>(null)
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const engine = await createFormulaEngine({ sheetName: 'Sheet1' })
+      if (!active) return
+      setFormulaEngine(engine)
+    })()
+    return () => { active = false }
+  }, [])
 
   useEffect(() => {
     const hotInstance = hotTableRef.current?.hotInstance;
@@ -259,6 +293,8 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   // Use ref to capture latest onContentChange to avoid dependency issues
   const onContentChangeRef = useRef(onContentChange);
   onContentChangeRef.current = onContentChange;
+  const onFormattingChangeRef = useRef(onFormattingChange);
+  onFormattingChangeRef.current = onFormattingChange;
 
   // Listen for AI spreadsheet responses and apply to table
   useEffect(() => {
@@ -306,6 +342,33 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       }
     }
   }, []); // Remove data dependency to prevent infinite re-renders
+
+  // Attach formula suggestions to the in-cell editor lifecycle
+  useEffect(() => {
+    const { attach, detach } = createFormulaSuggestionHandlers({ hotTableRef })
+    attach()
+    return () => detach()
+  }, [])
+
+  // Conditional formatting handlers
+  const getConditionalRules = useCallback(() => conditionalRules, [conditionalRules])
+  const { addRule: addConditionalRule, updateRule: updateConditionalRule, removeRule: removeConditionalRule } = useMemo(() => 
+    createConditionalFormattingHandlers({
+      setConditionalRules: setConditionalRules,
+      getConditionalRules,
+      setConditionalClasses: (m) => setConditionalClassOverlay(m),
+      setConditionalStyles: (m) => setConditionalStyleOverlay(m)
+    }), [getConditionalRules]
+  )
+
+  // Recompute conditional formats whenever data or rules change
+  useEffect(() => {
+    try {
+      const maps = computeConditionalFormats({ data, rules: conditionalRules })
+      setConditionalClassOverlay(maps.classes)
+      setConditionalStyleOverlay(maps.styles)
+    } catch {}
+  }, [data, conditionalRules])
 
   const handleDataChange = useCallback(
     createDataChangeHandler({
@@ -422,12 +485,30 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     }), [setHasChanges]
   );
 
-  const { handleSearch, handleAddRow, handleAddColumn, handleClear } = useMemo(() => 
+  const { handleAddRow, handleAddColumn, handleClear } = useMemo(() => 
     createTableOperationsHandlers({
       hotTableRef,
       setHasChanges
     }), [setHasChanges]
   );
+  
+const searchFieldKeyupCallback = useCallback(
+  (event: React.KeyboardEvent<HTMLInputElement>) => {
+
+    if (event.key === 'Escape') {
+      event.preventDefault()
+      event.stopPropagation()
+      setIsSearchOpen(false)
+      return
+    }
+    const hot = hotTableRef.current?.hotInstance
+    const search = hot?.getPlugin('search')
+    const queryResult = search?.query(event.currentTarget.value)
+    setSearchResultCount(queryResult.length)
+    hot?.render()
+  },
+  [hotTableRef.current]
+)
 
   const toggleCellFormat = (className: string) => {
     const hotInstance = hotTableRef.current?.hotInstance;
@@ -513,6 +594,16 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     loadCSVContent();
   }, []);
 
+  // Listen for conditional formatting loaded from XLSX metadata sheet
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const evt = e as CustomEvent<{ rules: ConditionalFormattingRule[] }>
+      if (Array.isArray(evt.detail?.rules)) setConditionalRules(evt.detail.rules)
+    }
+    window.addEventListener('spreadsheet-conditional-formatting-loaded', handler as EventListener)
+    return () => window.removeEventListener('spreadsheet-conditional-formatting-loaded', handler as EventListener)
+  }, [])
+
   useEffect(() => {
     try {
       registerRenderer('banburyStyledRenderer', (instance: any, td: HTMLTableCellElement, ...rest: any[]) => {
@@ -597,6 +688,29 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       .handsontable .ht-align-right {
         text-align: right !important;
       }
+      .handsontable td.ht-dropdown-indicator {
+        position: relative;
+        padding-right: 18px !important;
+      }
+      .handsontable td.ht-dropdown-indicator::after {
+        content: '▾';
+        position: absolute;
+        right: 6px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #374151; /* higher contrast indicator */
+        pointer-events: none;
+        font-size: 12px;
+        line-height: 1;
+      }
+      .handsontable .htSearchResult {
+        background-color: #bbf7d0 !important; /* green-200 */
+        color: #064e3b !important; /* dark green text for contrast */
+      }
+      /* Search overlay a11y helpers */
+      .csv-search-overlay input#csv-editor-search-input::placeholder { color: #4b5563; opacity: 1; }
+      .csv-search-overlay input#csv-editor-search-input:focus { outline: 2px solid #2563eb; outline-offset: 0; }
+      .csv-search-overlay button:focus { outline: 2px solid #2563eb; outline-offset: 0; }
     `;
     document.head.appendChild(styleElement);
     
@@ -628,16 +742,27 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   useEffect(() => {
     const keyboardHandler = createKeyboardHandler({
       isEditorFocused,
+      isSearchOpen,
+      hotTableRef,
       handleBold,
       handleItalic,
       handleUnderline,
       handleRedo,
       handleUndo,
       handleCopy,
-      handlePaste,
       handleCut,
       handleSelectAll,
-      handleSearch,
+      handleSearch: () => {
+        try {
+          setIsSearchOpen(true)
+          requestAnimationFrame(() => {
+            try {
+              const el = document.getElementById('search_field') as HTMLInputElement | null
+              if (el) { el.focus(); el.select() }
+            } catch {}
+          })
+        } catch {}
+      },
       handleToggleFilters,
       handleAddRow,
       handleAddColumn,
@@ -652,16 +777,17 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     };
   }, [
     isEditorFocused,
+    isSearchOpen,
+    hotTableRef,
     handleBold,
     handleItalic,
     handleUnderline,
     handleRedo,
     handleUndo,
     handleCopy,
-    handlePaste,
     handleCut,
     handleSelectAll,
-    handleSearch,
+    isSearchOpen,
     handleToggleFilters,
     handleAddRow,
     handleAddColumn,
@@ -669,12 +795,123 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     setHelpDialogOpen
   ]);
 
+  // Simple Conditional Formatting Dialog state
+  const [cfPanelOpen, setCfPanelOpen] = useState(false)
+  const [cfOperator, setCfOperator] = useState<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq' | 'between'>('gt')
+  const [cfValue, setCfValue] = useState<string>('')
+  const [cfValue2, setCfValue2] = useState<string>('')
+  const [cfStopIfTrue, setCfStopIfTrue] = useState<boolean>(false)
+  const [cfTextOperator, setCfTextOperator] = useState<'contains' | 'startsWith' | 'endsWith' | 'eq' | 'neq' | 'isEmpty' | 'isNotEmpty' | 'duplicate' | 'unique'>('contains')
+  const [cfDateOperator, setCfDateOperator] = useState<'today' | 'yesterday' | 'tomorrow' | 'inLastNDays' | 'inNextNDays' | 'thisWeek' | 'lastWeek' | 'nextWeek' | 'thisMonth' | 'lastMonth' | 'nextMonth' | 'before' | 'after' | 'on' | 'notOn'>('today')
+  const [cfMode, setCfMode] = useState<'numeric' | 'text' | 'date' | 'colorScale' | 'topN' | 'bottomN'>('numeric')
+  const [cfA1Range, setCfA1Range] = useState<string>('')
+  const [cfMinColor, setCfMinColor] = useState<string>('#FDE68A')
+  const [cfMaxColor, setCfMaxColor] = useState<string>('#F59E0B')
+  const [cfTextColor, setCfTextColor] = useState<string>('')
+  const [cfFillColor, setCfFillColor] = useState<string>('#FACC15')
+  const [cfBold, setCfBold] = useState<boolean>(false)
+  const [cfItalic, setCfItalic] = useState<boolean>(false)
+  const [cfUnderline, setCfUnderline] = useState<boolean>(false)
+
+  const openCFPanel = () => setCfPanelOpen(true)
+  const closeCFPanel = () => setCfPanelOpen(false)
+
+  const addRuleFromPanel = useMemo(() => {
+    const handler = createAddCFRuleHandler({
+      hotTableRef,
+      getCFState: () => ({
+        cfMode,
+        cfOperator,
+        cfTextOperator,
+        cfDateOperator,
+        cfA1Range,
+        cfValue,
+        cfValue2,
+        cfStopIfTrue,
+        cfMinColor,
+        cfMaxColor,
+        cfTextColor,
+        cfFillColor,
+        cfBold,
+        cfItalic,
+        cfUnderline,
+      }),
+      addConditionalRule,
+      getDataSize: () => ({ rows: data.length, cols: data.reduce((m, r) => Math.max(m, r.length), 0) })
+    })
+    return () => handler()
+  }, [hotTableRef, data, cfMode, cfOperator, cfTextOperator, cfDateOperator, cfA1Range, cfValue, cfValue2, cfStopIfTrue, cfMinColor, cfMaxColor, cfTextColor, cfFillColor, cfBold, cfItalic, cfUnderline, addConditionalRule])
+
+  // Rules Manager state
+  const [cfManagerOpen, setCfManagerOpen] = useState(false)
+  const [editingRuleId, setEditingRuleId] = useState<string | null>(null)
+  const [editOperator, setEditOperator] = useState<'gt' | 'gte' | 'lt' | 'lte' | 'eq' | 'neq' | 'between'>('gt')
+  const [editValue, setEditValue] = useState<string>('')
+  const [editValue2, setEditValue2] = useState<string>('')
+  const [editStopIfTrue, setEditStopIfTrue] = useState<boolean>(false)
+
+  const openManager = () => setCfManagerOpen(true)
+  const closeManager = () => { setCfManagerOpen(false); setEditingRuleId(null) }
+
+  const startEditRule = (rule: ConditionalFormattingRule) => {
+    setEditingRuleId(rule.id)
+    if (rule.condition.kind === 'numeric') {
+      setEditOperator(rule.condition.operator as any)
+      setEditValue(typeof rule.condition.value === 'number' ? String(rule.condition.value) : '')
+      setEditValue2(typeof rule.condition.value2 === 'number' ? String(rule.condition.value2) : '')
+    } else {
+      setEditOperator('gt')
+      setEditValue('')
+      setEditValue2('')
+    }
+    setEditStopIfTrue(Boolean(rule.stopIfTrue))
+  }
+
+  const saveEditedRule = () => {
+    if (!editingRuleId) return
+    const v1 = editValue.trim() === '' ? undefined : Number(editValue)
+    const v2 = editValue2.trim() === '' ? undefined : Number(editValue2)
+    updateConditionalRule(editingRuleId, {
+      condition: { kind: 'numeric', operator: editOperator, value: typeof v1 === 'number' && !Number.isNaN(v1) ? v1 : undefined, value2: typeof v2 === 'number' && !Number.isNaN(v2) ? v2 : undefined } as any,
+      stopIfTrue: editStopIfTrue
+    })
+    setEditingRuleId(null)
+  }
+
+  const deleteRule = (id: string) => removeConditionalRule(id)
+
+  const applySelectionToRule = (id: string) => {
+    const hot = hotTableRef.current?.hotInstance
+    if (!hot) return
+    const sel = hot.getSelectedLast?.()
+    if (!sel) return
+    const [r1, c1, r2, c2] = sel
+    updateConditionalRule(id, { range: { startRow: Math.min(r1, r2), endRow: Math.max(r1, r2), startCol: Math.min(c1, c2), endCol: Math.max(c1, c2) } as any })
+  }
+
+  const moveRule = (id: string, direction: 'up' | 'down') => {
+    setConditionalRules((prev) => {
+      const sorted = [...prev].sort((a, b) => a.priority - b.priority)
+      const index = sorted.findIndex((r) => r.id === id)
+      if (index === -1) return prev
+      const swapIndex = direction === 'up' ? index - 1 : index + 1
+      if (swapIndex < 0 || swapIndex >= sorted.length) return prev
+      const a = sorted[index]
+      const b = sorted[swapIndex]
+      const ap = a.priority
+      a.priority = b.priority
+      b.priority = ap
+      return [...sorted]
+    })
+  }
+
   // Notify parent component when formatting changes (with debounce and deep comparison to prevent infinite loops)
   const prevFormattingRef = useRef<{
     cellFormats: {[key: string]: {className?: string}};
     cellStyles: {[key: string]: React.CSSProperties};
     cellTypeMeta: {[key: string]: any};
     columnWidths: {[key: string]: number};
+    conditionalFormatting: ConditionalFormattingRule[];
   } | null>(null);
   const formattingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -683,7 +920,8 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       cellFormats,
       cellStyles,
       cellTypeMeta,
-      columnWidths
+      columnWidths,
+      conditionalFormatting: conditionalRules
     };
 
     // Only call onFormattingChange if the formatting has actually changed
@@ -691,9 +929,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       JSON.stringify(prevFormattingRef.current.cellFormats) !== JSON.stringify(cellFormats) ||
       JSON.stringify(prevFormattingRef.current.cellStyles) !== JSON.stringify(cellStyles) ||
       JSON.stringify(prevFormattingRef.current.cellTypeMeta) !== JSON.stringify(cellTypeMeta) ||
-      JSON.stringify(prevFormattingRef.current.columnWidths) !== JSON.stringify(columnWidths);
+      JSON.stringify(prevFormattingRef.current.columnWidths) !== JSON.stringify(columnWidths) ||
+      JSON.stringify(prevFormattingRef.current.conditionalFormatting) !== JSON.stringify(conditionalRules);
 
-    if (hasChanged && onFormattingChange) {
+    if (hasChanged && onFormattingChangeRef.current) {
       // Clear any existing timeout
       if (formattingTimeoutRef.current) {
         clearTimeout(formattingTimeoutRef.current);
@@ -701,11 +940,12 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       
       // Debounce the callback to prevent excessive calls
       formattingTimeoutRef.current = setTimeout(() => {
-        onFormattingChange(currentFormatting);
+        const cb = onFormattingChangeRef.current
+        if (cb) cb(currentFormatting)
         prevFormattingRef.current = currentFormatting;
       }, 100); // 100ms debounce
     }
-  }, [cellFormats, cellStyles, cellTypeMeta, columnWidths]);
+  }, [cellFormats, cellStyles, cellTypeMeta, columnWidths, conditionalRules]);
 
   // Cleanup timeout on unmount
   useEffect(() => {
@@ -720,25 +960,25 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
   if (loading) {
     return (
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading spreadsheet...</Typography>
-      </Box>
+      <div style={{ padding: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200 }}>
+        <span style={{ marginLeft: 8, color: '#111827' }}>Loading spreadsheet...</span>
+      </div>
     );
   }
 
   return (
-    <Box 
+    <div 
       className="csv-editor-container"
-      sx={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+      style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         // Check if click is outside the table area but not on toolbar
         const target = e.target as HTMLElement;
         const isTableClick = target.closest('.handsontable-container-full') || target.closest('.ht_master');
+        const isToolbarClick = target.closest('[data-role="csv-toolbar"]');
         const isMenuClick = target.closest('[role="menu"]') || target.closest('[role="dialog"]');
         
         // If click is outside table and menus, deselect cells
-        if (!isTableClick && !isMenuClick) {
+        if (!isTableClick && !isMenuClick && !isToolbarClick) {
           const hotInstance = hotTableRef.current?.hotInstance;
           if (hotInstance && hotInstance.deselectCell) {
             hotInstance.deselectCell();
@@ -753,9 +993,9 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
     >
 
       {error && (
-        <Alert severity="warning" sx={{ m: 1 }}>
+        <div style={{ margin: 8, padding: '8px 10px', border: '1px solid #f59e0b', backgroundColor: '#fffbeb', color: '#78350f', borderRadius: 6 }}>
           {error}
-        </Alert>
+        </div>
       )}
 
       <CSVEditorToolbar
@@ -775,6 +1015,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         handleAlignRight={handleAlignRight}
         handleMergeCells={handleMergeCells}
         handleToggleFilters={handleToggleFilters}
+        onOpenConditionalPanel={openCFPanel}
         fontSize={fontSize}
         handleFontSizeChange={handleFontSizeChange}
         handleFontSizeIncrement={handleFontSizeIncrement}
@@ -791,16 +1032,18 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
         setHelpDialogOpen={setHelpDialogOpen}
       />
 
+      {/* Removed separate conditional formatting control bar; functionality moved into toolbar popover */}
+
 
       {/* Spreadsheet component stretching to full height */}
-      <Box 
-        ref={containerRef}
-        sx={{ 
+      <div 
+        ref={containerRef as any}
+        style={{ 
           flex: 1,
           position: 'relative',
           backgroundColor: '#ffffff',
           overflow: 'hidden',
-          minHeight: 0 // Allow flex item to shrink below content size
+          minHeight: 0, // Allow flex item to shrink below content size
         }}
       >
         <div 
@@ -810,24 +1053,30 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             position: 'relative',
             display: 'flex',
             flexDirection: 'column',
-            minHeight: 0
+            minHeight: 0,
+            marginRight: cfPanelOpen ? 360 : 0
           }}
           className="handsontable-container-full"
         >
           <HotTable
             ref={hotTableRef}
             data={data}
+            formulas={formulaEngine ? { engine: formulaEngine, sheetName: 'Sheet1' } as any : undefined}
             colHeaders={true}
             rowHeaders={true}
             dropdownMenu={true}
             contextMenu={contextMenuConfig as any}
             height={containerHeight}
             width="100%"
+            filters={true}
+            manualColumnMove={true}
+            manualRowMove={true}
             licenseKey="non-commercial-and-evaluation"
             manualRowResize={true}
             manualColumnResize={true}
             outsideClickDeselects={false}
             selectionMode="multiple"
+            search={true}
             afterChange={handleDataChange}
             afterSelectionEnd={(r: number, c: number, r2: number, c2: number) => { lastSelectionRef.current = [r,c,r2,c2]; }}
             afterColumnResize={(currentColumn: number, newSize: number) => {
@@ -893,14 +1142,26 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                   
                   const fmt = cellFormats[cellKey];
                   const sty = cellStyles[cellKey];
+                  const cfClass = conditionalClassOverlay[cellKey];
+                  const cfStyle = conditionalStyleOverlay[cellKey];
                   
+                  const existingClasses = td.className ? td.className.split(' ').filter(Boolean) : [];
+                  let mergedClasses = [...existingClasses];
                   if (fmt?.className) {
-                    td.className = '';
                     const classes = fmt.className.split(' ').filter(cls => cls.trim());
-                    if (classes.length > 0) {
-                      td.className = classes.join(' ');
-                    }
+                    mergedClasses = classes;
                   }
+                  if (cfClass) {
+                    const add = cfClass.split(' ').filter(Boolean)
+                    mergedClasses = [...mergedClasses, ...add]
+                  }
+                  try {
+                    const metaForSearch = (instance as any).getCellMeta(r, c) || {};
+                    if (metaForSearch.isSearchResult) {
+                      if (!mergedClasses.includes('htSearchResult')) mergedClasses.push('htSearchResult');
+                    }
+                  } catch {}
+                  td.className = mergedClasses.join(' ');
                   
                   if (sty && Object.keys(sty).length > 0) {
                     const styleEntries = Object.entries(sty);
@@ -912,6 +1173,27 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
                       }
                     }
                   }
+                  if (cfStyle && Object.keys(cfStyle).length > 0) {
+                    const entries = Object.entries(cfStyle)
+                    for (const [prop, val] of entries) {
+                      if (val != null) {
+                        try { td.style.setProperty(prop, String(val)) } catch {}
+                      }
+                    }
+                  }
+                  // Add dropdown indicator class for dropdown cells (append after formatting classes)
+                  try {
+                    const metaForIndicator = instance.getCellMeta(r, c) || {};
+                    const persistedForIndicator = cellTypeMeta[cellKey];
+                    const typeForIndicator = (persistedForIndicator && persistedForIndicator.type) ? persistedForIndicator.type : metaForIndicator.type;
+                    if (typeForIndicator === 'dropdown') {
+                      const currentClasses = td.className ? td.className.split(' ').filter(Boolean) : [];
+                      if (!currentClasses.includes('ht-dropdown-indicator')) {
+                        currentClasses.push('ht-dropdown-indicator');
+                        td.className = currentClasses.join(' ');
+                      }
+                    }
+                  } catch {}
                   
                   return td;
                 }
@@ -937,11 +1219,209 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
             key="hot-table"
           />
 
+          {/* Search overlay */}
+          {isSearchOpen && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 8,
+                right: 8,
+                background: '#ffffff',
+                border: '1px solid #1f2937',
+                borderRadius: 6,
+                boxShadow: '0 6px 16px rgba(0,0,0,0.16)',
+                padding: '8px 10px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                zIndex: 1000
+              }}
+              className="csv-search-overlay"
+              role="dialog"
+              aria-label="Search table"
+            >
+              <span style={{ fontSize: 12, color: '#111827', minWidth: 64, textAlign: 'center' }}>{(searchResultCount > 0) ? `${searchResultCount} results` : 'No results'}</span>
+              <input
+            id="search_field"
+            type="search"
+            style={{ color: '#111827' }}
+            placeholder="Search"
+            onKeyUp={(event) => searchFieldKeyupCallback(event)}
+          />
         </div>
-      </Box>
+          )}
+
+        </div>
+      </div>
+
+      {/* Right-side Conditional Formatting Panel (scoped to middle panel) */}
+      {cfPanelOpen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            height: '100%',
+            width: 360,
+            backgroundColor: '#ffffff',
+            borderLeft: '1px solid #e5e7eb',
+            boxShadow: '-6px 0 16px rgba(0,0,0,0.08)',
+            zIndex: 10000,
+            display: 'flex',
+            flexDirection: 'column'
+          }}
+        >
+          <div style={{ padding: 8, borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 style={{ fontSize: 16, fontWeight: 600, color: '#111827' }}>Conditional formatting</h3>
+            <Button size="sm" style={{ color: '#ffffff', backgroundColor: '#111827' , border: '1px solid #111827' }} onClick={closeCFPanel}>Close</Button>
+          </div>
+          <div style={{ padding: 8, display: 'flex', flexDirection: 'column', gap: 8, overflowY: 'auto' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-range" style={{ color: '#111827' }}>Apply to range</Label>
+                <Input id="cf-range" value={cfA1Range} onChange={(e) => setCfA1Range(e.target.value)} placeholder="e.g. A1:D10" style={{ color: '#111827' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-mode" style={{ color: '#111827' }}>Rule type</Label>
+                <select id="cf-mode" value={cfMode} onChange={(e) => setCfMode(e.target.value as any)} className="border rounded-md h-9 px-2 bg-white text-black" style={{ color: '#111827' }}>
+                  <option value="numeric">Numeric</option>
+                  <option value="text">Text</option>
+                  <option value="date">Date</option>
+                  <option value="topN">Top N</option>
+                  <option value="bottomN">Bottom N</option>
+                  <option value="colorScale">Color scale</option>
+                </select>
+              </div>
+            </div>
+            {cfMode === 'numeric' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-op" style={{ color: '#111827' }}>Condition</Label>
+                <select id="cf-op" value={cfOperator} onChange={(e) => setCfOperator(e.target.value as any)}
+                  className="border rounded-md h-9 px-2 bg-white text-black" style={{ color: '#111827' }}>
+                  <option value="gt">Greater than</option>
+                  <option value="gte">Greater than or equal</option>
+                  <option value="lt">Less than</option>
+                  <option value="lte">Less than or equal</option>
+                  <option value="eq">Equal to</option>
+                  <option value="neq">Not equal to</option>
+                  <option value="between">Between</option>
+                </select>
+              </div>
+            )}
+            {cfMode === 'text' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-text-op" style={{ color: '#111827' }}>Text condition</Label>
+                <select id="cf-text-op" value={cfTextOperator} onChange={(e) => setCfTextOperator(e.target.value as any)} className="border rounded-md h-9 px-2 bg-white text-black" style={{ color: '#111827' }}>
+                  <option value="contains">Contains</option>
+                  <option value="startsWith">Starts with</option>
+                  <option value="endsWith">Ends with</option>
+                  <option value="eq">Equals</option>
+                  <option value="neq">Not equal</option>
+                  <option value="isEmpty">Is empty</option>
+                  <option value="isNotEmpty">Is not empty</option>
+                  <option value="duplicate">Duplicate</option>
+                  <option value="unique">Unique</option>
+                </select>
+              </div>
+            )}
+            {cfMode === 'date' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-date-op" style={{ color: '#111827' }}>Date condition</Label>
+                <select id="cf-date-op" value={cfDateOperator} onChange={(e) => setCfDateOperator(e.target.value as any)} className="border rounded-md h-9 px-2 bg-white text-black" style={{ color: '#111827' }}>
+                  <option value="today">Today</option>
+                  <option value="yesterday">Yesterday</option>
+                  <option value="tomorrow">Tomorrow</option>
+                  <option value="inLastNDays">In last N days</option>
+                  <option value="inNextNDays">In next N days</option>
+                  <option value="thisWeek">This week</option>
+                  <option value="lastWeek">Last week</option>
+                  <option value="nextWeek">Next week</option>
+                  <option value="thisMonth">This month</option>
+                  <option value="lastMonth">Last month</option>
+                  <option value="nextMonth">Next month</option>
+                  <option value="before">Before</option>
+                  <option value="after">After</option>
+                  <option value="on">On</option>
+                  <option value="notOn">Not on</option>
+                </select>
+              </div>
+            )}
+            {cfMode === 'colorScale' && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <Label htmlFor="cf-min-color" style={{ color: '#111827' }}>Min color</Label>
+                  <input id="cf-min-color" type="color" value={cfMinColor} onChange={(e) => setCfMinColor(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <Label htmlFor="cf-max-color" style={{ color: '#111827' }}>Max color</Label>
+                  <input id="cf-max-color" type="color" value={cfMaxColor} onChange={(e) => setCfMaxColor(e.target.value)} />
+                </div>
+              </div>
+            )}
+            <div style={{ display: cfMode === 'colorScale' ? 'none' : 'flex', gap: 8 }}>
+              <div style={{ flex: 1 }}>
+                <Label htmlFor="cf-val1" style={{ color: '#111827' }}>Value</Label>
+                <Input id="cf-val1" style={{ color: '#111827' }} value={cfValue} onChange={(e) => setCfValue(e.target.value)} />
+              </div>
+              {cfOperator === 'between' && (
+                <div style={{ flex: 1 }}>
+                  <Label htmlFor="cf-val2" style={{ color: '#111827' }}>and</Label>
+                  <Input id="cf-val2" value={cfValue2} onChange={(e) => setCfValue2(e.target.value)} />
+                </div>
+              )}
+            </div>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={cfStopIfTrue} onChange={(e) => setCfStopIfTrue(e.target.checked)} />
+              <span style={{ color: '#111827' }}>Stop if true</span>
+            </label>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 8, alignItems: 'end' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-fill" style={{ color: '#111827' }}>Fill</Label>
+                <input id="cf-fill" type="color" value={cfFillColor} onChange={(e) => setCfFillColor(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Label htmlFor="cf-text" style={{ color: '#111827' }}>Text</Label>
+                <input id="cf-text" type="color" value={cfTextColor} onChange={(e) => setCfTextColor(e.target.value)} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={cfBold} onChange={(e) => setCfBold(e.target.checked)} />
+                <span style={{ color: '#111827' }}>Bold</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={cfItalic} onChange={(e) => setCfItalic(e.target.checked)} />
+                <span style={{ color: '#111827' }}>Italic</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <input type="checkbox" checked={cfUnderline} onChange={(e) => setCfUnderline(e.target.checked)} />
+                <span style={{ color: '#111827' }}>Underline</span>
+              </label>
+            </div>
+            <Button style={{ backgroundColor: '#111827', color: '#ffffff' }} onClick={addRuleFromPanel}>Add rule</Button>
+
+            <Separator className="my-2" style={{ borderColor: '#e5e7eb' }} />
+            <p style={{ color: '#111827', fontSize: 12, fontWeight: 600 }}>Rules</p>
+            <div style={{ overflowY: 'auto' }}>
+              {[...conditionalRules].sort((a, b) => a.priority - b.priority).map((rule) => (
+                <div key={rule.id} style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'center', padding: '4px 0', borderBottom: '1px solid #e5e7eb' }}>
+                  <div style={{ color: '#111827', fontSize: 13, fontWeight: 600 }}>
+                    {rule.label || `${rule.condition.kind === 'numeric' ? rule.condition.operator : 'rule'} R${rule.range.startRow + 1}:C${rule.range.startCol + 1}–R${rule.range.endRow + 1}:C${rule.range.endCol + 1}`}
+                    {rule.stopIfTrue ? <span style={{ marginLeft: 8, color: '#94a3b8', fontSize: 12, fontWeight: 400 }}>(Stop if true)</span> : null}
+                  </div>
+                  <div style={{ display: 'flex', gap: 4 }}>
+                    <Button size="icon" style={{ color: '#111827', backgroundColor: '#ffffff', border: '1px solid #111827' }} onClick={() => moveRule(rule.id, 'up')} title="Move up"><ArrowUpward sx={{ fontSize: 16, color: '#111827' }} /></Button>
+                    <Button size="icon" style={{ color: '#111827', backgroundColor: '#ffffff', border: '1px solid #111827' }} onClick={() => moveRule(rule.id, 'down')} title="Move down"><ArrowDownward sx={{ fontSize: 16, color: '#111827' }} /></Button>
+                    <Button size="icon" style={{ color: '#111827', backgroundColor: '#ffffff', border: '1px solid #111827' }} onClick={() => applySelectionToRule(rule.id)} title="Use selection"><BorderAllIcon sx={{ fontSize: 16, color: '#111827' }} /></Button>
+                    <Button size="icon" style={{ color: '#111827', backgroundColor: '#ffffff', border: '1px solid #111827' }} onClick={() => removeConditionalRule(rule.id)} title="Delete"><DeleteIcon sx={{ fontSize: 16, color: '#111827' }} /></Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
 
-    </Box>
+    </div>
   );
 };
 
