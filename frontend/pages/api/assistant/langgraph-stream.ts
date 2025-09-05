@@ -313,6 +313,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         formatted: string;
       };
       recursionLimit?: number; // Added recursion limit to body
+      webSearchOptions?: {
+        searchDepth?: "basic" | "advanced";
+        maxResults?: number;
+        includeAnswer?: boolean;
+        includeRawContent?: boolean;
+        includeImages?: boolean;
+        includeImageDescriptions?: boolean;
+        topic?: string;
+        timeRange?: "day" | "week" | "month" | "year";
+        includeDomains?: string[];
+        excludeDomains?: string[];
+      };
     };
     
     // Normalize messages like in athena-intelligence
@@ -415,7 +427,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const hasSystemMessage = lcMessages.length > 0 && lcMessages[0]._getType() === "system";
     
     if (!hasSystemMessage) {
-      const systemMessage = new SystemMessage(SYSTEM_PROMPT);
+      // Append date/time context (if provided) directly to the system prompt so the model always sees it
+      const dateTimeSuffix = body.dateTimeContext
+        ? `\n\nCurrent date and time: ${body.dateTimeContext.formatted}. ISO timestamp: ${body.dateTimeContext.isoString}`
+        : "";
+      const systemText = SYSTEM_PROMPT + dateTimeSuffix;
+      const systemMessage = new SystemMessage(systemText);
       allMessages = [systemMessage, ...lcMessages];
     }
     
@@ -449,7 +466,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             langgraph_mode: true,
           } as any;
         })(),
-        dateTimeContext: body.dateTimeContext
+        dateTimeContext: body.dateTimeContext,
+        webSearchDefaults: body.webSearchOptions || {}
       }, async () => {
         // Use a custom streaming approach for character-by-character updates
         const stream = await reactAgent.stream(
