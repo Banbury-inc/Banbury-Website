@@ -115,8 +115,8 @@ export const SimpleTiptapEditor: React.FC<SimpleTiptapEditorProps> = ({
   };
 
   return (
-    <div className={styles['simple-tiptap-container']}>
-      <div className={styles['simple-tiptap-toolbar']}>
+    <div className={styles['simple-tiptap-container'] + ' border-0'}>
+      <div className={styles['simple-tiptap-toolbar'] + ' border-0'}>
         {/* Undo/Redo */}
         <div className={styles['toolbar-group']}>
           <button

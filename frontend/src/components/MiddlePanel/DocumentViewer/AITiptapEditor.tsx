@@ -469,7 +469,7 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
   return (
     <div className={cn(styles['simple-tiptap-container'], className)}>
       {/* Toolbar */}
-      <div className={styles['simple-tiptap-toolbar']} ref={toolbarRef} style={{ flexWrap: 'nowrap' }}>
+      <div className={styles['simple-tiptap-toolbar']} ref={toolbarRef} style={{ flexWrap: 'nowrap', border: 'none' }}>
         {/* Left side toolbar items */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, minWidth: 0 }}>
           {/* Responsive icon buttons */}

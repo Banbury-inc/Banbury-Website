@@ -849,7 +849,7 @@ const Workspaces = (): JSX.Element => {
                 
                 {/* Main Content Panel */}
                 <Allotment.Pane minSize={300}>
-                  <main className="h-full bg-black relative">
+                  <main className="h-full relative border-0">
                     {/* Expand button for file sidebar when collapsed - positioned on left border */}
                     {isFileSidebarCollapsed && (
                       <button
@@ -891,23 +891,23 @@ const Workspaces = (): JSX.Element => {
                         <div className="flex items-center gap-2">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <button className="h-8 px-3 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black">
+                              <button className="h-8 px-3 text-white hover:bg-zinc-700 hover:text-white bg-black transition-colors rounded-md flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black">
                                 <TimerReset className="h-3 w-3" />
                                 <ChevronDown className="h-3 w-3" />
                               </button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="start" className="w-64 max-h-96 overflow-y-auto">
                               {isLoadingConversations ? (
-                                <div className="px-2 py-2 text-sm text-gray-400 text-center">
+                                <div className="px-2 py-2 text-sm text-zinc-400 text-center">
                                   Loading conversations...
                                 </div>
                               ) : conversations.length === 0 ? (
-                                <div className="px-2 py-2 text-sm text-gray-400 text-center">
+                                <div className="px-2 py-2 text-sm text-zinc-400 text-center">
                                   No saved conversations
                                 </div>
                               ) : (
                                 <>
-                                  <div className="px-2 py-1 text-xs font-medium text-gray-500 tracking-wide">
+                                  <div className="px-2 py-1 text-xs font-medium text-zinc-500 tracking-wide">
                                     Saved Conversations
                                   </div>
                                   {conversations.map((conversation) => (
@@ -943,12 +943,12 @@ const Workspaces = (): JSX.Element => {
                                 // Dispatch an event to clear the conversation and show welcome message
                                 window.dispatchEvent(new CustomEvent('clear-conversation', {}));
                               }}
-                              className="h-8 w-8 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
+                              className="h-8 w-8 text-white hover:bg-zinc-700 hover:text-white bg-black transition-colors rounded-md flex items-center justify-center focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-black"
                             >
                               <Plus className="h-3 w-3" />
                             </button>
                             {/* Custom CSS tooltip */}
-                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
+                            <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 px-2 py-1 bg-zinc-900 text-white text-xs rounded whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50 pointer-events-none">
                               Clear Conversation
                             </div>
                           </div>
@@ -973,11 +973,11 @@ const Workspaces = (): JSX.Element => {
           {/* Context Menu */}
           {contextMenu && (
             <div
-              className="fixed bg-gray-800 border border-gray-600 rounded-md shadow-lg py-1 z-50"
+              className="fixed bg-zinc-800 border border-zinc-600 rounded-md shadow-lg py-1 z-50"
               style={{ left: contextMenu.x, top: contextMenu.y }}
               onClick={closeContextMenu}
             >
-              <div className="px-3 py-2 text-gray-400 text-sm border-b border-gray-600">
+              <div className="px-3 py-2 text-zinc-400 text-sm border-b border-zinc-600">
                 Tip: Drag the tab to create a new panel
               </div>
               <button
@@ -987,7 +987,7 @@ const Workspaces = (): JSX.Element => {
                   }
                   closeContextMenu();
                 }}
-                className="w-full px-3 py-2 text-left text-white hover:bg-gray-700 flex items-center gap-2"
+                className="w-full px-3 py-2 text-left text-white hover:bg-zinc-700 flex items-center gap-2"
               >
                 <X size={16} />
                 Close Tab
@@ -1110,18 +1110,17 @@ const Workspaces = (): JSX.Element => {
           }
           /* Nice border styling for tabs (Olympus Tabs use .tab class) */
           .tab {
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: none;
             border-top-left-radius: 10px;
             border-top-right-radius: 10px;
             transition: border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
           }
           .tab:hover {
-            border-color: rgba(255, 255, 255, 0.2);
-            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.25);
+            border: none;
+            box-shadow: none;
           }
           .tab--active {
-            border-bottom: 0;
-            border-color: rgba(255, 255, 255, 0.6);
+            border: none;
           }
           .tab:active {
             transform: translateY(1px);

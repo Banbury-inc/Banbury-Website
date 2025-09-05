@@ -328,15 +328,17 @@ const WordViewer: React.FC<WordViewerProps> = ({
 
   if (loading) {
     return (
-      <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'center', height: '200px' }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading document...</Typography>
-      </Box>
+      <div className="flex items-center justify-center h-full bg-[#27272a]">
+        <div className="flex flex-col items-center gap-4">
+          <CircularProgress sx={{ color: '#9ca3af' }} />
+          <Typography sx={{ color: '#f3f4f6' }}>Loading document...</Typography>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', border: '0', bg: '#27272a' }}>
       {error && (
         <Alert severity="warning" sx={{ m: 1 }}>
           {error}

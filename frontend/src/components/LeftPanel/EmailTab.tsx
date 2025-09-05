@@ -444,7 +444,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
   return (
     <div className="h-full flex flex-col">
       {/* Email Tab Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-800">
         <div className="flex items-center gap-4">
           {/* Tab Navigation */}
           <div className="flex gap-1">
@@ -453,7 +453,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                 activeTab === 'inbox'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-800'
+                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
               }`}
             >
               Inbox
@@ -463,7 +463,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                 activeTab === 'sent'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-800'
+                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
               }`}
             >
               Sent
@@ -473,7 +473,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                 activeTab === 'drafts'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-800'
+                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
               }`}
             >
               Drafts
@@ -483,7 +483,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
               className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
                 activeTab === 'starred'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-800'
+                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
               }`}
             >
               Starred
@@ -504,7 +504,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
       </div>
 
       {/* Search Bar and Compose Button */}
-      <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-700">
+      <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
         <div className="flex gap-2">
           <Input
             placeholder="Search emails..."

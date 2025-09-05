@@ -57,32 +57,32 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
     className={`
       tab
       ${isActive ? 'tab--active' : ''}
-              ${isNew ? 'animate-tab-enter opacity-0' : ''}
-        ${isClosing ? 'animate-tab-exit' : ''}
-        mt-3.5
-        pl-2  
-      h-8
+      ${isNew ? 'animate-tab-enter opacity-0' : ''}
+      ${isClosing ? 'animate-tab-exit' : ''}
+      flex-1
       px-3 
-      min-w-[140px]
+      py-2 
       text-sm 
       font-medium 
-      relative 
-      mx-0.5
-      rounded-[5px_5px_0_0]
+      rounded-t-lg 
+      transition-all 
+      duration-200
+      relative
       flex
       items-center
       justify-between
       gap-2
+      min-w-[140px]
+      border-0
       ${isActive 
-        ? 'text-white bg-[#171717] before:absolute before:top-0 before:left-0 before:right-0 before:h-[0px] before:bg-white' 
-        : 'text-white/70 hover:bg-[#2a2a2a] hover:h-6 hover:rounded-[5px_5px_5px_5px]'}
+        ? 'text-white bg-zinc-800 border-0' 
+        : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50 border-0'}
       hover:text-white 
       focus:outline-none
       z-[9999]
-      first:ml-2
     `}
   >
-    <span className="truncate pl-2 select-none">{label}</span>
+    <span className="truncate select-none">{label}</span>
     {onClose && (
       <button
         onClick={(e) => {
@@ -360,7 +360,7 @@ export const Tabs: React.FC<TabsProps> = ({
   }, [tabs, onReorder]);
 
   return (
-    <div ref={containerRef} className="flex items-center group">
+    <div ref={containerRef} className="flex items-center group bg-black px-2 pt-2 border-0 gap-1">
       <style>
         {`
           .tab {
@@ -392,7 +392,7 @@ export const Tabs: React.FC<TabsProps> = ({
         <button
           onClick={() => onTabAdd?.()}
           data-testid="new-tab-button"
-          className="h-6 mt-2 px-3 ml-1 text-white/70 hover:text-white hover:bg-[#2a2a2a] rounded-[5px_5px_0_0] transition-colors z-[9999]"
+          className="px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50 z-[9999]"
         >
           <AddIcon size={14} />
         </button>

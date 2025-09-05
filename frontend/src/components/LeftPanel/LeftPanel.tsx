@@ -1248,7 +1248,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   }
 
   return (
-    <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10">
+    <div className="h-full w-full bg-black border-r border-zinc-300 dark:border-zinc-600 flex flex-col relative z-10 border-0">
       {/* Search Bar - Above tabs */}
       {onFileSelect && (
         <div className="px-4 py-2 bg-black border-zinc-700">
@@ -1264,7 +1264,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               onClick={() => setActiveTab('files')}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
                 activeTab === 'files'
-                  ? 'text-white bg-zinc-900 shadow-sm'
+                  ? 'text-white bg-zinc-800 shadow-sm'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
               }`}
             >
@@ -1277,7 +1277,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               onClick={() => setActiveTab('email')}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
                 activeTab === 'email'
-                  ? 'text-white bg-zinc-900 shadow-sm'
+                  ? 'text-white bg-zinc-800 shadow-sm'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
               }`}
             >
@@ -1290,7 +1290,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               onClick={() => setActiveTab('calendar')}
               className={`flex-1 px-3 py-2 text-sm font-medium rounded-t-lg transition-all duration-200 ${
                 activeTab === 'calendar'
-                  ? 'text-white bg-zinc-900 shadow-sm'
+                  ? 'text-white bg-zinc-800 shadow-sm'
                   : 'text-gray-400 hover:text-gray-300 hover:bg-zinc-800/50'
               }`}
             >
@@ -1303,7 +1303,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
         
                  {/* Tab Content Header */}
          {activeTab === 'files' && (
-           <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
+           <div className="flex items-center justify-between px-4 py-3 bg-zinc-800 border-b">
              <h2 className="text-gray-200 text-sm font-medium">Files</h2>
              <div className="flex items-center gap-2">
                <DropdownMenu>

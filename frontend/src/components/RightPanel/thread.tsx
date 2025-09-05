@@ -1232,7 +1232,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
       <div className="relative flex w-full flex-col">
         {/* Display attachments (files + emails) above the composer */}
         {(attachedFiles.length > 0 || attachedEmails.length > 0) && (
-          <div className="bg-zinc-800 border-l border-r border-t border-b border-zinc-300 dark:border-zinc-600 rounded-t-2xl px-2 py-0.5">
+          <div className="bg-zinc-800 border-b border-zinc-700 rounded-t-2xl px-2 py-0.5">
             <FileAttachmentDisplay 
               files={attachedFiles}
               emails={attachedEmails}
@@ -1255,7 +1255,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
           />
 
           {/* Visible Tiptap editor with @ mention for files */}
-          <div className={`bg-zinc-800 border-l border-r border-zinc-300 dark:border-zinc-600 ${(attachedFiles.length > 0 || attachedEmails.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'}`}>
+          <div className={`bg-zinc-800 border-0 ${(attachedFiles.length > 0 || attachedEmails.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'}`}>
             <ChatTiptapComposer
               hiddenInputRef={inputRef}
               userInfo={userInfo}
@@ -1401,7 +1401,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
   };
 
   return (
-    <div className="bg-zinc-800 border-l border-r border-b border-zinc-300 dark:border-zinc-600 relative flex items-center justify-between rounded-b-2xl p-2">
+    <div className="bg-zinc-800 border-0 relative flex items-center justify-between rounded-b-2xl p-2">
       <div className="flex items-center gap-2">
         <FileAttachment
           onFileAttach={onFileAttach}

@@ -1,6 +1,6 @@
 .simple-tiptap-container {
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  border: none;
+  border-radius: 0;
   background: white;
   display: flex;
   flex-direction: column;
@@ -12,10 +12,11 @@
   display: flex;
   align-items: center;
   padding: 8px 12px;
-  border-bottom: 1px solid #e2e8f0;
-  background: #f8fafc;
+  border: none;
+  background: #27272a;
   flex-wrap: wrap;
   gap: 4px;
+  margin-top: -1px;
 }
 
 .toolbar-group {
@@ -40,14 +41,14 @@
   border: none;
   border-radius: 4px;
   background: transparent;
-  color: #64748b;
+  color: #9ca3af;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .toolbar-button:hover:not(:disabled) {
-  background: #e2e8f0;
-  color: #334155;
+  background: #374151;
+  color: #f3f4f6;
 }
 
 .toolbar-button:disabled {
@@ -62,10 +63,10 @@
 
 .toolbar-select {
   padding: 4px 8px;
-  border: 1px solid #e2e8f0;
+  border: 1px solid #3f3f46;
   border-radius: 4px;
-  background: white;
-  color: #334155;
+  background: #27272a;
+  color: #f3f4f6;
   font-size: 14px;
   cursor: pointer;
 }

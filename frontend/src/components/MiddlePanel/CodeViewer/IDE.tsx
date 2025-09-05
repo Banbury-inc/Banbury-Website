@@ -341,7 +341,7 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-black">
+      <div className="h-full flex items-center justify-center bg-zinc-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-gray-400">Loading IDE...</p>
@@ -352,7 +352,7 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-black">
+      <div className="h-full flex items-center justify-center bg-zinc-800">
         <div className="text-center max-w-md">
           <h3 className="text-xl font-semibold text-white mb-2">Error Loading IDE</h3>
           <p className="text-gray-400 mb-4">{error}</p>
@@ -364,9 +364,9 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
   const activeTab = tabs.find(t => t.id === activeTabId);
 
   return (
-    <div className="h-full bg-black flex flex-col">
+    <div className="h-full bg-zinc-800 flex flex-col">
       {/* IDE Header */}
-      <div className="bg-zinc-900 border-b border-zinc-700 px-4 py-2 flex items-center justify-between">
+      <div className="bg-zinc-800 border-b border-zinc-600 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <button
             onClick={() => setIsFileExplorerOpen(!isFileExplorerOpen)}
@@ -406,8 +406,8 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
       <div className="flex-1 flex">
         {/* File Explorer Sidebar */}
         {isFileExplorerOpen && (
-          <div className="w-64 bg-zinc-800 border-r border-zinc-700 flex flex-col">
-            <div className="p-3 border-b border-zinc-700">
+          <div className="w-64 bg-zinc-800 border-r  border-zinc-600 flex flex-col">
+            <div className="p-3 border-b border-zinc-600">
               <h3 className="text-sm font-medium text-gray-300">Explorer</h3>
             </div>
             <div className="flex-1 overflow-y-auto p-2">
@@ -421,7 +421,7 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
         <div className="flex-1 flex flex-col">
           {/* Tab Bar */}
           {tabs.length > 0 && (
-            <div className="bg-zinc-800 border-b border-zinc-700 flex items-center">
+            <div className="bg-zinc-800 border-b border-zinc-600 flex items-center">
               {tabs.map(tab => {
                 const FileIcon = getFileIcon(tab.file.name);
                 return (
@@ -490,7 +490,7 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
 
           {/* Terminal */}
           {isTerminalOpen && (
-            <div className="h-48 bg-zinc-900 border-t border-zinc-700 flex flex-col">
+            <div className="h-48 bg-zinc-700 border-t border-zinc-700 flex flex-col">
               <div className="px-3 py-2 border-b border-zinc-700 flex items-center justify-between">
                 <span className="text-sm text-gray-300">Terminal</span>
                 <button
@@ -524,7 +524,7 @@ const IDE: React.FC<IDEProps> = ({ file, userInfo, onSaveComplete }) => {
       </div>
 
       {/* Status Bar */}
-      <div className="bg-zinc-900 border-t border-zinc-700 px-4 py-1 flex items-center justify-between text-xs text-gray-400">
+      <div className="bg-zinc-800 border-t border-zinc-700 px-4 py-1 flex items-center justify-between text-xs text-gray-400">
         <div className="flex items-center gap-4">
           <span>{activeTab ? `${language} • ${activeTab.file.name}` : 'No file'}</span>
           {activeTab?.isModified && <span className="text-yellow-400">Modified</span>}

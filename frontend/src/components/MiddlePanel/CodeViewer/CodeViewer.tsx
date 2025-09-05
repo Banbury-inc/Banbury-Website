@@ -127,7 +127,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ file, userInfo }) => {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-black">
+      <div className="h-full flex items-center justify-center bg-zinc-800">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
           <p className="text-gray-400">Loading code file...</p>
@@ -138,7 +138,7 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ file, userInfo }) => {
 
   if (error) {
     return (
-      <div className="h-full flex items-center justify-center bg-black">
+      <div className="h-full flex items-center justify-center bg-[#27272a]">
         <div className="text-center max-w-md">
           <h3 className="text-xl font-semibold text-white mb-2">Error Loading File</h3>
           <p className="text-gray-400 mb-4">{error}</p>
@@ -151,9 +151,9 @@ const CodeViewer: React.FC<CodeViewerProps> = ({ file, userInfo }) => {
   }
 
   return (
-    <div className="h-full bg-black flex flex-col">
+    <div className="h-full bg-zinc-800 flex flex-col">
       {/* Header with file info */}
-      <div className="bg-zinc-900 border-b border-zinc-700 px-4 py-2 flex items-center justify-between">
+      <div className="bg-zinc-700 border-b border-zinc-600 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="text-sm text-gray-300">
             <span className="font-medium">{file.name}</span>

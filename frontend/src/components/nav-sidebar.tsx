@@ -91,7 +91,7 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
                 <Button
                   variant={isActive(item.path) ? "default" : "ghost"}
                   size="icon"
-                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black border border-zinc-300 dark:border-zinc-600 transition-colors peer"
+                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black transition-colors peer"
                   onClick={() => router.push(item.path)}
                 >
                   <Icon className="h-5 w-5" />
@@ -113,7 +113,7 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
             <Button
               variant="ghost"
               size="icon"
-              className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white border border-zinc-300 dark:border-zinc-600 transition-colors peer"
+              className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white transition-colors peer"
               onClick={onLogout}
             >
               <LogOut className="h-5 w-5" />

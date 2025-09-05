@@ -196,7 +196,7 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
   }, [email])
 
   return (
-    <div className="h-full flex flex-col bg-white">
+    <div className="h-full flex flex-col bg-zinc-800">
       {/* Compact Header */}
       {!email ? (
         <div className="h-full flex items-center justify-center text-gray-400">
@@ -204,23 +204,23 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
         </div>
       ) : (
         <>
-      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200">
+      <div className="flex items-center justify-between px-6 py-3 bg-zinc-800 border-b border-zinc-700">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {onBack && (
             <Button
               variant="ghost"
               size="sm"
               onClick={onBack}
-              className="text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200"
+              className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-black text-lg font-semibold truncate">
+            <h1 className="text-white text-lg font-semibold truncate">
               {getHeader('Subject') || '(No Subject)'}
             </h1>
-            <div className="flex items-center gap-4 text-xs text-slate-600 mt-1">
+            <div className="flex items-center gap-4 text-xs text-zinc-400 mt-1">
               <div className="flex items-center gap-1">
                 <User className="h-3 w-3" />
                 <span className="truncate">{getHeader('From')}</span>
@@ -235,52 +235,52 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
         
         {/* Compact Actions */}
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleReply} disabled={actionLoading}>
+          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleReply} disabled={actionLoading}>
             <Reply className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleForward} disabled={actionLoading}>
+          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleForward} disabled={actionLoading}>
             <Forward className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleArchive} disabled={actionLoading}>
+          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleArchive} disabled={actionLoading}>
             <Archive className="h-3 w-3" />
           </Button>
           <Button 
             variant="ghost" 
             size="sm" 
-            className={isStarred ? "text-yellow-500 hover:bg-yellow-50 p-1 h-8 w-8 rounded-md transition-colors duration-200" : "text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200"}
+            className={isStarred ? "text-yellow-500 hover:bg-yellow-50 p-1 h-8 w-8 rounded-md transition-colors duration-200" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200"}
             onClick={handleToggleStar}
             disabled={actionLoading}
           >
             <Star className="h-3 w-3" fill={isStarred ? 'currentColor' : 'none'} />
           </Button>
-          <Button variant="ghost" size="sm" className="text-slate-500 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleDelete} disabled={actionLoading}>
+          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleDelete} disabled={actionLoading}>
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
       </div>
 
       {/* Email Content */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-400 scrollbar-track-zinc-100 hover:scrollbar-thumb-zinc-500">
         <div className="w-full">
           {/* Threaded conversation header */}
-          <div className="px-6 py-4 border-b border-zinc-800/30 bg-white">
+          <div className="px-6 py-4 border-b border-zinc-800/30 bg-zinc-800">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-slate-500" />
-                <span className="text-slate-400 w-12">From:</span>
-                <span className="text-slate-900 font-medium truncate">{getHeader('From')}</span>
+                <Mail className="h-4 w-4 text-zinc-400" />
+                <span className="text-zinc-400 w-12">From:</span>
+                <span className="text-zinc-400 font-medium truncate">{getHeader('From')}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-slate-500" />
-                <span className="text-slate-400 w-12">To:</span>
-                <span className="text-slate-900 font-medium truncate">{getHeader('To')}</span>
+                <Mail className="h-4 w-4 text-zinc-400" />
+                <span className="text-zinc-400 w-12">To:</span>
+                <span className="text-zinc-400 font-medium truncate">{getHeader('To')}</span>
               </div>
             </div>
           </div>
 
           <div className="w-full">
             {threadLoading && (
-              <div className="p-6 text-sm text-slate-500">Loading thread…</div>
+              <div className="p-6 text-sm text-zinc-500">Loading thread…</div>
             )}
             {!threadLoading && (threadMessages.length > 0 ? (
               <div className="bg-white">

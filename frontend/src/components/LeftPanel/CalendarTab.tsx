@@ -127,7 +127,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-900">
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-800">
         <h2 className="text-gray-200 text-sm font-medium">Calendar</h2>
         <div className="flex items-center gap-2">
           <Button
@@ -165,7 +165,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
         </div>
       </div>
 
-      <div className="px-4 py-2 bg-zinc-900 border-b border-zinc-700">
+      <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
         <div className="flex gap-2">
           <Input
             placeholder="Search events..."

@@ -194,7 +194,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
       days.push(d)
     }
     return (
-      <div className="flex-1 overflow-auto bg-zinc-900">
+      <div className="flex-1 overflow-auto bg-zinc-800">
         <div className="grid grid-cols-7 border-t border-l border-zinc-700 h-full">
           {['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map((d) => (
             <div key={d} className="p-2 text-xs font-medium text-slate-400 border-r border-b border-zinc-700 bg-zinc-800">{d}</div>
@@ -585,7 +585,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
   }
 
   return (
-    <div className="h-full flex flex-col bg-zinc-900">
+    <div className="h-full flex flex-col bg-zinc-800">
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
         <div className="flex items-center gap-2">
           <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-slate-400 hover:text-slate-200" onClick={goPrev}>
