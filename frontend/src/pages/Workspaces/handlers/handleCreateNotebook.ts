@@ -55,7 +55,8 @@ export const handleCreateNotebook = async (
   setUploading: (uploading: boolean) => void,
   toast: ToastFunction,
   triggerSidebarRefresh: () => void,
-  notebookName?: string
+  notebookName?: string,
+  targetPath?: string
 ) => {
   if (!userInfo?.username) return
   setUploading(true)
@@ -76,7 +77,9 @@ export const handleCreateNotebook = async (
     }
     const fileName = `${(notebookName || 'New Notebook').replace(/\.ipynb$/, '')}.ipynb`
     const blob = new Blob([JSON.stringify(base, null, 2)], { type: 'application/json' })
-    await uploadToS3(blob, userInfo.username, `notebooks/${fileName}`, 'notebooks')
+    const defaultFolder = 'notebooks';
+    const parentFolder = (targetPath && targetPath.trim().length > 0) ? targetPath : defaultFolder;
+    await uploadToS3(blob, userInfo.username, `${parentFolder}/${fileName}`, parentFolder)
     toast({ title: 'Notebook created', description: `${fileName} has been created and uploaded.`, variant: 'success' })
     triggerSidebarRefresh()
   } catch (error) {

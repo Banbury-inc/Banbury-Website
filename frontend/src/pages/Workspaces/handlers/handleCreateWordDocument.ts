@@ -66,7 +66,8 @@ export const handleCreateWordDocument = async (
   setUploading: (uploading: boolean) => void,
   toast: ToastFunction,
   triggerSidebarRefresh: () => void,
-  documentName?: string
+  documentName?: string,
+  targetPath?: string
 ) => {
   if (!userInfo?.username) return;
 
@@ -112,13 +113,15 @@ Welcome to your new Word document!`;
     // Generate the document as a blob
     const blob = await Packer.toBlob(doc);
 
+    const defaultFolder = 'documents';
+    const parentFolder = (targetPath && targetPath.trim().length > 0) ? targetPath : defaultFolder;
+
     // Upload document using the uploadToS3 function
-    
     await uploadToS3(
       blob,
       userInfo.username,
-      `documents/${fileName}`,
-      'documents'
+      `${parentFolder}/${fileName}`,
+      parentFolder
     );
     
     // Show success toast

@@ -66,7 +66,8 @@ export const handleCreateSpreadsheet = async (
   setUploading: (uploading: boolean) => void,
   toast: ToastFunction,
   triggerSidebarRefresh: () => void,
-  spreadsheetName?: string
+  spreadsheetName?: string,
+  targetPath?: string
 ) => {
   if (!userInfo?.username) return;
 
@@ -88,13 +89,15 @@ Alice Brown,alice.brown@example.com,555-0104,HR`;
     // Create CSV blob
     const blob = new Blob([csvContent], { type: 'text/csv' });
 
+    const defaultFolder = 'spreadsheets';
+    const parentFolder = (targetPath && targetPath.trim().length > 0) ? targetPath : defaultFolder;
+
     // Upload spreadsheet using the uploadToS3 function
-    
     await uploadToS3(
       blob,
       userInfo.username,
-      `spreadsheets/${fileName}`,
-      'spreadsheets'
+      `${parentFolder}/${fileName}`,
+      parentFolder
     );
     
     // Show success toast

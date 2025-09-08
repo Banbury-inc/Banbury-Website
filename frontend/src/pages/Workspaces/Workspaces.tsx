@@ -405,16 +405,16 @@ const Workspaces = (): JSX.Element => {
     );
   }, [renderPanel]);
 
-  const handleCreateWordDocumentWrapper = async (documentName: string) => {
-    await handleCreateWordDocument(userInfo, setUploading, toast, triggerSidebarRefresh, documentName);
+  const handleCreateWordDocumentWrapper = async (documentName: string, targetPath: string) => {
+    await handleCreateWordDocument(userInfo, setUploading, toast, triggerSidebarRefresh, documentName, targetPath);
   };
 
-  const handleCreateSpreadsheetWrapper = async (spreadsheetName: string) => {
-    await handleCreateSpreadsheet(userInfo, setUploading, toast, triggerSidebarRefresh, spreadsheetName);
+  const handleCreateSpreadsheetWrapper = async (spreadsheetName: string, targetPath: string) => {
+    await handleCreateSpreadsheet(userInfo, setUploading, toast, triggerSidebarRefresh, spreadsheetName, targetPath);
   };
 
-  const handleCreateNotebookWrapper = async (notebookName: string) => {
-    await handleCreateNotebook(userInfo, setUploading, toast, triggerSidebarRefresh, notebookName);
+  const handleCreateNotebookWrapper = async (notebookName: string, targetPath: string) => {
+    await handleCreateNotebook(userInfo, setUploading, toast, triggerSidebarRefresh, notebookName, targetPath);
   };
 
   const handleGenerateImage = async () => {
