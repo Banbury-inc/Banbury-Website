@@ -807,6 +807,10 @@ const createFileTool = tool(
         break;
       }
       case 'xlsx': {
+        console.log('[create_file] XLSX case - input content type:', typeof bodyContent);
+        console.log('[create_file] XLSX case - input content length:', bodyContent?.length);
+        console.log('[create_file] XLSX case - input content sample:', bodyContent?.substring ? bodyContent.substring(0, 100) : 'Not a string');
+        
         // For XLSX files, convert plain text content to proper XLSX format using ExcelJS
         const ExcelJSImport = await import('exceljs');
         const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport;
@@ -879,9 +883,18 @@ const createFileTool = tool(
           }
         });
 
-        // Generate XLSX buffer and update bodyContent
+        // Generate XLSX buffer
         const buffer = await workbook.xlsx.writeBuffer();
-        bodyContent = buffer;
+        console.log('[create_file] XLSX buffer created, size:', buffer.byteLength);
+        
+        // Create blob directly here since we have binary data
+        const xlsxBlob = new Blob([buffer], { 
+          type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+        });
+        console.log('[create_file] XLSX blob created, size:', xlsxBlob.size, 'type:', xlsxBlob.type);
+        
+        // We'll handle this case specially after the switch
+        bodyContent = xlsxBlob;
         resolvedType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
         break;
       }
@@ -899,7 +912,13 @@ const createFileTool = tool(
       }
     }
 
-    const fileBlob = new Blob([bodyContent], { type: resolvedType });
+    // If bodyContent is already a Blob (e.g., for XLSX), use it directly
+    const fileBlob = bodyContent instanceof Blob 
+      ? bodyContent 
+      : new Blob([bodyContent], { type: resolvedType });
+    
+    console.log('[create_file] Final blob size:', fileBlob.size, 'type:', fileBlob.type, 'fileName:', input.fileName);
+    
     const formData = new FormData();
     formData.append('file', fileBlob, input.fileName);
     formData.append('device_name', 'web-editor');

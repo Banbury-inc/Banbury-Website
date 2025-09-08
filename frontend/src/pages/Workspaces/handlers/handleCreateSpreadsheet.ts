@@ -68,6 +68,7 @@ export const handleCreateSpreadsheet = async (
   triggerSidebarRefresh: () => void,
   spreadsheetName?: string
 ) => {
+  console.log('[handleCreateSpreadsheet] Starting spreadsheet creation, name:', spreadsheetName);
   if (!userInfo?.username) return;
 
   setUploading(true);
@@ -118,18 +119,23 @@ export const handleCreateSpreadsheet = async (
 
     // Generate XLSX buffer and create blob
     const buffer = await workbook.xlsx.writeBuffer();
+    console.log('[handleCreateSpreadsheet] XLSX buffer created, size:', buffer.byteLength);
+    
     const blob = new Blob([buffer], { 
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
     });
+    console.log('[handleCreateSpreadsheet] Blob created, size:', blob.size, 'type:', blob.type);
 
     // Upload spreadsheet using the uploadToS3 function
+    console.log('[handleCreateSpreadsheet] Uploading to S3...');
     
-    await uploadToS3(
+    const uploadResult = await uploadToS3(
       blob,
       userInfo.username,
       fileName,
       ''
     );
+    console.log('[handleCreateSpreadsheet] Upload result:', uploadResult);
     
     // Show success toast
     toast({
