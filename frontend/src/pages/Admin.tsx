@@ -98,6 +98,10 @@ interface User {
   lastAiMessageAt?: string
   loginCount?: number
   lastLoginDate?: string
+  dashboardVisitCount?: number
+  lastDashboardVisitDate?: string
+  workspaceVisitCount?: number
+  lastWorkspaceVisitDate?: string
   preferredAuthMethod?: string
   googleScopes?: string[]
   scopeCount?: number
@@ -194,6 +198,31 @@ interface GoogleScopesAnalytics {
   users_with_scopes: Array<{user_id: string, username: string, email: string, scopes: string[], scope_count: number}>
 }
 
+interface ConversationData {
+  _id: string
+  username: string
+  title: string
+  message_count: number
+  created_at: string
+  updated_at: string
+  last_message_at?: string
+  messages: any[]
+  metadata?: any
+}
+
+interface ConversationsAnalytics {
+  success: boolean
+  conversations: ConversationData[]
+  summary: {
+    total_conversations: number
+    unique_users: number
+    total_messages: number
+    avg_messages_per_conversation: number
+    period_days: number
+  }
+  error?: string
+}
+
 export default function Admin() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
@@ -226,6 +255,22 @@ export default function Admin() {
   const [loginLoading, setLoginLoading] = useState(false)
   const [scopesAnalytics, setScopesAnalytics] = useState<GoogleScopesAnalytics | null>(null)
   const [scopesLoading, setScopesLoading] = useState(false)
+  const [conversationsAnalytics, setConversationsAnalytics] = useState<ConversationsAnalytics | null>(null)
+  const [conversationsLoading, setConversationsLoading] = useState(false)
+  const [analyticsSubTab, setAnalyticsSubTab] = useState<string>('overview')
+  const [conversationUserFilter, setConversationUserFilter] = useState<string>('')
+  const [conversationUsers, setConversationUsers] = useState<string[]>([])
+  const [usersLoading, setUsersLoading] = useState(false)
+  const [expandedConversation, setExpandedConversation] = useState<string | null>(null)
+  const [conversationDetails, setConversationDetails] = useState<any>(null)
+  const [conversationDetailsLoading, setConversationDetailsLoading] = useState(false)
+  const [visitorIpExclusions, setVisitorIpExclusions] = useState<string[]>([])
+  const [visitorIpInput, setVisitorIpInput] = useState<string>('')
+  const [visitorLocationFilter, setVisitorLocationFilter] = useState<string>('')
+  const [dashboardVisitStats, setDashboardVisitStats] = useState<any>(null)
+  const [dashboardVisitLoading, setDashboardVisitLoading] = useState(false)
+  const [workspaceVisitStats, setWorkspaceVisitStats] = useState<any>(null)
+  const [workspaceVisitLoading, setWorkspaceVisitLoading] = useState(false)
 
   useEffect(() => {
     // Check if user is authorized (mmills only)
@@ -248,13 +293,17 @@ export default function Admin() {
     loadAdminData()
   }, [router])
 
-  // Load visitor, login, and scopes data when analytics tab is selected
+  // Load visitor, login, scopes, and conversations data when analytics tab is selected
   useEffect(() => {
-    if (activeTab === 'analytics' && !visitorLoading && !loginLoading && !scopesLoading) {
-      loadVisitorData(30)
-      loadLoginData(30)
-      loadScopesAnalytics()
-    }
+        if (activeTab === 'analytics' && !visitorLoading && !loginLoading && !scopesLoading && !conversationsLoading && !usersLoading && !dashboardVisitLoading && !workspaceVisitLoading) {
+          loadVisitorData(30)
+          loadLoginData(30)
+          loadScopesAnalytics()
+          loadConversationsAnalytics(30, conversationUserFilter)
+          loadConversationUsers(30)
+          loadDashboardVisitStats()
+          loadWorkspaceVisitStats()
+        }
   }, [activeTab])
 
   // Debug daily_stats changes
@@ -473,6 +522,173 @@ export default function Admin() {
       setScopesAnalytics(null)
     } finally {
       setScopesLoading(false)
+    }
+  }
+
+  const loadConversationsAnalytics = async (days: number = 30, userFilter: string = '') => {
+    setConversationsLoading(true)
+    try {
+      const response = await ApiService.getConversationsAnalytics(50, 0, days, userFilter) as ConversationsAnalytics
+      console.log('Conversations analytics response:', response)
+      if (response.success) {
+        setConversationsAnalytics(response)
+      }
+    } catch (error) {
+      console.error('Failed to load conversations analytics:', error)
+      setConversationsAnalytics(null)
+    } finally {
+      setConversationsLoading(false)
+    }
+  }
+
+  const loadConversationUsers = async (days: number = 30) => {
+    setUsersLoading(true)
+    try {
+      const response = await ApiService.getConversationUsers(days) as any
+      console.log('Conversation users response:', response)
+      if (response.success) {
+        setConversationUsers(response.users || [])
+      }
+    } catch (error) {
+      console.error('Failed to load conversation users:', error)
+      setConversationUsers([])
+    } finally {
+      setUsersLoading(false)
+    }
+  }
+
+  const loadConversationDetails = async (conversationId: string) => {
+    setConversationDetailsLoading(true)
+    try {
+      const response = await ApiService.getConversation(conversationId) as any
+      console.log('Conversation details response:', response)
+      if (response.success) {
+        setConversationDetails(response.conversation)
+        setExpandedConversation(conversationId)
+      }
+    } catch (error) {
+      console.error('Failed to load conversation details:', error)
+      setConversationDetails(null)
+    } finally {
+      setConversationDetailsLoading(false)
+    }
+  }
+
+  const handleConversationRowClick = (conversationId: string) => {
+    if (expandedConversation === conversationId) {
+      // If already expanded, collapse it
+      setExpandedConversation(null)
+      setConversationDetails(null)
+    } else {
+      // Load and expand the conversation
+      loadConversationDetails(conversationId)
+    }
+  }
+
+  const getFilteredVisitors = () => {
+    if (!visitorData || visitorData.length === 0) return []
+    
+    return visitorData.filter(visitor => {
+      // Exclude visitors with IP addresses in the exclusion list
+      const isIpExcluded = visitorIpExclusions.some(excludedIp => 
+        visitor.ip_address?.toLowerCase().includes(excludedIp.toLowerCase())
+      )
+      
+      // Include visitors that match location filter (if specified)
+      const matchesLocation = !visitorLocationFilter || 
+        visitor.city?.toLowerCase().includes(visitorLocationFilter.toLowerCase()) ||
+        visitor.region?.toLowerCase().includes(visitorLocationFilter.toLowerCase()) ||
+        visitor.country?.toLowerCase().includes(visitorLocationFilter.toLowerCase())
+      
+      return !isIpExcluded && matchesLocation
+    })
+  }
+
+  // Reset visitor page when filters change
+  useEffect(() => {
+    setVisitorPage(1)
+  }, [visitorIpExclusions, visitorLocationFilter])
+
+  const addIpExclusion = () => {
+    if (visitorIpInput.trim() && !visitorIpExclusions.includes(visitorIpInput.trim())) {
+      setVisitorIpExclusions([...visitorIpExclusions, visitorIpInput.trim()])
+      setVisitorIpInput('')
+    }
+  }
+
+  const removeIpExclusion = (ipToRemove: string) => {
+    setVisitorIpExclusions(visitorIpExclusions.filter(ip => ip !== ipToRemove))
+  }
+
+  const clearAllFilters = () => {
+    setVisitorIpExclusions([])
+    setVisitorIpInput('')
+    setVisitorLocationFilter('')
+  }
+
+  const loadDashboardVisitStats = async () => {
+    try {
+      setDashboardVisitLoading(true)
+      const response = await ApiService.get('/users/list_all_users/') as any
+      if (response && response.users) {
+        const totalDashboardVisits = response.users.reduce((sum: number, user: User) => 
+          sum + (user.dashboardVisitCount || 0), 0)
+        
+        const recentDashboardVisits = response.users.reduce((sum: number, user: User) => {
+          if (user.lastDashboardVisitDate) {
+            const visitDate = new Date(user.lastDashboardVisitDate)
+            const cutoffDate = new Date()
+            cutoffDate.setDate(cutoffDate.getDate() - 30) // Last 30 days
+            if (visitDate >= cutoffDate) {
+              return sum + (user.dashboardVisitCount || 0)
+            }
+          }
+          return sum
+        }, 0)
+
+        setDashboardVisitStats({
+          total_dashboard_visits: totalDashboardVisits,
+          recent_dashboard_visits: recentDashboardVisits,
+          period_days: 30
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load dashboard visit stats:', error)
+    } finally {
+      setDashboardVisitLoading(false)
+    }
+  }
+
+  const loadWorkspaceVisitStats = async () => {
+    try {
+      setWorkspaceVisitLoading(true)
+      const response = await ApiService.get('/users/list_all_users/') as any
+      if (response && response.users) {
+        const totalWorkspaceVisits = response.users.reduce((sum: number, user: User) => 
+          sum + (user.workspaceVisitCount || 0), 0)
+        
+        const recentWorkspaceVisits = response.users.reduce((sum: number, user: User) => {
+          if (user.lastWorkspaceVisitDate) {
+            const visitDate = new Date(user.lastWorkspaceVisitDate)
+            const cutoffDate = new Date()
+            cutoffDate.setDate(cutoffDate.getDate() - 30) // Last 30 days
+            if (visitDate >= cutoffDate) {
+              return sum + (user.workspaceVisitCount || 0)
+            }
+          }
+          return sum
+        }, 0)
+
+        setWorkspaceVisitStats({
+          total_workspace_visits: totalWorkspaceVisits,
+          recent_workspace_visits: recentWorkspaceVisits,
+          period_days: 30
+        })
+      }
+    } catch (error) {
+      console.error('Failed to load workspace visit stats:', error)
+    } finally {
+      setWorkspaceVisitLoading(false)
     }
   }
 
@@ -710,6 +926,10 @@ export default function Admin() {
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">AI Msgs</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Logins</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Last Login</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Dashboard Visits</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Last Dashboard Visit</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Workspace Visits</th>
+                          <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs">Last Workspace Visit</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs" title="Email Scope">Email</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs" title="Profile Scope">Profile</th>
                           <th className="text-center py-2 px-1 text-zinc-300 font-medium text-xs" title="Gmail Scope">Gmail</th>
@@ -762,6 +982,18 @@ export default function Admin() {
                             </td>
                             <td className="py-2 px-1 text-center text-zinc-400 text-xs">
                               {user.lastLoginDate ? convertToEasternTime(user.lastLoginDate) : 'Never'}
+                            </td>
+                            <td className="py-2 px-1 text-center">
+                              <span className="text-white font-medium text-sm">{user.dashboardVisitCount?.toLocaleString() || 0}</span>
+                            </td>
+                            <td className="py-2 px-1 text-center text-zinc-400 text-xs">
+                              {user.lastDashboardVisitDate ? convertToEasternTime(user.lastDashboardVisitDate) : 'Never'}
+                            </td>
+                            <td className="py-2 px-1 text-center">
+                              <span className="text-white font-medium text-sm">{user.workspaceVisitCount?.toLocaleString() || 0}</span>
+                            </td>
+                            <td className="py-2 px-1 text-center text-zinc-400 text-xs">
+                              {user.lastWorkspaceVisitDate ? convertToEasternTime(user.lastWorkspaceVisitDate) : 'Never'}
                             </td>
                             {/* Individual Scope Columns */}
                             <td className="py-2 px-1 text-center">
@@ -1062,6 +1294,8 @@ export default function Admin() {
                       loadVisitorData(days)
                       loadLoginData(days)
                       loadScopesAnalytics()
+                      loadConversationsAnalytics(days, conversationUserFilter)
+                      loadConversationUsers(days)
                     }}
                     className="bg-zinc-800 text-white border border-zinc-600 rounded px-3 py-2"
                     defaultValue="30"
@@ -1074,14 +1308,44 @@ export default function Admin() {
                     loadVisitorData(30)
                     loadLoginData(30)
                     loadScopesAnalytics()
+                    loadConversationsAnalytics(30, conversationUserFilter)
+                    loadConversationUsers(30)
+                    loadDashboardVisitStats()
+                    loadWorkspaceVisitStats()
                   }} variant="outline" className="text-white border-zinc-600">
                     <RefreshCw className="h-4 w-4 mr-2" />
                     Refresh
                   </Button>
                 </div>
               </div>
+
+              {/* Analytics Sub-tabs */}
+              <div className="border-b border-zinc-700">
+                <nav className="flex space-x-8">
+                  {[
+                    { id: 'overview', label: 'Overview' },
+                    { id: 'visitors', label: 'Visitors' },
+                    { id: 'conversations', label: 'AI Conversations' }
+                  ].map((tab) => (
+                    <button
+                      key={tab.id}
+                      onClick={() => setAnalyticsSubTab(tab.id)}
+                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
+                        analyticsSubTab === tab.id
+                          ? 'border-blue-500 text-blue-400'
+                          : 'border-transparent text-zinc-400 hover:text-white hover:border-zinc-300'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </nav>
+              </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Overview Tab */}
+              {analyticsSubTab === 'overview' && (
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
                 <Card className="bg-zinc-900 border-zinc-700">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-white text-sm">Total Visitors</CardTitle>
@@ -1129,9 +1393,81 @@ export default function Admin() {
                     <div className="text-zinc-400 text-sm">Last {loginStats?.period_days || 30} days</div>
                   </CardContent>
                 </Card>
-              </div>
 
-              {/* Google Scopes Analytics Section */}
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">AI Conversations</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {conversationsAnalytics?.summary?.total_conversations?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">Last {conversationsAnalytics?.summary?.period_days || 30} days</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">AI Messages</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {conversationsAnalytics?.summary?.total_messages?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">Avg {conversationsAnalytics?.summary?.avg_messages_per_conversation || 0} per chat</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">Total Dashboard Visits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {dashboardVisitStats?.total_dashboard_visits?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">All time</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">Recent Dashboard Visits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {dashboardVisitStats?.recent_dashboard_visits?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">Last {dashboardVisitStats?.period_days || 30} days</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">Total Workspace Visits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {workspaceVisitStats?.total_workspace_visits?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">All time</div>
+                  </CardContent>
+                </Card>
+
+                <Card className="bg-zinc-900 border-zinc-700">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-white text-sm">Recent Workspace Visits</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-2xl font-bold text-white">
+                      {workspaceVisitStats?.recent_workspace_visits?.toLocaleString() || '0'}
+                    </div>
+                    <div className="text-zinc-400 text-sm">Last {workspaceVisitStats?.period_days || 30} days</div>
+                  </CardContent>
+                </Card>
+                  </div>
+
+                  {/* Google Scopes Analytics Section */}
               <Card className="bg-zinc-900 border-zinc-700 mb-4">
                 <CardHeader>
                   <div className="flex justify-between items-center">
@@ -1607,23 +1943,117 @@ export default function Admin() {
                     )}
                   </CardContent>
                 </Card>
-              </div>
+                </div>
+                </div>
+              )}
 
-              <Card className="bg-zinc-900 border-zinc-700">
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="text-white">Recent Visitors</CardTitle>
-                      <CardDescription className="text-zinc-400">Latest site visitors with location data</CardDescription>
-                    </div>
-                    <div className="flex items-center gap-2">
+              {/* Visitors Tab */}
+              {analyticsSubTab === 'visitors' && (
+                <div className="space-y-6">
+                  {/* Visitor Filters */}
+                  <Card className="bg-zinc-900 border-zinc-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Filter Visitors</CardTitle>
+                      <CardDescription className="text-zinc-400">Filter visitors by IP address or location</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="ip-exclusion" className="text-white text-sm mb-2 block">
+                            Exclude IP Addresses
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="ip-exclusion"
+                              type="text"
+                              placeholder="Enter IP address to exclude..."
+                              value={visitorIpInput}
+                              onChange={(e) => setVisitorIpInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && addIpExclusion()}
+                              className="bg-zinc-800 text-white border-zinc-600 focus:border-blue-500"
+                            />
+                            <Button 
+                              onClick={addIpExclusion}
+                              variant="outline"
+                              className="text-white border-zinc-600 hover:bg-zinc-800"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {visitorIpExclusions.length > 0 && (
+                            <div className="mt-2">
+                              <div className="text-zinc-400 text-xs mb-1">Excluded IPs:</div>
+                              <div className="flex flex-wrap gap-2">
+                                {visitorIpExclusions.map((ip) => (
+                                  <span
+                                    key={ip}
+                                    className="bg-red-900/50 text-red-300 px-2 py-1 rounded text-xs flex items-center gap-1"
+                                  >
+                                    {ip}
+                                    <button
+                                      onClick={() => removeIpExclusion(ip)}
+                                      className="text-red-400 hover:text-red-200 ml-1"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="location-filter" className="text-white text-sm mb-2 block">
+                            Location Filter (City, Region, Country)
+                          </Label>
+                          <Input
+                            id="location-filter"
+                            type="text"
+                            placeholder="Enter location to filter..."
+                            value={visitorLocationFilter}
+                            onChange={(e) => setVisitorLocationFilter(e.target.value)}
+                            className="bg-zinc-800 text-white border-zinc-600 focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          onClick={clearAllFilters}
+                          variant="outline"
+                          className="text-white border-zinc-600 hover:bg-zinc-800"
+                        >
+                          Clear All Filters
+                        </Button>
+                        {(visitorIpExclusions.length > 0 || visitorLocationFilter) && (
+                          <div className="text-zinc-400 text-sm flex items-center">
+                            Showing {getFilteredVisitors().length} of {visitorData.length} visitors
+                            {visitorIpExclusions.length > 0 && ` (${visitorIpExclusions.length} IPs excluded)`}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-zinc-900 border-zinc-700">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-white">Recent Visitors</CardTitle>
+                          <CardDescription className="text-zinc-400">
+                            Latest site visitors with location data
+                            {(visitorIpExclusions.length > 0 || visitorLocationFilter) && ' (filtered)'}
+                          </CardDescription>
+                        </div>
+                        <div className="flex items-center gap-2">
                       {(() => {
-                        const totalPages = getTotalPages({ totalItems: visitorData.length, pageSize: visitorPageSize })
+                        const filteredVisitors = getFilteredVisitors()
+                        const totalPages = getTotalPages({ totalItems: filteredVisitors.length, pageSize: visitorPageSize })
                         const currentPage = clampPage({ page: visitorPage, totalPages })
                         return (
                           <>
                             <span className="text-zinc-400 text-xs hidden md:inline">
-                              Page {currentPage} of {totalPages} • {visitorData.length} total
+                              Page {currentPage} of {totalPages} • {filteredVisitors.length} total
+                              {(visitorIpExclusions.length > 0 || visitorLocationFilter) && ` (filtered from ${visitorData.length})`}
                             </span>
                             <Button 
                               variant="outline" 
@@ -1646,9 +2076,9 @@ export default function Admin() {
                           </>
                         )
                       })()}
-                    </div>
-                  </div>
-                </CardHeader>
+                        </div>
+                      </div>
+                    </CardHeader>
                 <CardContent>
                   {visitorLoading ? (
                     <div className="flex items-center justify-center py-8">
@@ -1668,9 +2098,10 @@ export default function Admin() {
                         </thead>
                         <tbody>
                           {(() => {
-                            const totalPages = getTotalPages({ totalItems: visitorData.length, pageSize: visitorPageSize })
+                            const filteredVisitors = getFilteredVisitors()
+                            const totalPages = getTotalPages({ totalItems: filteredVisitors.length, pageSize: visitorPageSize })
                             const currentPage = clampPage({ page: visitorPage, totalPages })
-                            const paged = getPageSlice({ items: visitorData, page: currentPage, pageSize: visitorPageSize })
+                            const paged = getPageSlice({ items: filteredVisitors, page: currentPage, pageSize: visitorPageSize })
                             return paged
                           })().map((visitor) => (
                             <tr key={visitor._id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
@@ -1705,7 +2136,227 @@ export default function Admin() {
                     </div>
                   )}
                 </CardContent>
-              </Card>
+                  </Card>
+                </div>
+              )}
+
+              {/* Conversations Tab */}
+              {analyticsSubTab === 'conversations' && (
+                <div className="space-y-6">
+                  {/* User Filter */}
+                  <Card className="bg-zinc-900 border-zinc-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Filter Conversations</CardTitle>
+                      <CardDescription className="text-zinc-400">Filter conversations by username</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-4 items-end">
+                        <div className="flex-1">
+                          <Label htmlFor="user-filter" className="text-white text-sm mb-2 block">
+                            Select User
+                          </Label>
+                          <select
+                            id="user-filter"
+                            value={conversationUserFilter}
+                            onChange={(e) => setConversationUserFilter(e.target.value)}
+                            className="w-full bg-zinc-800 text-white border border-zinc-600 rounded px-3 py-2 focus:border-blue-500 focus:outline-none"
+                          >
+                            <option value="">All Users</option>
+                            {usersLoading ? (
+                              <option disabled>Loading users...</option>
+                            ) : (
+                              conversationUsers.map((username) => (
+                                <option key={username} value={username}>
+                                  {username}
+                                </option>
+                              ))
+                            )}
+                          </select>
+                        </div>
+                        <Button 
+                          onClick={() => loadConversationsAnalytics(30, conversationUserFilter)}
+                          variant="outline"
+                          className="text-white border-zinc-600 hover:bg-zinc-800"
+                        >
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Apply Filter
+                        </Button>
+                        {conversationUserFilter && (
+                          <Button 
+                            onClick={() => {
+                              setConversationUserFilter('')
+                              loadConversationsAnalytics(30, '')
+                            }}
+                            variant="outline"
+                            className="text-white border-zinc-600 hover:bg-zinc-800"
+                          >
+                            Clear
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-zinc-900 border-zinc-700">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <CardTitle className="text-white">AI Conversations</CardTitle>
+                          <CardDescription className="text-zinc-400">
+                            Recent AI conversations with users
+                            {conversationUserFilter && ` (filtered by: ${conversationUserFilter})`}
+                          </CardDescription>
+                        </div>
+                        <Button 
+                          onClick={() => loadConversationsAnalytics(30, conversationUserFilter)} 
+                          variant="outline" 
+                          size="sm"
+                          className="text-white border-zinc-600 hover:bg-zinc-800"
+                        >
+                          <RefreshCw className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </CardHeader>
+                <CardContent>
+                  {conversationsLoading ? (
+                    <div className="flex items-center justify-center py-8">
+                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+                    </div>
+                  ) : conversationsAnalytics?.conversations && conversationsAnalytics.conversations.length > 0 ? (
+                    <div className="overflow-x-auto border border-zinc-700 rounded-lg">
+                      <table className="w-full min-w-full">
+                        <thead>
+                          <tr className="border-b border-zinc-700">
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">User</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Conversation Title</th>
+                            <th className="text-center py-3 px-4 text-zinc-300 font-medium">Messages</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Created</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Last Activity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {conversationsAnalytics.conversations.slice(0, 20).map((conversation) => (
+                            <>
+                              <tr 
+                                key={conversation._id} 
+                                onClick={() => handleConversationRowClick(conversation._id)}
+                                className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors cursor-pointer"
+                              >
+                                <td className="py-3 px-4">
+                                  <span className="text-white font-medium">{conversation.username}</span>
+                                </td>
+                                <td className="py-3 px-4 max-w-[300px]">
+                                  <span className="text-zinc-300 text-sm truncate inline-block max-w-full" title={conversation.title}>
+                                    {conversation.title || 'Untitled Conversation'}
+                                  </span>
+                                </td>
+                                <td className="py-3 px-4 text-center">
+                                  <span className="text-white font-medium">{conversation.message_count}</span>
+                                </td>
+                                <td className="py-3 px-4 text-zinc-400 text-sm">
+                                  {convertToEasternTime(conversation.created_at)}
+                                </td>
+                                <td className="py-3 px-4 text-zinc-400 text-sm">
+                                  {conversation.last_message_at ? convertToEasternTime(conversation.last_message_at) : convertToEasternTime(conversation.updated_at)}
+                                </td>
+                              </tr>
+                              {expandedConversation === conversation._id && (
+                                <tr>
+                                  <td colSpan={5} className="p-0">
+                                    <div className="bg-zinc-800/30 border-l-4 border-blue-500">
+                                      {conversationDetailsLoading ? (
+                                        <div className="p-6 text-center">
+                                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-4"></div>
+                                          <div className="text-zinc-400">Loading conversation details...</div>
+                                        </div>
+                                      ) : conversationDetails ? (
+                                        <div className="p-6">
+                                          <div className="flex justify-between items-start mb-4">
+                                            <div>
+                                              <h3 className="text-white font-semibold text-lg mb-2">
+                                                {conversationDetails.title || 'Untitled Conversation'}
+                                              </h3>
+                                              <div className="text-zinc-400 text-sm">
+                                                <span className="mr-4">User: {conversationDetails.username}</span>
+                                                <span className="mr-4">Messages: {conversationDetails.messages?.length || 0}</span>
+                                                <span>Created: {convertToEasternTime(conversationDetails.created_at)}</span>
+                                              </div>
+                                            </div>
+                                            <Button
+                                              onClick={(e) => {
+                                                e.stopPropagation()
+                                                setExpandedConversation(null)
+                                                setConversationDetails(null)
+                                              }}
+                                              variant="outline"
+                                              size="sm"
+                                              className="text-white border-zinc-600 hover:bg-zinc-800"
+                                            >
+                                              Close
+                                            </Button>
+                                          </div>
+                                          <div className="space-y-4 max-h-96 overflow-y-auto">
+                                            {conversationDetails.messages?.map((message: any, index: number) => (
+                                              <div key={index} className="bg-zinc-900/50 rounded-lg p-4">
+                                                <div className="flex justify-between items-start mb-2">
+                                                  <span className="text-blue-400 font-medium text-sm">
+                                                    {message.role === 'user' ? 'User' : 'AI Assistant'}
+                                                  </span>
+                                                  <span className="text-zinc-500 text-xs">
+                                                    {message.timestamp ? convertToEasternTime(message.timestamp) : 'Unknown time'}
+                                                  </span>
+                                                </div>
+                                                <div className="text-zinc-200 text-sm whitespace-pre-wrap">
+                                                  {(() => {
+                                                    const content = message.content || message.text || 'No content'
+                                                    if (typeof content === 'string') {
+                                                      return content
+                                                    } else if (typeof content === 'object' && content !== null) {
+                                                      // Handle object content (e.g., from LangGraph)
+                                                      if (content.text) {
+                                                        return content.text
+                                                      } else if (content.type && content.text) {
+                                                        return content.text
+                                                      } else {
+                                                        return JSON.stringify(content)
+                                                      }
+                                                    } else {
+                                                      return String(content)
+                                                    }
+                                                  })()}
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <div className="p-6 text-center text-zinc-400">
+                                          Failed to load conversation details
+                                        </div>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )}
+                            </>
+                          ))}
+                        </tbody>
+                      </table>
+                      {conversationsAnalytics.conversations.length > 20 && (
+                        <div className="p-3 text-center text-zinc-400 text-sm bg-zinc-800">
+                          Showing 20 of {conversationsAnalytics.conversations.length} conversations
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-zinc-400">
+                      No conversation data available
+                    </div>
+                  )}
+                </CardContent>
+                  </Card>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -306,6 +306,55 @@ export class ApiService {
   }
 
   /**
+   * Get all conversations analytics (admin only)
+   */
+  static async getConversationsAnalytics(limit: number = 50, offset: number = 0, days: number = 30, userFilter: string = '') {
+    try {
+      const params = new URLSearchParams({
+        limit: limit.toString(),
+        offset: offset.toString(),
+        days: days.toString()
+      });
+      
+      if (userFilter) {
+        params.append('username', userFilter);
+      }
+      
+      const response = await this.get(`/conversations/admin/list/?${params.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch conversations analytics:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get list of users with conversations (admin only)
+   */
+  static async getConversationUsers(days: number = 30) {
+    try {
+      const response = await this.get(`/conversations/admin/users/?days=${days}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch conversation users:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Get a specific conversation by ID
+   */
+  static async getConversation(conversationId: string) {
+    try {
+      const response = await this.get(`/conversations/${conversationId}/`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch conversation:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get user's S3 cloud files
    */
   static async getUserFiles(username: string) {
@@ -1302,6 +1351,42 @@ export class ApiService {
       return response;
     } catch (error) {
       this.handleError(error, `Add document to knowledge graph: ${documentData.title || 'Untitled'}`);
+      throw error;
+    }
+  }
+
+  /**
+   * Track dashboard visit
+   */
+  static async trackDashboardVisit() {
+    try {
+      const response = await this.post<{
+        result: string;
+        message: string;
+        username: string;
+        user_id: string;
+      }>('/users/track_dashboard_visit/');
+      return response;
+    } catch (error) {
+      this.handleError(error, 'Track dashboard visit');
+      throw error;
+    }
+  }
+
+  /**
+   * Track workspace visit
+   */
+  static async trackWorkspaceVisit() {
+    try {
+      const response = await this.post<{
+        result: string;
+        message: string;
+        username: string;
+        user_id: string;
+      }>('/users/track_workspace_visit/');
+      return response;
+    } catch (error) {
+      this.handleError(error, 'Track workspace visit');
       throw error;
     }
   }

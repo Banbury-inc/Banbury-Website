@@ -93,7 +93,21 @@ const Dashboard = (): JSX.Element => {
       }
     };
 
+    const trackDashboardVisit = async () => {
+      try {
+        await ApiService.trackDashboardVisit();
+      } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.log('Dashboard visit tracking failed:', error);
+      }
+    };
+
     checkAuthAndFetchUser();
+    
+    // Track dashboard visit after authentication is confirmed
+    setTimeout(() => {
+      trackDashboardVisit();
+    }, 1000); // Small delay to ensure auth is complete
   }, [router]);
 
   const handleLogout = () => {

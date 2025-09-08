@@ -537,7 +537,21 @@ const Workspaces = (): JSX.Element => {
       }
     };
 
+    const trackWorkspaceVisit = async () => {
+      try {
+        await ApiService.trackWorkspaceVisit();
+      } catch (error) {
+        // Silently fail - don't interrupt user experience
+        console.log('Workspace visit tracking failed:', error);
+      }
+    };
+
     checkAuthAndFetchUser();
+    
+    // Track workspace visit after authentication is confirmed
+    setTimeout(() => {
+      trackWorkspaceVisit();
+    }, 1000); // Small delay to ensure auth is complete
   }, [router]);
 
   // Listen for requests to reopen a file (e.g., after save generates a new file id)
