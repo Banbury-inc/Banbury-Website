@@ -1,4 +1,5 @@
 import { CONFIG } from '../../../config/config';
+import { convertToXLSX } from '../../../components/MiddlePanel/SpreadsheetViewer/handlers/handle-spreadsheet-save';
 
 interface UserInfo {
   username: string;
@@ -73,23 +74,24 @@ export const handleCreateSpreadsheet = async (
   setUploading(true);
 
   try {
-    // Create simple CSV content with headers and sample data
-    const csvContent = `Name,Email,Phone,Department
-John Doe,john.doe@example.com,555-0101,Engineering
-Jane Smith,jane.smith@example.com,555-0102,Marketing
-Bob Johnson,bob.johnson@example.com,555-0103,Sales
-Alice Brown,alice.brown@example.com,555-0104,HR`;
+    // Create sample spreadsheet data as 2D array
+    const spreadsheetData = [
+      ['Name', 'Email', 'Phone', 'Department'],
+      ['John Doe', 'john.doe@example.com', '555-0101', 'Engineering'],
+      ['Jane Smith', 'jane.smith@example.com', '555-0102', 'Marketing'],
+      ['Bob Johnson', 'bob.johnson@example.com', '555-0103', 'Sales'],
+      ['Alice Brown', 'alice.brown@example.com', '555-0104', 'HR']
+    ];
 
     // Generate filename - use provided name or default
     const fileName = spreadsheetName 
-      ? `${spreadsheetName}.csv`
-      : `New Spreadsheet ${new Date().toISOString().split('T')[0]}.csv`;
+      ? `${spreadsheetName}.xlsx`
+      : `New Spreadsheet ${new Date().toISOString().split('T')[0]}.xlsx`;
 
-    // Create CSV blob
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    // Create XLSX blob using the existing convertToXLSX function
+    const blob = await convertToXLSX(spreadsheetData);
 
     // Upload spreadsheet using the uploadToS3 function
-    
     await uploadToS3(
       blob,
       userInfo.username,
