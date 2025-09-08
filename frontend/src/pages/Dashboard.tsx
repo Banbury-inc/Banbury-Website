@@ -39,7 +39,9 @@ import SaveIcon from '@mui/icons-material/Save';
 import FileUploadIcon from '@mui/icons-material/FileUpload';
 import DownloadIcon from '@mui/icons-material/Download';
 import GoogleIcon from '@mui/icons-material/Google';
+import TableChartIcon from '@mui/icons-material/TableChart';
 import { ApiService } from '../services/apiService';
+import ExcelViewer from '../components/ExcelViewer';
 import { CONFIG } from '../config/config';
 
 // Google OAuth configuration
@@ -59,7 +61,7 @@ interface FileTab {
   id: string;
   name: string;
   content: string;
-  type: 'text' | 'json' | 'markdown';
+  type: 'text' | 'json' | 'markdown' | 'xlsx';
   modified: boolean;
 }
 
@@ -185,11 +187,18 @@ const Dashboard = (): JSX.Element => {
   };
 
   // Workspaces functionality
-  const createNewFile = useCallback((name: string, type: 'text' | 'json' | 'markdown' = 'text') => {
+  const createNewFile = useCallback((name: string, type: 'text' | 'json' | 'markdown' | 'xlsx' = 'text') => {
+    let content = '';
+    if (type === 'json') {
+      content = '{}';
+    } else if (type === 'xlsx') {
+      content = 'EMPTY_XLSX_PLACEHOLDER';
+    }
+    
     const newTab: FileTab = {
       id: `file-${Date.now()}`,
       name,
-      content: type === 'json' ? '{}' : '',
+      content,
       type,
       modified: false
     };
@@ -263,6 +272,14 @@ const Dashboard = (): JSX.Element => {
           size: 256,
           modified: new Date(),
           content: 'Welcome to your workspace!\n\nYou can create and edit files here.'
+        },
+        {
+          id: '4',
+          name: 'sample.xlsx',
+          type: 'xlsx',
+          size: 1024,
+          modified: new Date(),
+          content: 'EMPTY_XLSX_PLACEHOLDER'
         }
       ];
       
@@ -280,7 +297,8 @@ const Dashboard = (): JSX.Element => {
     }
 
     const fileType = file.type === 'markdown' ? 'markdown' : 
-                    file.type === 'json' ? 'json' : 'text';
+                    file.type === 'json' ? 'json' :
+                    file.type === 'xlsx' ? 'xlsx' : 'text';
     
     const newTab: FileTab = {
       id: `cloud-${file.id}`,
@@ -297,6 +315,8 @@ const Dashboard = (): JSX.Element => {
 
   const getFileIcon = (type: string) => {
     switch (type) {
+      case 'xlsx':
+        return <TableChartIcon />;
       case 'json':
       case 'markdown':
       case 'text':
@@ -488,30 +508,39 @@ const Dashboard = (): JSX.Element => {
                 </Box>
               </Paper>
 
-              {/* Text Editor */}
-              <Box sx={{ flex: 1, p: 2, backgroundColor: theme.palette.mode === 'dark' ? '#0a0a0a' : '#ffffff' }}>
-                <TextField
-                  fullWidth
-                  multiline
-                  value={activeTab.content}
-                  onChange={(e) => updateTabContent(activeTab.id, e.target.value)}
-                  variant="outlined"
-                  placeholder="Start typing..."
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      fontFamily: 'monospace',
-                      fontSize: '14px',
-                      minHeight: '400px',
-                      alignItems: 'flex-start',
-                      '& fieldset': {
-                        border: 'none'
-                      }
-                    },
-                    '& textarea': {
-                      resize: 'none'
-                    }
-                  }}
-                />
+              {/* Editor Area */}
+              <Box sx={{ flex: 1, backgroundColor: theme.palette.mode === 'dark' ? '#0a0a0a' : '#ffffff' }}>
+                {activeTab.type === 'xlsx' ? (
+                  <ExcelViewer
+                    content={activeTab.content}
+                    onContentChange={(content) => updateTabContent(activeTab.id, content)}
+                  />
+                ) : (
+                  <Box sx={{ p: 2 }}>
+                    <TextField
+                      fullWidth
+                      multiline
+                      value={activeTab.content}
+                      onChange={(e) => updateTabContent(activeTab.id, e.target.value)}
+                      variant="outlined"
+                      placeholder="Start typing..."
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          fontFamily: 'monospace',
+                          fontSize: '14px',
+                          minHeight: '400px',
+                          alignItems: 'flex-start',
+                          '& fieldset': {
+                            border: 'none'
+                          }
+                        },
+                        '& textarea': {
+                          resize: 'none'
+                        }
+                      }}
+                    />
+                  </Box>
+                )}
               </Box>
             </Box>
           ) : (
@@ -597,7 +626,10 @@ const Dashboard = (): JSX.Element => {
                 autoFocus
                 onKeyPress={(e) => {
                   if (e.key === 'Enter' && newFileName.trim()) {
-                    createNewFile(newFileName.trim());
+                    const fileType = newFileName.toLowerCase().endsWith('.xlsx') ? 'xlsx' :
+                                   newFileName.toLowerCase().endsWith('.json') ? 'json' :
+                                   newFileName.toLowerCase().endsWith('.md') ? 'markdown' : 'text';
+                    createNewFile(newFileName.trim(), fileType);
                   }
                 }}
               />
@@ -605,7 +637,12 @@ const Dashboard = (): JSX.Element => {
                 <Button onClick={() => setNewFileDialogOpen(false)}>Cancel</Button>
                 <Button
                   variant="contained"
-                  onClick={() => createNewFile(newFileName.trim())}
+                  onClick={() => {
+                    const fileType = newFileName.toLowerCase().endsWith('.xlsx') ? 'xlsx' :
+                                   newFileName.toLowerCase().endsWith('.json') ? 'json' :
+                                   newFileName.toLowerCase().endsWith('.md') ? 'markdown' : 'text';
+                    createNewFile(newFileName.trim(), fileType);
+                  }}
                   disabled={!newFileName.trim()}
                 >
                   Create
