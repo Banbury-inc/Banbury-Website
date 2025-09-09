@@ -609,6 +609,15 @@ const Workspaces = (): JSX.Element => {
     window.addEventListener('assistant-open-browser', handler as EventListener);
     return () => window.removeEventListener('assistant-open-browser', handler as EventListener);
   }, [openFileInTabCallback]);
+
+  // Listen for file sidebar refresh events (from AI file modifications)
+  useEffect(() => {
+    const handler = () => {
+      triggerSidebarRefresh();
+    };
+    window.addEventListener('file-sidebar-refresh', handler);
+    return () => window.removeEventListener('file-sidebar-refresh', handler);
+  }, [triggerSidebarRefresh]);
   
   // Load conversations on mount
   useEffect(() => {

@@ -1,4 +1,4 @@
-import { Home, FolderOpen, LogOut, Settings, UserStarIcon, Brain, Workflow} from "lucide-react"
+import { Home, FolderOpen, LogOut, Settings, UserStarIcon, Brain, Workflow, Video} from "lucide-react"
 import Image from 'next/image'
 import { useRouter } from "next/router"
 import { useState, useEffect } from "react"
@@ -47,6 +47,13 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
       label: 'Knowledge',
       path: '/knowledge'
     },
+    // Only include meeting agent item if user is mmills or mmills6060@gmail.com
+    ...(username === 'mmills' || username === 'mmills6060@gmail.com' ? [{
+      id: 'meeting-agent',
+      icon: Video,
+      label: 'Meeting Agent',
+      path: '/meeting-agent'
+    }] : []),
     {
       id: 'settings',
       icon: Settings,
@@ -65,7 +72,7 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
   const isActive = (path: string) => router.pathname === path
 
   return (
-    <div className="fixed left-0 top-0 z-40 flex h-full w-16 flex-col bg-black border-r border-b border-zinc-300 dark:border-zinc-600">
+    <div className="fixed left-0 top-0 z-40 flex h-full w-16 flex-col bg-black border-r border-zinc-300 dark:border-zinc-600">
       <div className="flex flex-1 flex-col items-center gap-4 py-4">
         {/* Logo/Brand */}
         <div 

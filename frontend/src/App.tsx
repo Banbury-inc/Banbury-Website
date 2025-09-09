@@ -18,6 +18,7 @@ import FileDownload from './pages/Filedownload';
 import Home from './pages/Home';
 import Knowledge from './pages/Knowledge';
 import Login from './pages/Login';
+import MeetingAgent from './pages/MeetingAgent/MeetingAgent';
 import Workspaces from './pages/Workspaces';
 import { trackPageView } from './services/trackingService';
 import getTheme from './theme/theme';
@@ -86,6 +87,7 @@ const App = (): JSX.Element => {
                 <Route path='/dashboard' element={<Dashboard />} />
                 <Route path='/workspaces' element={<Workspaces />} />
                 <Route path='/knowledge' element={<Knowledge />} />
+                <Route path='/meeting-agent' element={<MeetingAgent />} />
                 <Route path='/admin' element={<Admin />} />
                 <Route path='/' element={<Layout><Home /></Layout>} />
                 <Route path='/login' element={<Layout><Login /></Layout>} />

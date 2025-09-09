@@ -4,6 +4,7 @@ import { SheetAITool } from '../SheetAITool';
 import { DocxAITool } from '../DocxAITool';
 import { WebSearchTool } from './web-search-result';
 import { TiptapAITool } from '../TiptapAITool';
+import { TldrawAITool } from '../TldrawAITool';
 import { DocumentAITool } from '../DocumentAITool';
 import { BrowserTool } from '../MiddlePanel/BrowserViewer/BrowserTool';
 import { ToolFallback } from './tool-fallback';
@@ -22,6 +23,9 @@ export const ToolUI: React.FC<ToolUIProps> = ({ toolName, args, result }) => {
     
     case 'docx_ai':
       return <DocxAITool args={args} />;
+    
+    case 'tldraw_ai':
+      return <TldrawAITool args={args} />;
     
     case 'web_search':
       return <WebSearchTool args={args} result={result} />;
@@ -140,6 +144,7 @@ function getToolLabel(toolName: string): string {
   const labels: Record<string, string> = {
     'sheet_ai': 'AI Spreadsheet',
     'docx_ai': 'AI Document',
+    'tldraw_ai': 'AI Canvas',
     'web_search': 'Web Search',
     'tiptap_ai': 'AI Text Editor',
     'document_ai': 'AI Document',

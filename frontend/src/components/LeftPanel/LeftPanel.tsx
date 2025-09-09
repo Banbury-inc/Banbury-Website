@@ -1469,14 +1469,15 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                      <FilePlus size={20} className="mr-2" />
                      Upload File
                    </DropdownMenuItem>
-                   <DropdownMenuItem 
+                   <DropdownMenuItem
                      onSelect={handleFolderUpload}
                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                    >
                      <FolderPlus size={20} className="mr-2" />
                      Upload Folder
                    </DropdownMenuItem>
-                   <DropdownMenuItem 
+                   <div className="h-px bg-zinc-600 my-1 mx-2" />
+                   <DropdownMenuItem
                      onSelect={handleCreateDocument}
                      className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                    >

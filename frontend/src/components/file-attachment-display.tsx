@@ -1,10 +1,11 @@
-import { File, ChevronDown, ChevronRight, X, Mail, Network, Eye } from 'lucide-react';
+import { File, ChevronDown, ChevronRight, X, Mail, Network, Eye, PaintbrushIcon } from 'lucide-react';
 import React, { useState } from 'react';
 
 import { Button } from './ui/button';
 import { cn } from '../utils';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { isDrawioFile } from './MiddlePanel/CanvasViewer/handlers/drawio-viewer-handlers';
+import { isTldrawFile } from '../pages/Workspaces/handlers/fileTypeUtils';
 
 interface FileAttachmentDisplayProps {
   files: FileSystemItem[];
@@ -54,6 +55,7 @@ export const FileAttachmentDisplay: React.FC<FileAttachmentDisplayProps> = ({
         <div className="ml-6 space-y-1">
           {files.map((file) => {
             const isDiagram = isDrawioFile(file.name);
+            const isCanvas = isTldrawFile(file.name);
             return (
               <div
                 key={file.file_id}
@@ -61,6 +63,8 @@ export const FileAttachmentDisplay: React.FC<FileAttachmentDisplayProps> = ({
               >
                 {isDiagram ? (
                   <Network className="h-4 w-4 text-blue-400 flex-shrink-0" />
+                ) : isCanvas ? (
+                  <PaintbrushIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />
                 ) : (
                   <File className="h-4 w-4 text-zinc-400 flex-shrink-0" />
                 )}
@@ -70,16 +74,18 @@ export const FileAttachmentDisplay: React.FC<FileAttachmentDisplayProps> = ({
                 
                 {/* Action buttons */}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                  {isDiagram && onFileView && (
+                  {(isDiagram || isCanvas) && onFileView && (
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-5 w-5 p-0 text-zinc-400 hover:text-blue-400"
+                      className={`h-5 w-5 p-0 text-zinc-400 ${
+                        isDiagram ? 'hover:text-blue-400' : 'hover:text-purple-400'
+                      }`}
                       onClick={(e) => {
                         e.stopPropagation();
                         onFileView(file);
                       }}
-                      title="View diagram"
+                      title={isDiagram ? "View diagram" : "View canvas"}
                     >
                       <Eye className="h-3 w-3" />
                     </Button>

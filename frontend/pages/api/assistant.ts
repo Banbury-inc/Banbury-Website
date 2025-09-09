@@ -185,6 +185,9 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
                 'css': 'text/css',
                 'php': 'text/x-php',
                 'rb': 'text/x-ruby',
+                
+                // Canvas files
+                'tldraw': 'application/json',
                 'go': 'text/x-go',
                 'rs': 'text/x-rust',
                 'sql': 'text/x-sql',

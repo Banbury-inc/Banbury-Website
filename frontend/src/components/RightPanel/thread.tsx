@@ -27,6 +27,7 @@ import { useState, useEffect, useRef } from "react";
 import { ChatTiptapComposer } from "../ChatTiptapComposer";
 import { DocumentAITool } from "../DocumentAITool";
 import { DocxAITool } from "../DocxAITool";
+import { TldrawAITool } from "../TldrawAITool";
 import { DrawioAITool } from "../MiddlePanel/CanvasViewer/DrawioAITool";
 import DrawioViewerModal from "../MiddlePanel/CanvasViewer/DrawioViewerModal";
 import { FileAttachment } from "../file-attachment";
@@ -49,6 +50,7 @@ import {
 import { WebSearchTool } from "./web-search-result";
 import { toggleXTool, type ToolPreferences as XToolPrefs } from "./handlers/toggle-x-tool";
 import { handleDocxAIResponse } from "./handlers/handle-docx-ai-response";
+import { handleTldrawAIResponse } from "./handlers/handle-tldraw-ai-response";
 import { ToolUI } from "./ToolUI";
 import { BrowserTool } from "../MiddlePanel/BrowserViewer/BrowserTool";
 import { ApiService } from "../../services/apiService";
@@ -480,6 +482,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
           const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'];
           const documentExtensions = ['.docx', '.doc', '.pdf'];
           const spreadsheetExtensions = ['.csv', '.xlsx', '.xls'];
+          const canvasExtensions = ['.tldraw'];
           const codeExtensions = [
             '.js', '.jsx', '.ts', '.tsx', '.py', '.java', '.cpp', '.c', '.h', '.hpp', '.cs', '.php', '.rb', '.go', '.rs', '.swift', '.kt', '.scala',
             '.html', '.htm', '.css', '.scss', '.sass', '.less', '.xml', '.json', '.yaml', '.yml', '.toml', '.ini', '.cfg', '.conf', '.sh', '.bash', '.zsh', '.fish',
@@ -487,7 +490,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
             '.md', '.markdown', '.tex', '.rtex', '.bib', '.vue', '.svelte'
           ];
           const extension = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
-          return [...imageExtensions, ...documentExtensions, ...spreadsheetExtensions, ...codeExtensions].includes(extension);
+          return [...imageExtensions, ...documentExtensions, ...spreadsheetExtensions, ...canvasExtensions, ...codeExtensions].includes(extension);
         };
         
         if (isViewableFile(selectedFile.name)) {
@@ -711,6 +714,16 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     return () => window.removeEventListener('docx-ai-response', handleDocxResponse as EventListener);
   }, []);
 
+  // Listen for Tldraw AI response events
+  useEffect(() => {
+    const handleTldrawResponse = async (event: CustomEvent) => {
+      await handleTldrawAIResponse(event.detail);
+    };
+
+    window.addEventListener('tldraw-ai-response', handleTldrawResponse as EventListener);
+    return () => window.removeEventListener('tldraw-ai-response', handleTldrawResponse as EventListener);
+  }, []);
+
   // Keep a copy of attachments in localStorage so the runtime can inject them
   useEffect(() => {
     try {
@@ -777,11 +790,16 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     }
   }, [toolPreferences, isWebSearchEnabled]);
 
-  // Pre-download spreadsheet blobs and cache as base64 + mimeType (size-capped)
+  // Pre-download spreadsheet and canvas blobs and cache as base64 + mimeType (size-capped)
   useEffect(() => {
     const isSpreadsheet = (fileName: string) => {
       const ext = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
       return ['.csv', '.xlsx', '.xls'].includes(ext);
+    };
+
+    const isTldrawCanvas = (fileName: string) => {
+      const ext = fileName.toLowerCase().substring(fileName.lastIndexOf('.'));
+      return ext === '.tldraw';
     };
 
     const blobToBase64 = (blob: Blob): Promise<string> =>
@@ -799,7 +817,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
 
     const fetchMissingPayloads = async () => {
       const tasks = attachedFiles
-        .filter((f) => f.file_id && isSpreadsheet(f.name) && !attachmentPayloads[f.file_id])
+        .filter((f) => f.file_id && (isSpreadsheet(f.name) || isTldrawCanvas(f.name)) && !attachmentPayloads[f.file_id])
         .map(async (f) => {
           try {
             const res = await ApiService.downloadS3File(f.file_id!, f.name);
@@ -808,7 +826,16 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
               const approxSize = res.blob.size;
               if (approxSize > 600 * 1024) return;
               const base64 = await blobToBase64(res.blob);
-              const mimeType = res.blob.type || (f.name.toLowerCase().endsWith('.csv') ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+              let mimeType = res.blob.type;
+              if (!mimeType) {
+                if (f.name.toLowerCase().endsWith('.csv')) {
+                  mimeType = 'text/csv';
+                } else if (f.name.toLowerCase().endsWith('.tldraw')) {
+                  mimeType = 'application/json';
+                } else {
+                  mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+                }
+              }
               setAttachmentPayloads((prev) => ({ ...prev, [f.file_id!]: { fileData: base64, mimeType } }));
             }
           } catch {}
@@ -1676,6 +1703,7 @@ const AssistantMessage: FC = () => {
                   tiptap_ai: TiptapAITool,
                   sheet_ai: SheetAITool,
                   docx_ai: DocxAITool,
+                  tldraw_ai: TldrawAITool,
                   drawio_ai: DrawioAITool,
                   document_ai: DocumentAITool,
                   browser: BrowserTool,

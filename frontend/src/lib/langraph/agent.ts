@@ -321,6 +321,106 @@ const docxAiTool = tool(
   }
 );
 
+// Tldraw canvas AI tool for reading, editing, and modifying canvas files
+const tldrawAiTool = tool(
+  async (input: {
+    action: string;
+    canvasName?: string;
+    operations?: Array<
+      | { type: 'createShape'; shapeType: 'rectangle' | 'ellipse' | 'text' | 'note' | 'arrow' | 'line'; x: number; y: number; width?: number; height?: number; text?: string; color?: string; note?: string }
+      | { type: 'updateShape'; shapeId: string; x?: number; y?: number; width?: number; height?: number; text?: string; color?: string; note?: string }
+      | { type: 'deleteShape'; shapeId: string }
+      | { type: 'moveShape'; shapeId: string; x: number; y: number }
+      | { type: 'addText'; shapeId: string; text: string }
+      | { type: 'connectShapes'; fromShapeId: string; toShapeId: string; arrowType?: 'arrow' | 'line' }
+      | { type: 'groupShapes'; shapeIds: string[]; groupName?: string }
+      | { type: 'ungroupShapes'; groupId: string }
+      | { type: 'duplicateShape'; shapeId: string; offsetX?: number; offsetY?: number }
+      | { type: 'setCanvasBackground'; color?: string; pattern?: string }
+      | { type: 'addAnnotation'; x: number; y: number; text: string; type?: 'comment' | 'highlight' }
+    >;
+    canvasData?: any;
+    note?: string;
+  }) => {
+    return {
+      action: input.action,
+      canvasName: input.canvasName,
+      operations: input.operations,
+      canvasData: input.canvasData,
+      note: input.note,
+    };
+  },
+  {
+    name: 'tldraw_ai',
+    description:
+      'Use this tool to read, edit, and modify tldraw canvas files. You can create shapes, update existing ones, connect elements, and perform various canvas operations.',
+    schema: z.object({
+      action: z.string().describe("Description of the action performed (e.g. 'Add flowchart shapes', 'Create diagram', 'Update canvas layout', 'Connect elements')"),
+      canvasName: z.string().optional().describe('Optional canvas name for context'),
+      operations: z
+        .array(
+          z.union([
+            z.object({ 
+              type: z.literal('createShape'), 
+              shapeType: z.enum(['rectangle', 'ellipse', 'text', 'note', 'arrow', 'line']),
+              x: z.number(), 
+              y: z.number(), 
+              width: z.number().optional(), 
+              height: z.number().optional(), 
+              text: z.string().optional(),
+              color: z.string().optional(),
+              note: z.string().optional()
+            }),
+            z.object({ 
+              type: z.literal('updateShape'), 
+              shapeId: z.string(), 
+              x: z.number().optional(), 
+              y: z.number().optional(), 
+              width: z.number().optional(), 
+              height: z.number().optional(), 
+              text: z.string().optional(),
+              color: z.string().optional(),
+              note: z.string().optional()
+            }),
+            z.object({ type: z.literal('deleteShape'), shapeId: z.string() }),
+            z.object({ type: z.literal('moveShape'), shapeId: z.string(), x: z.number(), y: z.number() }),
+            z.object({ type: z.literal('addText'), shapeId: z.string(), text: z.string() }),
+            z.object({ 
+              type: z.literal('connectShapes'), 
+              fromShapeId: z.string(), 
+              toShapeId: z.string(), 
+              arrowType: z.enum(['arrow', 'line']).optional()
+            }),
+            z.object({ type: z.literal('groupShapes'), shapeIds: z.array(z.string()), groupName: z.string().optional() }),
+            z.object({ type: z.literal('ungroupShapes'), groupId: z.string() }),
+            z.object({ 
+              type: z.literal('duplicateShape'), 
+              shapeId: z.string(), 
+              offsetX: z.number().optional(), 
+              offsetY: z.number().optional() 
+            }),
+            z.object({ 
+              type: z.literal('setCanvasBackground'), 
+              color: z.string().optional(), 
+              pattern: z.string().optional() 
+            }),
+            z.object({ 
+              type: z.literal('addAnnotation'), 
+              x: z.number(), 
+              y: z.number(), 
+              text: z.string(),
+              type: z.enum(['comment', 'highlight']).optional()
+            }),
+          ])
+        )
+        .optional()
+        .describe('Array of canvas operations to perform'),
+      canvasData: z.any().optional().describe('Full canvas data for complex operations'),
+      note: z.string().optional().describe('Additional notes about the canvas modifications'),
+    }),
+  }
+);
+
 // Image generation tool using OpenAI Images API, then upload to S3 via Banbury API
 const generateImageTool = tool(
   async (input: { prompt: string; size?: '256x256' | '512x512' | '1024x1024'; folder?: string; fileBaseName?: string }) => {
@@ -2190,6 +2290,7 @@ const tools = [
   webSearchTool,
   sheetAiTool,
   docxAiTool,
+  tldrawAiTool,
   generateImageTool,
   createMemoryTool,
   searchMemoryTool,
@@ -2243,9 +2344,10 @@ async function agentNode(state: AgentState): Promise<AgentState> {
       
       const systemMessage = new SystemMessage(
         "You are a helpful AI assistant with advanced capabilities. " +
-        "You have access to web search, memory management, spreadsheet editing, DOCX document editing, file creation, file downloading, file search, datetime tools, X (Twitter) API, and browser automation. " +
+        "You have access to web search, memory management, spreadsheet editing, DOCX document editing, tldraw canvas editing, file creation, file downloading, file search, datetime tools, X (Twitter) API, and browser automation. " +
         "When helping with spreadsheet editing tasks (cleaning, transformations, formulas, row/column edits), use the sheet_ai tool to deliver structured operations. " +
         "When helping with DOCX document editing tasks (adding content, formatting text, inserting tables/lists/images, restructuring), use the docx_ai tool to deliver structured document operations. The docx_ai tool supports operations like insertText, replaceText, insertParagraph, insertHeading, insertList, insertTable, formatText, insertImage, and setPageSettings. " +
+        "When helping with tldraw canvas editing tasks (creating diagrams, flowcharts, mind maps, wireframes, visual designs), use the tldraw_ai tool to deliver structured canvas operations. The tldraw_ai tool supports operations like createShape, updateShape, deleteShape, moveShape, addText, connectShapes, groupShapes, duplicateShape, setCanvasBackground, and addAnnotation. You can create rectangles, ellipses, text, notes, arrows, and lines. " +
         "To create a new file in the user's cloud workspace, use the create_file tool with file name, full path (including the file name), and content. When the user asks to create a document, default to Microsoft Word (.docx) for the fileName and filePath unless they explicitly ask for another format. " +
         "To download a file from a URL and save it to the user's cloud workspace, use the download_from_url tool with the URL and optionally a custom file name and path. " +
         "To search for files in the user's cloud storage, use the search_files tool with a search query to find files by name. " +
@@ -2314,6 +2416,9 @@ async function toolNode(state: AgentState): Promise<AgentState> {
           break;
         case "docx_ai":
           result = JSON.stringify(await docxAiTool.invoke(toolCall.args));
+          break;
+        case "tldraw_ai":
+          result = JSON.stringify(await tldrawAiTool.invoke(toolCall.args));
           break;
         case "generate_image":
           result = await generateImageTool.invoke(toolCall.args);

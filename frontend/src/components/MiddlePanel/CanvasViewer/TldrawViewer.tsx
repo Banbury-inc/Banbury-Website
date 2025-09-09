@@ -13,6 +13,7 @@ import { ApiService } from '../../../services/apiService';
 import { createSaveTldrawHandler } from './handlers/save-tldraw';
 import styles from '../../../styles/SimpleTiptapEditor.module.css';
 import { useToast } from '../../ui/use-toast';
+import { registerTldrawEditor, unregisterTldrawEditor, setCurrentTldrawEditor } from '../../RightPanel/handlers/handle-tldraw-ai-response';
 
 interface TldrawViewerProps {
   fileUrl: string;
@@ -56,6 +57,12 @@ export const TldrawViewer: React.FC<TldrawViewerProps> = ({
 
     
     editorRef.current = editor;
+    
+    // Register this editor for AI interactions
+    registerTldrawEditor(editor);
+    setCurrentTldrawEditor(editor);
+    console.log('[TldrawViewer] Registered editor for AI interactions');
+    
     // Do not clear loading here; wait for file content to arrive
     
     // Force dark mode
@@ -99,8 +106,23 @@ export const TldrawViewer: React.FC<TldrawViewerProps> = ({
       if (unsubscribe) {
         unsubscribe();
       }
+      // Unregister editor when component unmounts or editor changes
+      unregisterTldrawEditor(editor);
+      if (editorRef.current === editor) {
+        setCurrentTldrawEditor(null);
+      }
     };
   }, [fileContent]);
+
+  // Cleanup editor registration on unmount
+  useEffect(() => {
+    return () => {
+      if (editorRef.current) {
+        unregisterTldrawEditor(editorRef.current);
+        setCurrentTldrawEditor(null);
+      }
+    };
+  }, []);
 
   // Load snapshot whenever new file content arrives after mount
   useEffect(() => {
