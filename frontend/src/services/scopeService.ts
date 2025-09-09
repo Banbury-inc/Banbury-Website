@@ -1,11 +1,23 @@
 import axios from 'axios'
 import { CONFIG } from '../config/config'
+import { AuthProvider } from './authConfig'
 
-export interface GoogleFeature {
+export type EmailProvider = 'gmail' | 'outlook';
+
+export interface ProviderFeature {
   name: string
   description: string
   scopes: string[]
   required: boolean
+  provider: AuthProvider
+}
+
+export interface GoogleFeature extends ProviderFeature {
+  provider: 'google'
+}
+
+export interface MicrosoftFeature extends ProviderFeature {
+  provider: 'microsoft'
 }
 
 export interface UserScopes {
@@ -25,6 +37,34 @@ export interface AvailableFeatures {
     drive: GoogleFeature
     gmail: GoogleFeature
     calendar: GoogleFeature
+  }
+  message: string
+}
+
+// Extended interfaces for multi-provider support
+export interface MultiProviderUserScopes {
+  google?: UserScopes
+  microsoft?: {
+    scopes: string[]
+    available_features: {
+      profile: boolean
+      outlook: boolean
+      calendar: boolean
+    }
+    message: string
+  }
+  message: string
+}
+
+export interface MultiProviderAvailableFeatures {
+  google?: AvailableFeatures
+  microsoft?: {
+    features: {
+      profile: MicrosoftFeature
+      outlook: MicrosoftFeature
+      calendar: MicrosoftFeature
+    }
+    message: string
   }
   message: string
 }
@@ -163,6 +203,138 @@ export class ScopeService {
   static clearRequestedFeatures(): void {
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem('requestedFeatures')
+    }
+  }
+
+  // Multi-provider methods
+
+  /**
+   * Get scopes for all connected providers
+   */
+  static async getMultiProviderScopes(): Promise<MultiProviderUserScopes> {
+    const resp = await axios.get<MultiProviderUserScopes>(
+      `${this.baseURL}/authentication/scopes/multi-provider/`,
+      { headers: this.withAuthHeaders() }
+    )
+    return resp.data
+  }
+
+  /**
+   * Get available features for all providers
+   */
+  static async getMultiProviderFeatures(): Promise<MultiProviderAvailableFeatures> {
+    const resp = await axios.get<MultiProviderAvailableFeatures>(
+      `${this.baseURL}/authentication/scopes/multi-provider/features/`,
+      { headers: this.withAuthHeaders() }
+    )
+    return resp.data
+  }
+
+  /**
+   * Check if a specific email provider is connected and has required scopes
+   */
+  static async isEmailProviderAvailable(provider: EmailProvider): Promise<boolean> {
+    try {
+      const scopes = await this.getMultiProviderScopes()
+      
+      if (provider === 'gmail') {
+        return scopes.google?.available_features.gmail || false
+      } else if (provider === 'outlook') {
+        return scopes.microsoft?.available_features.outlook || false
+      }
+      
+      return false
+    } catch (error) {
+      console.error(`Error checking ${provider} provider availability:`, error)
+      return false
+    }
+  }
+
+  /**
+   * Request Microsoft OAuth for specific features
+   */
+  static async requestMicrosoftFeatureAccess(features: string[]): Promise<void> {
+    try {
+      const redirectUri = typeof window !== 'undefined' 
+        ? `${window.location.origin}/authentication/microsoft/callback`
+        : 'http://localhost:3000/authentication/microsoft/callback'
+
+      const resp = await axios.post(
+        `${this.baseURL}/authentication/microsoft/scopes/request/?redirect_uri=${encodeURIComponent(redirectUri)}`,
+        { features },
+        { headers: { 'Content-Type': 'application/json', ...this.withAuthHeaders() } }
+      )
+
+      const result = resp.data
+      
+      if (result.authUrl) {
+        // Store the requested features and provider in session storage
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem('requestedFeatures', JSON.stringify(features))
+          sessionStorage.setItem('requestedProvider', 'microsoft')
+        }
+        
+        // Redirect to Microsoft OAuth
+        window.location.href = result.authUrl
+      } else {
+        throw new Error('No authorization URL received')
+      }
+    } catch (error) {
+      console.error('Error requesting Microsoft feature access:', error)
+      throw error
+    }
+  }
+
+  /**
+   * Get the list of available email providers and their connection status
+   */
+  static async getEmailProviderStatus(): Promise<{
+    gmail: { connected: boolean; available: boolean }
+    outlook: { connected: boolean; available: boolean }
+  }> {
+    try {
+      const scopes = await this.getMultiProviderScopes()
+      
+      return {
+        gmail: {
+          connected: !!scopes.google,
+          available: scopes.google?.available_features.gmail || false
+        },
+        outlook: {
+          connected: !!scopes.microsoft,
+          available: scopes.microsoft?.available_features.outlook || false
+        }
+      }
+    } catch (error) {
+      console.error('Error getting email provider status:', error)
+      return {
+        gmail: { connected: false, available: false },
+        outlook: { connected: false, available: false }
+      }
+    }
+  }
+
+  /**
+   * Get the requested provider from session storage
+   */
+  static getRequestedProvider(): AuthProvider | null {
+    if (typeof window === 'undefined') return null
+    
+    try {
+      const provider = sessionStorage.getItem('requestedProvider')
+      return (provider as AuthProvider) || null
+    } catch (error) {
+      console.error('Error getting requested provider:', error)
+      return null
+    }
+  }
+
+  /**
+   * Clear requested provider from session storage
+   */
+  static clearRequestedProvider(): void {
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('requestedProvider')
     }
   }
 }

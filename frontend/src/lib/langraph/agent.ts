@@ -1285,6 +1285,211 @@ const stagehandCloseTool = tool(
   }
 );
 
+// Outlook tools (proxy to Banbury API)
+const outlookGetRecentTool = tool(
+  async (input: { maxResults?: number; folder?: string }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { outlook?: boolean };
+    if (prefs.outlook === false) {
+      return JSON.stringify({ success: false, error: "Outlook access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    const maxResults = Math.min(Number(input?.maxResults || 20), 10); // Cap at 10 to prevent token limit issues
+    const folder = input?.folder || "inbox";
+
+    try {
+      // Get the list of messages from Outlook
+      const listUrl = `${apiBase}/authentication/outlook/list_messages/?folder=${encodeURIComponent(folder)}&maxResults=${encodeURIComponent(String(maxResults))}`;
+      const listResp = await fetch(listUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+      
+      if (!listResp.ok) {
+        return JSON.stringify({ success: false, error: `HTTP ${listResp.status}: ${listResp.statusText}` });
+      }
+      
+      const listData = await listResp.json();
+      
+      if (!listData.value || !Array.isArray(listData.value)) {
+        return JSON.stringify({ success: false, error: "No messages found or invalid response format" });
+      }
+
+      // Extract message IDs and fetch full message content
+      const messageIds = listData.value.slice(0, maxResults).map((msg: any) => msg.id);
+      let successfulMessages: any[] = [];
+      
+      // Fetch full message details for each message
+      const messagePromises = messageIds.map(async (messageId: string) => {
+        try {
+          const getUrl = `${apiBase}/authentication/outlook/messages/${encodeURIComponent(messageId)}/`;
+          const getResp = await fetch(getUrl, { method: "GET", headers: { Authorization: `Bearer ${token}` } });
+          
+          if (getResp.ok) {
+            const messageData = await getResp.json();
+            return extractEssentialOutlookEmailData(messageData);
+          } else {
+            return {
+              id: messageId,
+              error: `Failed to fetch message: ${getResp.status}`
+            };
+          }
+        } catch (error) {
+          return {
+            id: messageId,
+            error: `Error fetching message: ${error instanceof Error ? error.message : 'Unknown error'}`
+          };
+        }
+      });
+
+      const messages = await Promise.allSettled(messagePromises);
+      successfulMessages = messages
+        .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+        .map(result => result.value);
+
+      // Truncate the response to prevent token limit issues
+      const truncatedResponse = truncateOutlookResponse(successfulMessages);
+
+      return JSON.stringify({ 
+        success: true, 
+        ...truncatedResponse,
+        folder: folder
+      });
+    } catch (error) {
+      return JSON.stringify({ 
+        success: false, 
+        error: `Error fetching Outlook messages: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+    }
+  },
+  {
+    name: "outlook_get_recent",
+    description: "Get recent Outlook messages from a specified folder (inbox, sent, drafts, etc.)",
+    schema: z.object({
+      maxResults: z.number().optional().describe("Maximum number of messages to retrieve (default: 20, max: 10)"),
+      folder: z.string().optional().describe("Folder to get messages from (default: 'inbox'). Common folders: inbox, sentitems, drafts, deleteditems")
+    })
+  }
+);
+
+const outlookSendMessageTool = tool(
+  async (input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { outlook?: boolean };
+    if (prefs.outlook === false) {
+      return JSON.stringify({ success: false, error: "Outlook access is disabled by user preference" });
+    }
+
+    const apiBase = CONFIG.url;
+    const token = getServerContextValue<string>("authToken");
+    if (!token) {
+      throw new Error("Missing auth token in server context");
+    }
+
+    try {
+      const sendUrl = `${apiBase}/authentication/outlook/send_message/`;
+      const sendResp = await fetch(sendUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          to: input.to,
+          subject: input.subject,
+          body: input.body,
+          cc: input.cc,
+          bcc: input.bcc,
+          isDraft: input.isDraft || false
+        })
+      });
+
+      if (!sendResp.ok) {
+        return JSON.stringify({ success: false, error: `HTTP ${sendResp.status}: ${sendResp.statusText}` });
+      }
+
+      const result = await sendResp.json();
+      return JSON.stringify({ success: true, messageId: result.id || result.messageId });
+    } catch (error) {
+      return JSON.stringify({ 
+        success: false, 
+        error: `Error sending Outlook message: ${error instanceof Error ? error.message : 'Unknown error'}` 
+      });
+    }
+  },
+  {
+    name: "outlook_send_message",
+    description: "Send an Outlook email message or create a draft",
+    schema: z.object({
+      to: z.string().describe("Recipient email address"),
+      subject: z.string().describe("Email subject"),
+      body: z.string().describe("Email body content"),
+      cc: z.string().optional().describe("CC recipients (comma-separated)"),
+      bcc: z.string().optional().describe("BCC recipients (comma-separated)"),
+      isDraft: z.boolean().optional().describe("Whether to create a draft instead of sending (default: false)")
+    })
+  }
+);
+
+// Helper function to extract essential Outlook email data
+const extractEssentialOutlookEmailData = (messageData: any) => {
+  const from = messageData.from?.emailAddress?.address || 'Unknown';
+  const fromName = messageData.from?.emailAddress?.name;
+  const fromDisplay = fromName ? `${fromName} <${from}>` : from;
+  
+  const toRecipients = messageData.toRecipients?.map((r: any) => 
+    r.emailAddress.name ? `${r.emailAddress.name} <${r.emailAddress.address}>` : r.emailAddress.address
+  ).join(', ') || '';
+
+  const body = messageData.body?.content || messageData.bodyPreview || '';
+  
+  return {
+    id: messageData.id,
+    conversationId: messageData.conversationId,
+    subject: messageData.subject || '(No Subject)',
+    from: fromDisplay,
+    to: toRecipients,
+    body: body,
+    bodyPreview: messageData.bodyPreview || '',
+    receivedDateTime: messageData.receivedDateTime,
+    sentDateTime: messageData.sentDateTime,
+    isRead: messageData.isRead,
+    hasAttachments: messageData.hasAttachments,
+    categories: messageData.categories || [],
+    isDraft: messageData.isDraft || false
+  };
+};
+
+// Helper function to truncate Outlook response
+const truncateOutlookResponse = (messages: any[], maxTokensPerMessage: number = 2000, maxTotalMessages: number = 10) => {
+  const truncatedMessages = messages.slice(0, maxTotalMessages).map(msg => {
+    if (!msg || typeof msg !== 'object') return msg;
+    
+    const truncated = { ...msg };
+    
+    // Truncate body content if it exists and is too long
+    if (truncated.body && typeof truncated.body === 'string') {
+      const bodyLength = truncated.body.length;
+      if (bodyLength > maxTokensPerMessage) {
+        const maxChars = maxTokensPerMessage * 4;
+        truncated.body = truncated.body.substring(0, maxChars) + '... [truncated]';
+        truncated.bodyTruncated = true;
+        truncated.originalBodyLength = bodyLength;
+      }
+    }
+    
+    return truncated;
+  });
+  
+  return {
+    messages: truncatedMessages,
+    totalCount: messages.length,
+    truncated: messages.length > maxTotalMessages,
+    maxMessagesReturned: maxTotalMessages
+  };
+};
+
 // Tool to get current date/time information
 const getCurrentDateTimeTool = tool(
   async () => {
@@ -2201,6 +2406,8 @@ const tools = [
   gmailSearchTool,
   gmailGetMessageTool,
   gmailSendMessageTool,
+  outlookGetRecentTool,
+  outlookSendMessageTool,
   calendarListEventsTool,
   calendarGetEventTool,
   calendarCreateEventTool,
@@ -2347,6 +2554,12 @@ async function toolNode(state: AgentState): Promise<AgentState> {
           break;
         case "gmail_send_message":
           result = await gmailSendMessageTool.invoke(toolCall.args);
+          break;
+        case "outlook_get_recent":
+          result = await outlookGetRecentTool.invoke(toolCall.args);
+          break;
+        case "outlook_send_message":
+          result = await outlookSendMessageTool.invoke(toolCall.args);
           break;
         case "calendar_list_events":
           result = await calendarListEventsTool.invoke(toolCall.args);

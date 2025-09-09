@@ -380,3 +380,157 @@ export function formatFileSize(bytes: number): string {
   
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
+
+/**
+ * Extract email content from Outlook message
+ */
+export function extractOutlookEmailContent(message: any): EmailContent {
+  const content: EmailContent = {
+    html: undefined,
+    text: undefined,
+    attachments: [],
+    quotedHtml: undefined,
+    quotedText: undefined
+  }
+
+  if (!message) return content
+
+  // Extract body content
+  if (message.body) {
+    const bodyContent = message.body.content || ''
+    const contentType = message.body.contentType || 'text'
+
+    if (contentType.toLowerCase() === 'html') {
+      const { current, quoted } = separateEmailContent(bodyContent, 'html')
+      content.html = current
+      content.quotedHtml = quoted
+    } else {
+      const { current, quoted } = separateEmailContent(bodyContent, 'text')
+      content.text = current
+      content.quotedText = quoted
+    }
+  }
+
+  // Extract attachments (if they exist in the message structure)
+  if (message.attachments && Array.isArray(message.attachments)) {
+    content.attachments = message.attachments.map((attachment: any) => ({
+      id: attachment.id || attachment.attachmentId || '',
+      filename: attachment.name || attachment.filename || 'Unknown',
+      mimeType: attachment.contentType || 'application/octet-stream',
+      size: attachment.size || 0,
+      data: attachment.contentBytes || undefined
+    }))
+  }
+
+  return content
+}
+
+/**
+ * Separate Outlook-specific quoted content patterns
+ */
+function separateOutlookHtmlContent(html: string): { current: string, quoted: string } {
+  // Outlook-specific patterns
+  const outlookQuotePatterns = [
+    /<div[^>]*class="?OutlookMessageHeader"?[^>]*>/i,
+    /<div[^>]*style="[^"]*border-top[^"]*"[^>]*>/i,
+    /<hr[^>]*>/i,
+    /<div[^>]*>From:[^<]*<\/div>/i,
+    /<div[^>]*>Sent:[^<]*<\/div>/i,
+    /<div[^>]*>To:[^<]*<\/div>/i,
+    /<div[^>]*>Subject:[^<]*<\/div>/i,
+    // Microsoft Teams meeting patterns
+    /<div[^>]*>Microsoft Teams meeting[^<]*<\/div>/i,
+    // Outlook mobile patterns
+    /<div[^>]*>Get Outlook for [^<]*<\/div>/i
+  ]
+
+  for (const pattern of outlookQuotePatterns) {
+    const match = html.match(pattern)
+    if (match) {
+      const index = match.index!
+      const current = html.substring(0, index).trim()
+      const quoted = html.substring(index).trim()
+      return { current, quoted }
+    }
+  }
+
+  // Fall back to general HTML separation
+  return separateHtmlContent(html)
+}
+
+/**
+ * Convert Outlook categories to Gmail-like labels
+ */
+export function convertOutlookCategoriesToLabels(categories: string[]): string[] {
+  const labelMap: { [key: string]: string } = {
+    'Red Category': 'IMPORTANT',
+    'Orange Category': 'WORK',
+    'Yellow Category': 'PERSONAL',
+    'Green Category': 'FOLLOW_UP',
+    'Blue Category': 'INFORMATION',
+    'Purple Category': 'WAITING'
+  }
+
+  return categories.map(category => labelMap[category] || category.toUpperCase().replace(/\s+/g, '_'))
+}
+
+/**
+ * Format Outlook date to consistent format
+ */
+export function formatOutlookDate(dateString: string): string {
+  if (!dateString) return ''
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString
+    
+    return date.toISOString()
+  } catch (error) {
+    console.error('Failed to format Outlook date:', error)
+    return dateString
+  }
+}
+
+/**
+ * Extract sender information from Outlook message
+ */
+export function extractOutlookSender(message: any): string {
+  if (!message.from || !message.from.emailAddress) return 'Unknown'
+  
+  const { name, address } = message.from.emailAddress
+  return name ? `${name} <${address}>` : address
+}
+
+/**
+ * Extract recipients from Outlook message
+ */
+export function extractOutlookRecipients(message: any): string {
+  if (!message.toRecipients || !Array.isArray(message.toRecipients)) return ''
+  
+  return message.toRecipients
+    .map((recipient: any) => {
+      const { name, address } = recipient.emailAddress
+      return name ? `${name} <${address}>` : address
+    })
+    .join(', ')
+}
+
+/**
+ * Check if Outlook message has attachments
+ */
+export function outlookHasAttachments(message: any): boolean {
+  return message.hasAttachments === true || 
+         (message.attachments && Array.isArray(message.attachments) && message.attachments.length > 0)
+}
+
+/**
+ * Determine if message is from Outlook based on headers or structure
+ */
+export function isOutlookMessage(message: any): boolean {
+  // Check for Outlook-specific fields
+  return !!(message.conversationId || 
+           message.receivedDateTime || 
+           message.internetMessageId ||
+           (message.from && message.from.emailAddress) ||
+           (message.body && message.body.contentType))
+}

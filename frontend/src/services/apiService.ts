@@ -1,6 +1,6 @@
 import axios, { AxiosError } from 'axios';
 
-import { AUTH_CONFIG } from './authConfig';
+import { AUTH_CONFIG, AuthProvider } from './authConfig';
 import { CONFIG } from '../config/config';
 
 // Configure axios defaults
@@ -162,16 +162,43 @@ export class ApiService {
   }
 
   /**
+   * Microsoft OAuth flow
+   */
+  static async initiateMicrosoftAuth(redirectUri: string) {
+    try {
+      const response = await this.get<{ 
+        authUrl?: string; 
+        error?: string;
+      }>(`/authentication/microsoft/?redirect_uri=${encodeURIComponent(redirectUri)}`);
+      
+      if (response.error) {
+        throw new Error(response.error);
+      }
+      
+      if (response.authUrl) {
+        return { success: true, authUrl: response.authUrl };
+      } else {
+        throw new Error('Failed to initiate Microsoft login - no auth URL returned');
+      }
+    } catch (error) {
+      throw this.enhanceError(error, 'Microsoft login initiation failed');
+    }
+  }
+
+  /**
    * Handle OAuth callback
    */
-  static async handleOAuthCallback(code: string, scope?: string) {
+  static async handleOAuthCallback(code: string, scope?: string, provider: AuthProvider = 'google') {
     try {
-      const redirectUri = typeof window !== 'undefined' ? AUTH_CONFIG.getRedirectUri() : '';
+      const redirectUri = typeof window !== 'undefined' ? AUTH_CONFIG.getRedirectUri(provider) : '';
       const params = new URLSearchParams();
       params.set('code', code);
       if (redirectUri) params.set('redirect_uri', redirectUri);
       if (scope) params.set('scope', scope);
-      const qs = `/authentication/auth/callback/?${params.toString()}`;
+      
+      const endpoint = provider === 'microsoft' 
+        ? `/authentication/microsoft/callback/?${params.toString()}`
+        : `/authentication/auth/callback/?${params.toString()}`;
 
       const response = await this.get<{
         success: boolean;
@@ -179,7 +206,7 @@ export class ApiService {
         user?: { username: string; email: string };
         error?: string;
         details?: any;
-      }>(qs);
+      }>(endpoint);
 
       if (response.success && response.token && response.user) {
         // Set auth token globally
@@ -187,6 +214,7 @@ export class ApiService {
         // Store email separately
         if (typeof window !== 'undefined' && window.localStorage) {
           localStorage.setItem('userEmail', response.user.email);
+          localStorage.setItem('authProvider', provider);
         }
         
         return {

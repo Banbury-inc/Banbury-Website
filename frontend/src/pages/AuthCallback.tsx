@@ -48,17 +48,21 @@ const AuthCallback = (): JSX.Element => {
           sessionStorage.setItem('lastOAuthCode', code);
         }
 
-        const result = await ApiService.handleOAuthCallback(code, scope);
+        const result = await ApiService.handleOAuthCallback(code, scope, 'google');
 
         if (result.success) {
           // Check if this was a scope activation callback
           const requestedFeatures = ScopeService.getRequestedFeatures();
+          const requestedProvider = ScopeService.getRequestedProvider();
           
           if (requestedFeatures.length > 0) {
             setStatus('success');
             ScopeService.clearRequestedFeatures();
+            if (requestedProvider) {
+              ScopeService.clearRequestedProvider();
+            }
             setTimeout(() => {
-              router.replace('/dashboard?scopeActivated=true');
+              router.replace(`/dashboard?scopeActivated=true&provider=${requestedProvider || 'google'}`);
             }, 2000);
           } else {
             setStatus('success');

@@ -90,13 +90,34 @@ const Login = (): JSX.Element => {
     try {
       // Check if current domain is allowed for OAuth
       if (!AUTH_CONFIG.isAllowedDomain()) {
-        setError(AUTH_CONFIG.getRedirectUriError());
+        setError(AUTH_CONFIG.getRedirectUriError('google'));
         return;
       }
 
-      const redirectUri = AUTH_CONFIG.getRedirectUri();
+      const redirectUri = AUTH_CONFIG.getRedirectUri('google');
       
       const result = await ApiService.initiateGoogleAuth(redirectUri);
+      
+      if (result.success && result.authUrl) {
+        window.location.href = result.authUrl;
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      setError(errorMessage);
+    }
+  };
+
+  const handleMicrosoftLogin = async () => {
+    try {
+      // Check if current domain is allowed for OAuth
+      if (!AUTH_CONFIG.isAllowedDomain()) {
+        setError(AUTH_CONFIG.getRedirectUriError('microsoft'));
+        return;
+      }
+
+      const redirectUri = AUTH_CONFIG.getRedirectUri('microsoft');
+      
+      const result = await ApiService.initiateMicrosoftAuth(redirectUri);
       
       if (result.success && result.authUrl) {
         window.location.href = result.authUrl;
@@ -207,7 +228,7 @@ const Login = (): JSX.Element => {
               </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 space-y-3">
               <Button
                 type="button"
                 onClick={handleGoogleLogin}
@@ -221,6 +242,18 @@ const Login = (): JSX.Element => {
                   <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 Sign in with Google
+              </Button>
+              
+              <Button
+                type="button"
+                onClick={handleMicrosoftLogin}
+                disabled={loading || apiStatus === 'offline'}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 flex items-center justify-center gap-3"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11.4 24H0V12.6h11.4V24zM24 24H12.6V12.6H24V24zM11.4 11.4H0V0h11.4v11.4zM24 11.4H12.6V0H24v11.4z"/>
+                </svg>
+                Sign in with Microsoft
               </Button>
             </div>
           </div>
