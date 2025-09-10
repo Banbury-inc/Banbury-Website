@@ -1,24 +1,31 @@
-# Use an official Node.js image
-FROM node:16-bullseye
-
-# Set the working directory to /app
+# Build stage
+FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Copy only the frontend folder into the container
-COPY frontend ./frontend
+# Install dependencies using lockfile
+COPY frontend/package*.json ./
+RUN npm ci
 
-# Navigate to the frontend directory
-WORKDIR /app/frontend
+# Copy source and build
+COPY frontend/ ./
+ENV NODE_ENV=production
+RUN npm run build
 
-# Install dependencies
-RUN npm install
+# Runtime stage
+FROM nginx:1.27-alpine
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
 
-# Expose port 80
+# Copy nginx config
+COPY nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# Copy built assets
+COPY --from=builder /app/build /usr/share/nginx/html
+
 EXPOSE 80
 
-# Set environment variable for the port
-ENV PORT=80
+# Container-level healthcheck for ECS to observe (in addition to ALB TG)
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD curl -fsS http://localhost/health || exit 1
 
-# Start the frontend application
-CMD ["npm", "start"]
+CMD ["nginx", "-g", "daemon off;"]
 
