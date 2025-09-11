@@ -39,6 +39,7 @@ const DocsSidebar = ({ activeSection, onSectionChange }: DocsSidebarProps): JSX.
         { id: 'docs-feature', title: 'Docs', href: '#docs-feature' },
         { id: 'spreadsheets-feature', title: 'Spreadsheets', href: '#spreadsheets-feature' },
         { id: 'calendar-feature', title: 'Calendar', href: '#calendar-feature' },
+        { id: 'meeting-agent-feature', title: 'Meetings', href: '#meeting-agent-feature' },
         { id: 'folders-feature', title: 'Folders', href: '#folders-feature' },
         { id: 'browse-feature', title: 'Browse', href: '#browse-feature' },
         { id: 'canvas-feature', title: 'Canvas', href: '#canvas-feature' },

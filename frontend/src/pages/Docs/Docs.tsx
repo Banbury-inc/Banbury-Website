@@ -22,6 +22,7 @@ import BrowseFeatureTab from './components/BrowseFeatureTab';
 import CalendarFeatureTab from './components/CalendarFeatureTab';
 import CanvasFeatureTab from './components/CanvasFeatureTab';
 import GmailFeatureTab from './components/GmailFeatureTab';
+import MeetingAgentFeatureTab from './components/MeetingAgentFeatureTab';
 
 const Docs = () => {
   const [activeSection, setActiveSection] = useState<string>('what-is-banbury');
@@ -158,8 +159,12 @@ const Docs = () => {
               <GmailFeatureTab />
             )}
 
+            {activeSection === 'meeting-agent-feature' && (
+              <MeetingAgentFeatureTab />
+            )}
+
             {/* Default Tab - Show when no specific tab is selected */}
-            {!['what-is-banbury', 'features', 'using-banbury', 'task-studio', 'knowledge-graph', 'memories', 'integrations', 'gmail', 'google-docs', 'google-sheets', 'outlook', 'x', 'docs-feature', 'spreadsheets-feature', 'folders-feature', 'browse-feature', 'calendar-feature', 'canvas-feature', 'gmail-feature'].includes(activeSection) && (
+            {!['what-is-banbury', 'features', 'using-banbury', 'task-studio', 'knowledge-graph', 'memories', 'integrations', 'gmail', 'google-docs', 'google-sheets', 'outlook', 'x', 'docs-feature', 'spreadsheets-feature', 'folders-feature', 'browse-feature', 'calendar-feature', 'canvas-feature', 'gmail-feature', 'meeting-agent-feature'].includes(activeSection) && (
               <WhatIsBanburyTab />
             )}
           </Box>
