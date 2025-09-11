@@ -1,5 +1,6 @@
 import { Box, Typography, Paper } from '@mui/material';
 import { IntegrationInstructions, Repeat, AccountTree } from '@mui/icons-material';
+import Image from 'next/image';
 
 export default function WhatIsBanburyTab() {
   return (
@@ -38,9 +39,11 @@ export default function WhatIsBanburyTab() {
                   }}
                 >
               <Box>
-                <img 
+                <Image 
                   src="/Workspaces.png" 
                   alt="Chat Input Field - Step 1" 
+                  width={800}
+                  height={400}
                   style={{ 
                     width: '100%', 
                     height: 'auto', 

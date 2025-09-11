@@ -33,11 +33,6 @@ export function VideoViewer({ file, userInfo }: VideoViewerProps) {
   // Check if this is a Recall AI video
   const isRecallVideo = file.s3_url && (file.s3_url.includes('recall.ai') || file.s3_url.includes('recallai'));
 
-  // If this is a Recall video, use the specialized component
-  if (isRecallVideo) {
-    return <RecallVideoViewer file={file} userInfo={userInfo} />;
-  }
-
   const retryVideoLoad = () => {
     if (isRetrying) return; // Prevent multiple simultaneous retries
     
@@ -97,6 +92,11 @@ export function VideoViewer({ file, userInfo }: VideoViewerProps) {
 
     fetchRegularVideo();
   }, [file.file_id, file.name, file.s3_url]);
+
+  // If this is a Recall video, use the specialized component
+  if (isRecallVideo) {
+    return <RecallVideoViewer file={file} userInfo={userInfo} />;
+  }
 
   const handleDownload = () => {
     // For regular videos, use the existing videoUrl or fetch if needed

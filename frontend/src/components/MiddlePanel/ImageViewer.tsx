@@ -1,5 +1,6 @@
 import { AlertCircle, Download } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import Image from 'next/image';
 
 import { Button } from '../ui/button';
 import { ApiService } from '../../services/apiService';
@@ -109,10 +110,13 @@ export function ImageViewer({ file, userInfo }: ImageViewerProps) {
       {/* Image display area */}
       <div className="flex-1 flex justify-center overflow-auto bg-[#27272a] p-6">
         {imageUrl ? (
-          <img
+          <Image
             src={imageUrl}
             alt={file.name}
+            width={800}
+            height={600}
             className="max-w-full max-h-full object-contain rounded-lg shadow-lg"
+            unoptimized
           />
         ) : (
           <div className="text-center">

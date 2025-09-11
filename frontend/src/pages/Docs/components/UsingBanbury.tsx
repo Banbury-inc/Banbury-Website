@@ -213,9 +213,11 @@ export default function UsingBanburyTab() {
               
               {/* Chat Input Field */}
               <Box sx={{ mb: 3 }}>
-                <img 
+                <Image 
                   src="/Chatbox.png" 
                   alt="Chat Input Field - Step 1" 
+                  width={400}
+                  height={200}
                   style={{ 
                     width: '100%', 
                     height: 'auto', 
@@ -340,9 +342,11 @@ export default function UsingBanburyTab() {
                 </Box>
               </Box>
               <Box sx={{ mb: 3 }}>
-                <img 
+                <Image 
                   src="/Chatbox2.png" 
                   alt="Chat Input Field - Step 2" 
+                  width={400}
+                  height={200}
                   style={{ 
                     width: '100%', 
                     height: 'auto', 
