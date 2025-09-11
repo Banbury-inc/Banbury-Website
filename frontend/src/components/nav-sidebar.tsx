@@ -41,19 +41,19 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
       label: 'Task Studio',
       path: '/task-studio'
     },
+    // Only include meeting agent item if user is mmills or mmills6060@gmail.com
+    ...(username === 'mmills' || username === 'mmills6060@gmail.com' ? [{
+      id: 'meeting-agent',
+      icon: Video,
+      label: 'Meetings',
+      path: '/meeting-agent'
+    }] : []),
     {
       id: 'knowledge',
       icon: Brain,
       label: 'Knowledge',
       path: '/knowledge'
     },
-    // Only include meeting agent item if user is mmills or mmills6060@gmail.com
-    ...(username === 'mmills' || username === 'mmills6060@gmail.com' ? [{
-      id: 'meeting-agent',
-      icon: Video,
-      label: 'Meeting Agent',
-      path: '/meeting-agent'
-    }] : []),
     {
       id: 'settings',
       icon: Settings,
