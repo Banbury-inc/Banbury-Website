@@ -3,6 +3,8 @@
  * This handles the structured canvas operations returned by the tldraw_ai tool
  */
 
+import { toRichText } from 'tldraw';
+
 interface TldrawOperation {
   type: 'createShape' | 'updateShape' | 'deleteShape' | 'moveShape' | 'addText' | 'connectShapes' | 'groupShapes' | 'ungroupShapes' | 'duplicateShape' | 'setCanvasBackground' | 'addAnnotation';
   [key: string]: any;
@@ -241,9 +243,47 @@ function applyTldrawOperations(editor: any, operations: TldrawOperation[]) {
   }
 }
 
+// Function to map hex colors to valid tldraw color names
+function mapHexColorToTldrawColor(hexColor: string): string {
+  if (!hexColor) return 'black';
+  
+  // If it's already a valid tldraw color name, return it
+  const validColors = ['black', 'grey', 'light-violet', 'violet', 'blue', 'light-blue', 'yellow', 'orange', 'green', 'light-green', 'light-red', 'red', 'white'];
+  if (validColors.includes(hexColor.toLowerCase())) {
+    return hexColor.toLowerCase();
+  }
+  
+  // Convert hex to closest tldraw color
+  if (hexColor.startsWith('#')) {
+    const hex = hexColor.replace('#', '');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    
+    // Simple color mapping based on RGB values
+    if (r < 50 && g < 50 && b < 50) return 'black';
+    if (r > 200 && g > 200 && b > 200) return 'white';
+    if (r > g && r > b && r > 150) return 'red';
+    if (g > r && g > b && g > 150) return 'green';
+    if (b > r && b > g && b > 150) return 'blue';
+    if (r > 150 && g > 100 && b < 100) return 'orange';
+    if (r > 150 && g > 150 && b < 100) return 'yellow';
+    if (r > 100 && g < 100 && b > 100) return 'violet';
+    if (r > 100 && g > 100 && b > 100) return 'grey';
+    
+    // Default fallback
+    return 'black';
+  }
+  
+  return 'black';
+}
+
 // Tldraw-specific operation functions using the proper API
 function createShapeWithTldraw(editor: any, operation: any) {
   const { shapeType, x, y, width = 100, height = 100, text = '', color = 'black', note = '' } = operation;
+  
+  // Map the color to a valid tldraw color name
+  const validColor = mapHexColorToTldrawColor(color);
   
   // Ensure positive dimensions for geo shapes
   const validWidth = Math.max(width || 100, 10);
@@ -269,7 +309,7 @@ function createShapeWithTldraw(editor: any, operation: any) {
             w: validWidth,
             h: validHeight,
             geo: 'rectangle',
-            color,
+            color: validColor,
             fill: 'none',
             dash: 'draw',
             size: 'm',
@@ -277,7 +317,8 @@ function createShapeWithTldraw(editor: any, operation: any) {
             align: 'middle',
             verticalAlign: 'middle',
             growY: 0,
-            url: ''
+            url: '',
+            text: text || ''
           }
         };
         break;
@@ -291,7 +332,7 @@ function createShapeWithTldraw(editor: any, operation: any) {
             w: validWidth,
             h: validHeight,
             geo: 'ellipse',
-            color,
+            color: validColor,
             fill: 'none',
             dash: 'draw',
             size: 'm',
@@ -299,30 +340,22 @@ function createShapeWithTldraw(editor: any, operation: any) {
             align: 'middle',
             verticalAlign: 'middle',
             growY: 0,
-            url: ''
+            url: '',
+            text: text || ''
           }
         };
         break;
       case 'text':
-        // Create a simple rectangle without text (text will be added separately if needed)
+        // Create a text shape exactly like athena-intelligence does
         shapeData = {
           id: shapeId,
-          type: 'geo',
+          type: 'text',
           x: validX,
           y: validY,
           props: {
-            w: validWidth,
-            h: validHeight,
-            geo: 'rectangle',
-            color,
-            fill: 'none',
-            dash: 'draw',
-            size: 'm',
-            font: 'draw',
-            align: 'middle',
-            verticalAlign: 'middle',
-            growY: 0,
-            url: ''
+            text: text || 'Text',
+            color: validColor,
+            textAlign: 'middle'
           }
         };
         break;
@@ -333,12 +366,10 @@ function createShapeWithTldraw(editor: any, operation: any) {
           x: validX,
           y: validY,
           props: {
-            color,
-            size: 'm',
-            font: 'draw'
+            color: validColor,
+            text: text || 'Note'
           }
         };
-        // Note: Note shapes don't use props.text - they have their own text handling
         break;
       default:
         // Default to a simple rectangle
@@ -351,7 +382,7 @@ function createShapeWithTldraw(editor: any, operation: any) {
             w: validWidth,
             h: validHeight,
             geo: 'rectangle',
-            color,
+            color: validColor,
             fill: 'none',
             dash: 'draw',
             size: 'm',
@@ -359,7 +390,8 @@ function createShapeWithTldraw(editor: any, operation: any) {
             align: 'middle',
             verticalAlign: 'middle',
             growY: 0,
-            url: ''
+            url: '',
+            text: text || ''
           }
         };
     }
@@ -383,19 +415,19 @@ function createShapeWithTldraw(editor: any, operation: any) {
       throw new Error('Editor does not have createShape, createShapes, or store.put methods');
     }
     
-    // If text was requested and this is a geo shape, create a separate text element on top
-    if (text && text.trim() && (shapeType === 'rectangle' || shapeType === 'ellipse' || shapeType === 'text')) {
+    // If text was requested and this is a geo shape (not text), create a separate text element on top
+    if (text && text.trim() && (shapeType === 'rectangle' || shapeType === 'ellipse')) {
       try {
         const textShapeId = `shape:${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
         const textShapeData = {
           id: textShapeId,
-          type: 'note', // Use note type for text overlay
+          type: 'text',
           x: validX + validWidth / 4,
           y: validY + validHeight / 4,
           props: {
-            color,
-            size: 's',
-            font: 'draw'
+            text: text,
+            color: validColor,
+            textAlign: 'middle'
           }
         };
         
@@ -428,7 +460,7 @@ function updateShapeWithTldraw(editor: any, operation: any) {
     if (width !== undefined) updates['props.w'] = width;
     if (height !== undefined) updates['props.h'] = height;
     if (text !== undefined) updates['props.text'] = text;
-    if (color !== undefined) updates['props.color'] = color;
+    if (color !== undefined) updates['props.color'] = mapHexColorToTldrawColor(color);
     if (note !== undefined) updates['meta.description'] = note;
     
     console.log('Updating shape with data:', updates);
@@ -481,15 +513,20 @@ function connectShapesWithTldraw(editor: any, fromShapeId: string, toShapeId: st
   try {
     const arrowId = `shape:${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
     
-    // Create an arrow shape that connects the two shapes
+    // Create an arrow shape with proper structure
     const arrowData = {
       id: arrowId,
       type: 'arrow',
-      x: 0,
-      y: 0,
+      x: 100,
+      y: 100,
       props: {
-        start: { type: 'binding', boundShapeId: fromShapeId, normalizedAnchor: { x: 0.5, y: 0.5 } },
-        end: { type: 'binding', boundShapeId: toShapeId, normalizedAnchor: { x: 0.5, y: 0.5 } },
+        start: { x: 0, y: 0 },
+        end: { x: 200, y: 200 },
+        arrowheadStart: 'none',
+        arrowheadEnd: 'arrow',
+        color: 'black',
+        size: 'm',
+        fill: 'none'
       }
     };
     
@@ -610,7 +647,7 @@ function setCanvasBackgroundWithTldraw(editor: any, color?: string, pattern?: st
           w: viewport.w,
           h: viewport.h,
           geo: 'rectangle',
-          color,
+          color: mapHexColorToTldrawColor(color),
           fill: 'solid',
           dash: 'draw',
           size: 'm',
