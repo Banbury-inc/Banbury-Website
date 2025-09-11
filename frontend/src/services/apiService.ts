@@ -320,6 +320,39 @@ export class ApiService {
   }
 
   /**
+   * Get paginated site visitor analytics with filtering support
+   */
+  static async getSiteVisitorInfoPaginated(params: {
+    page?: number;
+    page_size?: number;
+    days?: number;
+    location?: string;
+    source?: string;
+    campaign?: string;
+    content_type?: string;
+    ip_exclusions?: string;
+  }) {
+    try {
+      const queryParams = new URLSearchParams();
+      
+      if (params.page !== undefined) queryParams.append('page', params.page.toString());
+      if (params.page_size !== undefined) queryParams.append('page_size', params.page_size.toString());
+      if (params.days !== undefined) queryParams.append('days', params.days.toString());
+      if (params.location) queryParams.append('location', params.location);
+      if (params.source) queryParams.append('source', params.source);
+      if (params.campaign) queryParams.append('campaign', params.campaign);
+      if (params.content_type) queryParams.append('content_type', params.content_type);
+      if (params.ip_exclusions) queryParams.append('ip_exclusions', params.ip_exclusions);
+      
+      const response = await this.get(`/authentication/get_site_visitor_info_paginated/?${queryParams.toString()}`);
+      return response;
+    } catch (error) {
+      console.error('Failed to fetch paginated visitor data:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get login analytics
    */
   static async getLoginAnalytics(limit: number = 100, days: number = 30) {
