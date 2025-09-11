@@ -249,6 +249,8 @@ export default function MeetingAgent() {
           participants: session.participants,
           participantsLength: session.participants?.length
         })
+
+       MeetingAgentService.checkAndUploadSessions() 
         
         // Debug participant data structure
         if (session.participants && session.participants.length > 0) {
@@ -600,22 +602,6 @@ export default function MeetingAgent() {
                               <p>Refresh sessions</p>
                             </TooltipContent>
                           </Tooltip>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={handleBulkS3Upload}
-                                className="h-8 px-3 text-blue-400 border-blue-600 hover:bg-blue-600 hover:text-white"
-                              >
-                                <Download className="h-4 w-4 mr-1" />
-                                Upload to S3
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              <p>Upload all completed meetings to S3</p>
-                            </TooltipContent>
-                          </Tooltip>
                           {sessions.filter(s => ['active', 'recording'].includes(s.status)).length > 0 && (
                             <Button 
                               variant="destructive" 
@@ -831,23 +817,12 @@ export default function MeetingAgent() {
                                                 {session.recallBot && (
                                                   <>
                                                     <div>
-                                                      <span className="text-muted-foreground font-medium text-xs">Recall Bot Status</span>
+                                                      <span className="text-muted-foreground font-medium text-xs">Bot Status</span>
                                                       <p className="text-foreground font-medium mt-1 capitalize">{session.recallBot.status}</p>
                                                     </div>
                                                     <div>
-                                                      <span className="text-muted-foreground font-medium text-xs">Recording Status</span>
+                                                      <span className="text-muted-foreground font-medium text-xs">Status</span>
                                                       <p className="text-foreground font-medium mt-1 capitalize">{session.recallBot.recordingStatus}</p>
-                                                    </div>
-                                                    <div className="md:col-span-2">
-                                                      <Button
-                                                        variant="outline"
-                                                        size="sm"
-                                                        onClick={() => handleUpdateSessionUrls(session.id)}
-                                                        className="text-blue-400 border-blue-600 hover:bg-blue-600 hover:text-white"
-                                                      >
-                                                        <RefreshCw className="h-4 w-4 mr-2" />
-                                                        Update URLs from Bot
-                                                      </Button>
                                                     </div>
                                                   </>
                                                 )}
