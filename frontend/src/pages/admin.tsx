@@ -17,8 +17,7 @@ import {
   Clock,
   AlertTriangle,
   CheckCircle,
-  XCircle,
-  ChevronDown
+  XCircle
 } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, AreaChart, Area } from 'recharts'
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '../components/ui/chart'
@@ -30,13 +29,6 @@ import { Button } from '../components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card'
 import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger,
-  DropdownMenuSeparator 
-} from '../components/ui/dropdown-menu'
 import { ApiService } from '../services/apiService'
 import { 
   getTotalPages, 
@@ -47,16 +39,6 @@ import {
   canGoPrev, 
   clampPage 
 } from './handlers/adminVisitors'
-import { 
-  loadPaginatedVisitors,
-  getNextPage,
-  getPreviousPage,
-  canGoNext as canGoNextPaginated,
-  canGoPrev as canGoPrevPaginated,
-  getPageNumbers,
-  type PaginatedVisitorResponse,
-  type PaginationInfo
-} from './handlers/adminVisitorsPaginated'
 
 // Utility function to convert UTC timestamp to Eastern time
 const convertToEasternTime = (timestamp: string): string => {
@@ -275,11 +257,6 @@ export default function Admin() {
   const [visitorLoading, setVisitorLoading] = useState(false)
   const [visitorPage, setVisitorPage] = useState<number>(1)
   const [visitorPageSize] = useState<number>(20)
-  
-  // New paginated visitor state
-  const [paginatedVisitorData, setPaginatedVisitorData] = useState<VisitorData[]>([])
-  const [paginationInfo, setPaginationInfo] = useState<PaginationInfo | null>(null)
-  const [usePaginatedVisitors, setUsePaginatedVisitors] = useState<boolean>(true)
   const [loginData, setLoginData] = useState<LoginData[]>([])
   const [loginStats, setLoginStats] = useState<LoginStats | null>(null)
   const [loginLoading, setLoginLoading] = useState(false)
@@ -297,9 +274,6 @@ export default function Admin() {
   const [visitorIpExclusions, setVisitorIpExclusions] = useState<string[]>([])
   const [visitorIpInput, setVisitorIpInput] = useState<string>('')
   const [visitorLocationFilter, setVisitorLocationFilter] = useState<string>('')
-  const [visitorSourceFilter, setVisitorSourceFilter] = useState<string>('')
-  const [visitorCampaignFilter, setVisitorCampaignFilter] = useState<string>('')
-  const [visitorContentTypeFilter, setVisitorContentTypeFilter] = useState<string>('')
   const [dashboardVisitStats, setDashboardVisitStats] = useState<any>(null)
   const [dashboardVisitLoading, setDashboardVisitLoading] = useState(false)
   const [workspaceVisitStats, setWorkspaceVisitStats] = useState<any>(null)
@@ -329,11 +303,7 @@ export default function Admin() {
   // Load visitor, login, scopes, and conversations data when analytics tab is selected
   useEffect(() => {
         if (activeTab === 'analytics' && !visitorLoading && !loginLoading && !scopesLoading && !conversationsLoading && !usersLoading && !dashboardVisitLoading && !workspaceVisitLoading) {
-          if (usePaginatedVisitors) {
-            loadPaginatedVisitorData(1, 30)
-          } else {
-            loadVisitorData(30)
-          }
+          loadVisitorData(30)
           loadLoginData(30)
           loadScopesAnalytics()
           loadConversationsAnalytics(30, conversationUserFilter)
@@ -341,7 +311,7 @@ export default function Admin() {
           loadDashboardVisitStats()
           loadWorkspaceVisitStats()
         }
-  }, [activeTab, conversationUserFilter, usePaginatedVisitors])
+  }, [activeTab])
 
   // Debug daily_stats changes
   useEffect(() => {
@@ -398,11 +368,7 @@ export default function Admin() {
 
     // Load visitor data if analytics tab is active
     if (activeTab === 'analytics') {
-      if (usePaginatedVisitors) {
-        await loadPaginatedVisitorData(1, 30)
-      } else {
-        await loadVisitorData(30)
-      }
+      await loadVisitorData(30)
     }
 
     // Mock recent activity
@@ -481,63 +447,37 @@ export default function Admin() {
   const loadVisitorData = async (days: number = 30) => {
     setVisitorLoading(true)
     try {
-      // Try enhanced API first for visitor data with enhanced fields
-      const enhancedResponse = await ApiService.getSiteVisitorInfoEnhanced(100, days) as any
-      console.log('Enhanced visitor data response:', enhancedResponse)
+      const response = await ApiService.getSiteVisitorInfoEnhanced(100, days) as any
+      console.log('Enhanced visitor data response:', response)
       
-      // Check if enhanced API has the enhanced fields we need
-      const hasEnhancedFields = enhancedResponse.visitors && enhancedResponse.visitors.length > 0 && 
-        (enhancedResponse.visitors[0].referrer_source !== undefined || 
-         enhancedResponse.visitors[0].campaign_id !== undefined || 
-         enhancedResponse.visitors[0].page_title !== undefined)
+      // Enhanced API returns data in a different format
+      setVisitorData(response.visitors || [])
+      setVisitorPage(1)
       
-      if (hasEnhancedFields) {
-        console.log('Using enhanced API for visitor data')
-        setVisitorData(enhancedResponse.visitors || [])
-        setVisitorPage(1)
-        
-        // For stats, we still need daily_stats, so try to get them from legacy API
-        try {
-          const legacyStatsResponse = await ApiService.getSiteVisitorInfo(100, days) as any
-          if (legacyStatsResponse.result === 'success') {
-            let processedDailyStats = legacyStatsResponse.daily_stats || []
-            processedDailyStats = processedDailyStats.sort((a: any, b: any) => {
-              return new Date(a.date).getTime() - new Date(b.date).getTime()
-            })
-            
-            const stats = {
-              ...legacyStatsResponse.summary,
-              country_stats: legacyStatsResponse.country_stats || [],
-              city_stats: legacyStatsResponse.city_stats || [],
-              hourly_stats: legacyStatsResponse.hourly_stats || [],
-              daily_stats: processedDailyStats
-            }
-            setVisitorStats(stats)
-          }
-        } catch (statsError) {
-          console.error('Failed to load legacy stats:', statsError)
-          // Use enhanced API stats as fallback
-          const stats = {
-            total_visitors: enhancedResponse.summary?.total_visitors || 0,
-            recent_visitors: enhancedResponse.summary?.total_visitors || 0,
-            period_days: days,
-            country_stats: Object.entries(enhancedResponse.summary?.referrer_breakdown || {}).map(([country, count]) => ({
-              _id: country,
-              count: count as number
-            })),
-            city_stats: [],
-            hourly_stats: [],
-            daily_stats: []
-          }
-          setVisitorStats(stats)
-        }
-      } else {
-        // Fall back to legacy API
-        console.log('Enhanced API lacks enhanced fields, using legacy API')
+      // Process enhanced visitor stats
+      const stats = {
+        total_visitors: response.summary?.total_visitors || 0,
+        recent_visitors: response.summary?.total_visitors || 0, // Enhanced API doesn't split this
+        period_days: response.summary?.date_range_days || days,
+        country_stats: Object.entries(response.summary?.referrer_breakdown || {}).map(([country, count]) => ({
+          _id: country,
+          count: count as number
+        })),
+        city_stats: [],
+        hourly_stats: [],
+        daily_stats: [] // Enhanced API doesn't provide daily breakdown yet
+      }
+      
+      console.log('Processed enhanced visitor stats:', stats)
+      setVisitorStats(stats)
+    } catch (error) {
+      console.error('Enhanced visitor data failed, falling back to legacy:', error)
+      
+      // Fallback to legacy API
+      try {
         const legacyResponse = await ApiService.getSiteVisitorInfo(100, days) as any
         console.log('Legacy visitor data response:', legacyResponse)
         if (legacyResponse.result === 'success') {
-          console.log('Sample visitor data:', legacyResponse.visitors?.[0])
           setVisitorData(legacyResponse.visitors || [])
           setVisitorPage(1)
           
@@ -558,66 +498,13 @@ export default function Admin() {
           }
           setVisitorStats(stats)
         }
+      } catch (legacyError) {
+        console.error('Failed to load legacy visitor data:', legacyError)
+        setVisitorData([])
+        setVisitorStats(null)
       }
-    } catch (error) {
-      console.error('Failed to load visitor data:', error)
-      setVisitorData([])
-      setVisitorStats(null)
     } finally {
       setVisitorLoading(false)
-    }
-  }
-
-  const loadPaginatedVisitorData = async (page: number = 1, days: number = 30) => {
-    setVisitorLoading(true)
-    try {
-      const response = await loadPaginatedVisitors({
-        page,
-        pageSize: 100,
-        days,
-        location: visitorLocationFilter,
-        source: visitorSourceFilter,
-        campaign: visitorCampaignFilter,
-        contentType: visitorContentTypeFilter,
-        ipExclusions: visitorIpExclusions.join(',')
-      })
-      
-      setPaginatedVisitorData(response.visitors)
-      setPaginationInfo(response.pagination)
-      
-      // Also load stats for the overview tab
-      await loadVisitorStats(days)
-      
-    } catch (error) {
-      console.error('Failed to load paginated visitor data:', error)
-      setPaginatedVisitorData([])
-      setPaginationInfo(null)
-    } finally {
-      setVisitorLoading(false)
-    }
-  }
-
-  const loadVisitorStats = async (days: number = 30) => {
-    try {
-      // Load stats separately for the overview tab
-      const legacyStatsResponse = await ApiService.getSiteVisitorInfo(100, days) as any
-      if (legacyStatsResponse.result === 'success') {
-        let processedDailyStats = legacyStatsResponse.daily_stats || []
-        processedDailyStats = processedDailyStats.sort((a: any, b: any) => {
-          return new Date(a.date).getTime() - new Date(b.date).getTime()
-        })
-        
-        const stats = {
-          ...legacyStatsResponse.summary,
-          country_stats: legacyStatsResponse.country_stats || [],
-          city_stats: legacyStatsResponse.city_stats || [],
-          hourly_stats: legacyStatsResponse.hourly_stats || [],
-          daily_stats: processedDailyStats
-        }
-        setVisitorStats(stats)
-      }
-    } catch (error) {
-      console.error('Failed to load visitor stats:', error)
     }
   }
 
@@ -745,27 +632,14 @@ export default function Admin() {
         visitor.region?.toLowerCase().includes(visitorLocationFilter.toLowerCase()) ||
         visitor.country?.toLowerCase().includes(visitorLocationFilter.toLowerCase())
       
-      // Include visitors that match source filter (if specified)
-      const matchesSource = !visitorSourceFilter || 
-        visitor.referrer_source?.toLowerCase().includes(visitorSourceFilter.toLowerCase())
-      
-      // Include visitors that match campaign filter (if specified)
-      const matchesCampaign = !visitorCampaignFilter || 
-        visitor.campaign_id?.toLowerCase().includes(visitorCampaignFilter.toLowerCase())
-      
-      // Include visitors that match content type filter (if specified)
-      const matchesContentType = !visitorContentTypeFilter || 
-        visitor.page_title?.toLowerCase().includes(visitorContentTypeFilter.toLowerCase()) ||
-        visitor.path?.toLowerCase().includes(visitorContentTypeFilter.toLowerCase())
-      
-      return !isIpExcluded && matchesLocation && matchesSource && matchesCampaign && matchesContentType
+      return !isIpExcluded && matchesLocation
     })
   }
 
   // Reset visitor page when filters change
   useEffect(() => {
     setVisitorPage(1)
-  }, [visitorIpExclusions, visitorLocationFilter, visitorSourceFilter, visitorCampaignFilter, visitorContentTypeFilter])
+  }, [visitorIpExclusions, visitorLocationFilter])
 
   const addIpExclusion = () => {
     if (visitorIpInput.trim() && !visitorIpExclusions.includes(visitorIpInput.trim())) {
@@ -782,28 +656,6 @@ export default function Admin() {
     setVisitorIpExclusions([])
     setVisitorIpInput('')
     setVisitorLocationFilter('')
-    setVisitorSourceFilter('')
-    setVisitorCampaignFilter('')
-    setVisitorContentTypeFilter('')
-    
-    // Reload data with cleared filters
-    if (usePaginatedVisitors) {
-      loadPaginatedVisitorData(1, 30)
-    }
-  }
-
-  const handleFilterChange = () => {
-    // Reload data when filters change
-    if (usePaginatedVisitors) {
-      loadPaginatedVisitorData(1, 30)
-    }
-  }
-
-  const applyFilters = () => {
-    // Apply all current filter values
-    if (usePaginatedVisitors) {
-      loadPaginatedVisitorData(1, 30)
-    }
   }
 
   const loadDashboardVisitStats = async () => {
@@ -1471,11 +1323,7 @@ export default function Admin() {
                   <select 
                     onChange={(e) => {
                       const days = parseInt(e.target.value)
-                      if (usePaginatedVisitors) {
-                        loadPaginatedVisitorData(1, days)
-                      } else {
-                        loadVisitorData(days)
-                      }
+                      loadVisitorData(days)
                       loadLoginData(days)
                       loadScopesAnalytics()
                       loadConversationsAnalytics(days, conversationUserFilter)
@@ -1489,11 +1337,7 @@ export default function Admin() {
                     <option value="90">Last 90 days</option>
                   </select>
                   <Button onClick={() => {
-                    if (usePaginatedVisitors) {
-                      loadPaginatedVisitorData(1, 30)
-                    } else {
-                      loadVisitorData(30)
-                    }
+                    loadVisitorData(30)
                     loadLoginData(30)
                     loadScopesAnalytics()
                     loadConversationsAnalytics(30, conversationUserFilter)
@@ -1867,13 +1711,7 @@ export default function Admin() {
                       <CardDescription className="text-zinc-400">Daily visitor trends for the selected period</CardDescription>
                     </div>
                     <Button 
-                      onClick={() => {
-                        if (usePaginatedVisitors) {
-                          loadPaginatedVisitorData(1, 30)
-                        } else {
-                          loadVisitorData(30)
-                        }
-                      }} 
+                      onClick={() => loadVisitorData(30)} 
                       variant="outline" 
                       size="sm"
                       className="text-white border-zinc-600 hover:bg-zinc-800"
@@ -1893,9 +1731,7 @@ export default function Admin() {
                       <div className="text-xs text-zinc-500 mb-2">
                         Chart data points: {visitorStats.daily_stats.length} | 
                         Date range: {visitorStats.daily_stats[0]?.date} to {visitorStats.daily_stats[visitorStats.daily_stats.length - 1]?.date} |
-                        Today: {new Date().toISOString().split('T')[0]} |
-                        Total visitors: {visitorStats.total_visitors} |
-                        Recent visitors: {visitorStats.recent_visitors}
+                        Today: {new Date().toISOString().split('T')[0]}
                       </div>
                       <ChartContainer
                         config={{
@@ -1978,17 +1814,7 @@ export default function Admin() {
                         {visitorStats && (
                           <div className="mt-2 text-xs">
                             <div>Daily stats length: {visitorStats.daily_stats?.length || 0}</div>
-                            <div>Total visitors: {visitorStats.total_visitors || 0}</div>
-                            <div>Recent visitors: {visitorStats.recent_visitors || 0}</div>
-                            <div>Period days: {visitorStats.period_days || 0}</div>
-                            {visitorStats.daily_stats && visitorStats.daily_stats.length > 0 && (
-                              <div>Sample data: {JSON.stringify(visitorStats.daily_stats.slice(0, 3))}</div>
-                            )}
-                          </div>
-                        )}
-                        {!visitorStats && (
-                          <div className="mt-2 text-xs">
-                            <div>No visitor stats loaded - check console for API errors</div>
+                            <div>Daily stats data: {JSON.stringify(visitorStats.daily_stats || [])}</div>
                           </div>
                         )}
                       </div>
@@ -2251,403 +2077,169 @@ export default function Admin() {
               {/* Visitors Tab */}
               {analyticsSubTab === 'visitors' && (
                 <div className="space-y-6">
+                  {/* Visitor Filters */}
+                  <Card className="bg-zinc-900 border-zinc-700">
+                    <CardHeader>
+                      <CardTitle className="text-white">Filter Visitors</CardTitle>
+                      <CardDescription className="text-zinc-400">Filter visitors by IP address or location</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="ip-exclusion" className="text-white text-sm mb-2 block">
+                            Exclude IP Addresses
+                          </Label>
+                          <div className="flex gap-2">
+                            <Input
+                              id="ip-exclusion"
+                              type="text"
+                              placeholder="Enter IP address to exclude..."
+                              value={visitorIpInput}
+                              onChange={(e) => setVisitorIpInput(e.target.value)}
+                              onKeyPress={(e) => e.key === 'Enter' && addIpExclusion()}
+                              className="bg-zinc-800 text-white border-zinc-600 focus:border-blue-500"
+                            />
+                            <Button 
+                              onClick={addIpExclusion}
+                              variant="outline"
+                              className="text-white border-zinc-600 hover:bg-zinc-800"
+                            >
+                              Add
+                            </Button>
+                          </div>
+                          {visitorIpExclusions.length > 0 && (
+                            <div className="mt-2">
+                              <div className="text-zinc-400 text-xs mb-1">Excluded IPs:</div>
+                              <div className="flex flex-wrap gap-2">
+                                {visitorIpExclusions.map((ip) => (
+                                  <span
+                                    key={ip}
+                                    className="bg-red-900/50 text-red-300 px-2 py-1 rounded text-xs flex items-center gap-1"
+                                  >
+                                    {ip}
+                                    <button
+                                      onClick={() => removeIpExclusion(ip)}
+                                      className="text-red-400 hover:text-red-200 ml-1"
+                                    >
+                                      ×
+                                    </button>
+                                  </span>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <Label htmlFor="location-filter" className="text-white text-sm mb-2 block">
+                            Location Filter (City, Region, Country)
+                          </Label>
+                          <Input
+                            id="location-filter"
+                            type="text"
+                            placeholder="Enter location to filter..."
+                            value={visitorLocationFilter}
+                            onChange={(e) => setVisitorLocationFilter(e.target.value)}
+                            className="bg-zinc-800 text-white border-zinc-600 focus:border-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div className="flex gap-2 mt-4">
+                        <Button 
+                          onClick={clearAllFilters}
+                          variant="outline"
+                          className="text-white border-zinc-600 hover:bg-zinc-800"
+                        >
+                          Clear All Filters
+                        </Button>
+                        {(visitorIpExclusions.length > 0 || visitorLocationFilter) && (
+                          <div className="text-zinc-400 text-sm flex items-center">
+                            Showing {getFilteredVisitors().length} of {visitorData.length} visitors
+                            {visitorIpExclusions.length > 0 && ` (${visitorIpExclusions.length} IPs excluded)`}
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   <Card className="bg-zinc-900 border-zinc-700">
                     <CardHeader>
                       <div className="flex items-center justify-between">
                         <div>
                           <CardTitle className="text-white">Recent Visitors</CardTitle>
-                          {!usePaginatedVisitors && (visitorIpExclusions.length > 0 || visitorLocationFilter || visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && (
-                            <div className="text-zinc-400 text-sm flex items-center mt-1">
-                              Showing {getFilteredVisitors().length} of {visitorData.length} visitors
-                              {visitorIpExclusions.length > 0 && ` (${visitorIpExclusions.length} IPs excluded)`}
-                            </div>
-                          )}
+                          <CardDescription className="text-zinc-400">
+                            Latest site visitors with location data
+                            {(visitorIpExclusions.length > 0 || visitorLocationFilter) && ' (filtered)'}
+                          </CardDescription>
                         </div>
                         <div className="flex items-center gap-2">
-                          {usePaginatedVisitors && paginationInfo ? (
-                            <span className="text-zinc-400 text-xs">
-                              Page {paginationInfo.current_page} of {paginationInfo.total_pages} ({paginationInfo.total_count} total)
+                      {(() => {
+                        const filteredVisitors = getFilteredVisitors()
+                        const totalPages = getTotalPages({ totalItems: filteredVisitors.length, pageSize: visitorPageSize })
+                        const currentPage = clampPage({ page: visitorPage, totalPages })
+                        return (
+                          <>
+                            <span className="text-zinc-400 text-xs hidden md:inline">
+                              Page {currentPage} of {totalPages} • {filteredVisitors.length} total
+                              {(visitorIpExclusions.length > 0 || visitorLocationFilter) && ` (filtered from ${visitorData.length})`}
                             </span>
-                          ) : (
-                            (() => {
-                              const filteredVisitors = getFilteredVisitors()
-                              return (
-                                <span className="text-zinc-400 text-xs">
-                                  {filteredVisitors.length} visitors
-                                  {(visitorIpExclusions.length > 0 || visitorLocationFilter || visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && ` (filtered from ${visitorData.length})`}
-                                </span>
-                              )
-                            })()
-                          )}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setVisitorPage(prevVisitorPage({ page: currentPage }))}
+                              disabled={!canGoPrev({ page: currentPage })}
+                              className="text-white border-zinc-600"
+                            >
+                              Prev
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => setVisitorPage(nextVisitorPage({ page: currentPage, totalPages }))}
+                              disabled={!canGoNext({ page: currentPage, totalPages })}
+                              className="text-white border-zinc-600"
+                            >
+                              Next
+                            </Button>
+                          </>
+                        )
+                      })()}
                         </div>
                       </div>
                     </CardHeader>
                 <CardContent>
-                  {/* Pagination Controls Above Table */}
-                  {usePaginatedVisitors && paginationInfo && (
-                    <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700 bg-zinc-800 mb-4">
-                      <div className="flex items-center gap-2">
-                      </div>
-                      
-                      <div className="flex items-center gap-4">
-                        <span className="text-zinc-400 text-sm">
-                          Page {paginationInfo.current_page} of {paginationInfo.total_pages}
-                        </span>
-                        <span className="text-zinc-500 text-sm">
-                          ({paginationInfo.total_count} total visitors)
-                        </span>
-                        {paginationInfo.total_pages > 1 && (
-                          <div className="flex items-center gap-1">
-                            {getPageNumbers(paginationInfo.current_page, paginationInfo.total_pages).map((pageNum) => (
-                              <Button
-                                key={pageNum}
-                                variant={pageNum === paginationInfo.current_page ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => loadPaginatedVisitorData(pageNum, 30)}
-                                className={
-                                  pageNum === paginationInfo.current_page
-                                    ? "bg-blue-600 text-white hover:bg-blue-700"
-                                    : "text-white border-zinc-600 hover:bg-zinc-700"
-                                }
-                              >
-                                {pageNum}
-                              </Button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => loadPaginatedVisitorData(paginationInfo.total_pages, 30)}
-                          disabled={paginationInfo.current_page >= paginationInfo.total_pages}
-                          className="text-white border-zinc-600 hover:bg-zinc-700 disabled:opacity-50"
-                        >
-                          Last
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => loadPaginatedVisitorData(getNextPage(paginationInfo.current_page, paginationInfo.total_pages), 30)}
-                          disabled={paginationInfo.current_page >= paginationInfo.total_pages}
-                          className="text-white border-zinc-600 hover:bg-zinc-700 disabled:opacity-50"
-                        >
-                          Next
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-
                   {visitorLoading ? (
                     <div className="flex items-center justify-center py-8">
                       <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
                     </div>
-                  ) : (usePaginatedVisitors ? paginatedVisitorData.length > 0 : visitorData.length > 0) ? (
-                    <div className="h-[calc(100vh-350px)] border border-zinc-700 rounded-lg overflow-hidden">
-                      <div className="h-full overflow-auto">
-                        <table className="w-full min-w-full table-fixed">
-                          <thead className="sticky top-0 bg-zinc-900 z-10">
-                            <tr className="border-b border-zinc-700">
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-32">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    IP Address
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {visitorIpExclusions.length > 0 && (
-                                      <span className="ml-1 bg-red-500 text-white text-xs px-1 rounded-full">
-                                        {visitorIpExclusions.length}
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-80 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <Label className="text-white text-sm mb-2 block">Exclude IP Addresses</Label>
-                                    <div className="flex gap-2 mb-3">
-                                      <Input
-                                        type="text"
-                                        placeholder="Enter IP address to exclude..."
-                                        value={visitorIpInput}
-                                        onChange={(e) => setVisitorIpInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && addIpExclusion()}
-                                        className="bg-zinc-700 text-white border-zinc-600 focus:border-blue-500"
-                                      />
-                                      <Button 
-                                        onClick={addIpExclusion}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-white border-zinc-600 hover:bg-zinc-700"
-                                      >
-                                        Add
-                                      </Button>
-                                    </div>
-                                    <div className="flex gap-2 mb-3">
-                                      <Button 
-                                        onClick={applyFilters}
-                                        variant="default"
-                                        size="sm"
-                                        className="bg-blue-600 text-white hover:bg-blue-700"
-                                      >
-                                        Apply IP Filters
-                                      </Button>
-                                    </div>
-                                    {visitorIpExclusions.length > 0 && (
-                                      <div>
-                                        <div className="text-zinc-400 text-xs mb-2">Excluded IPs:</div>
-                                        <div className="flex flex-wrap gap-2">
-                                          {visitorIpExclusions.map((ip) => (
-                                            <span
-                                              key={ip}
-                                              className="bg-red-900/50 text-red-300 px-2 py-1 rounded text-xs flex items-center gap-1"
-                                            >
-                                              {ip}
-                                              <button
-                                                onClick={() => removeIpExclusion(ip)}
-                                                className="text-red-400 hover:text-red-200 ml-1"
-                                              >
-                                                ×
-                                              </button>
-                                            </span>
-                                          ))}
-                                        </div>
-                                      </div>
-                                    )}
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-40">Page</th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-24">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    Source
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {visitorSourceFilter && (
-                                      <span className="ml-1 bg-green-500 text-white text-xs px-1 rounded-full">
-                                        ●
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-64 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <Label className="text-white text-sm mb-2 block">Filter by Source</Label>
-                                    <div className="flex gap-2 mb-2">
-                                      <Input
-                                        type="text"
-                                        placeholder="Enter source (twitter, facebook, google, etc.)..."
-                                        value={visitorSourceFilter}
-                                        onChange={(e) => setVisitorSourceFilter(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-                                        className="bg-zinc-700 text-white border-zinc-600 focus:border-blue-500"
-                                      />
-                                      <Button 
-                                        onClick={applyFilters}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-white border-zinc-600 hover:bg-zinc-700"
-                                      >
-                                        Apply
-                                      </Button>
-                                    </div>
-                                    <div className="text-zinc-400 text-xs">
-                                      Filter by referrer source (twitter, facebook, google, linkedin, etc.)
-                                    </div>
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-28">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    Campaign
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {visitorCampaignFilter && (
-                                      <span className="ml-1 bg-purple-500 text-white text-xs px-1 rounded-full">
-                                        ●
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-64 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <Label className="text-white text-sm mb-2 block">Filter by Campaign</Label>
-                                    <div className="flex gap-2 mb-2">
-                                      <Input
-                                        type="text"
-                                        placeholder="Enter campaign ID..."
-                                        value={visitorCampaignFilter}
-                                        onChange={(e) => setVisitorCampaignFilter(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-                                        className="bg-zinc-700 text-white border-zinc-600 focus:border-blue-500"
-                                      />
-                                      <Button 
-                                        onClick={applyFilters}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-white border-zinc-600 hover:bg-zinc-700"
-                                      >
-                                        Apply
-                                      </Button>
-                                    </div>
-                                    <div className="text-zinc-400 text-xs">
-                                      Filter by campaign ID or campaign name
-                                    </div>
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-32">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    Content Type
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {visitorContentTypeFilter && (
-                                      <span className="ml-1 bg-yellow-500 text-white text-xs px-1 rounded-full">
-                                        ●
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-64 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <Label className="text-white text-sm mb-2 block">Filter by Content</Label>
-                                    <div className="flex gap-2 mb-2">
-                                      <Input
-                                        type="text"
-                                        placeholder="Enter page title or path..."
-                                        value={visitorContentTypeFilter}
-                                        onChange={(e) => setVisitorContentTypeFilter(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-                                        className="bg-zinc-700 text-white border-zinc-600 focus:border-blue-500"
-                                      />
-                                      <Button 
-                                        onClick={applyFilters}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-white border-zinc-600 hover:bg-zinc-700"
-                                      >
-                                        Apply
-                                      </Button>
-                                    </div>
-                                    <div className="text-zinc-400 text-xs">
-                                      Filter by page title or URL path
-                                    </div>
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-36">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    Location
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {visitorLocationFilter && (
-                                      <span className="ml-1 bg-blue-500 text-white text-xs px-1 rounded-full">
-                                        ●
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-64 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <Label className="text-white text-sm mb-2 block">Filter by Location</Label>
-                                    <div className="flex gap-2 mb-2">
-                                      <Input
-                                        type="text"
-                                        placeholder="Enter city, region, or country..."
-                                        value={visitorLocationFilter}
-                                        onChange={(e) => setVisitorLocationFilter(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && applyFilters()}
-                                        className="bg-zinc-700 text-white border-zinc-600 focus:border-blue-500"
-                                      />
-                                      <Button 
-                                        onClick={applyFilters}
-                                        variant="outline"
-                                        size="sm"
-                                        className="text-white border-zinc-600 hover:bg-zinc-700"
-                                      >
-                                        Apply
-                                      </Button>
-                                    </div>
-                                    <div className="text-zinc-400 text-xs">
-                                      Filter by city, region, or country name
-                                    </div>
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
-                            <th className="text-left py-2 px-2 text-zinc-300 font-medium text-sm w-28">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" className="h-auto p-0 text-zinc-300 font-medium hover:text-white text-sm">
-                                    Time
-                                    <ChevronDown className="ml-1 h-3 w-3" />
-                                    {(visitorIpExclusions.length > 0 || visitorLocationFilter || visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && (
-                                      <span className="ml-1 bg-orange-500 text-white text-xs px-1 rounded-full">
-                                        ●
-                                      </span>
-                                    )}
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent className="w-48 bg-zinc-800 border-zinc-700">
-                                  <div className="p-3">
-                                    <div className="text-white text-sm mb-3">Filter Actions</div>
-                                    <Button 
-                                      onClick={clearAllFilters}
-                                      variant="outline"
-                                      size="sm"
-                                      className="w-full text-white border-zinc-600 hover:bg-zinc-700"
-                                    >
-                                      Clear All Filters
-                                    </Button>
-                                    {(visitorIpExclusions.length > 0 || visitorLocationFilter || visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && (
-                                      <div className="text-zinc-400 text-xs mt-2">
-                                        {visitorIpExclusions.length > 0 && `${visitorIpExclusions.length} IPs excluded`}
-                                        {visitorIpExclusions.length > 0 && (visitorLocationFilter || visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && ', '}
-                                        {visitorLocationFilter && 'location filtered'}
-                                        {visitorLocationFilter && (visitorSourceFilter || visitorCampaignFilter || visitorContentTypeFilter) && ', '}
-                                        {visitorSourceFilter && 'source filtered'}
-                                        {visitorSourceFilter && (visitorCampaignFilter || visitorContentTypeFilter) && ', '}
-                                        {visitorCampaignFilter && 'campaign filtered'}
-                                        {visitorCampaignFilter && visitorContentTypeFilter && ', '}
-                                        {visitorContentTypeFilter && 'content filtered'}
-                                      </div>
-                                    )}
-                                  </div>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </th>
+                  ) : visitorData.length > 0 ? (
+                    <div className="overflow-x-auto border border-zinc-700 rounded-lg">
+                      <table className="w-full min-w-full">
+                        <thead>
+                          <tr className="border-b border-zinc-700">
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">IP Address</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Page</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Source</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Campaign</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Content Type</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Location</th>
+                            <th className="text-left py-3 px-4 text-zinc-300 font-medium">Time</th>
                           </tr>
-                          </thead>
-                          <tbody>
-                            {(usePaginatedVisitors ? paginatedVisitorData : getFilteredVisitors()).map((visitor) => {
-                            // Debug: Log visitor data for first few entries
-                            if (Math.random() < 0.1) { // Log ~10% of visitors to avoid spam
-                              console.log('Visitor data in table:', {
-                                id: visitor._id,
-                                referrer_source: visitor.referrer_source,
-                                campaign_id: visitor.campaign_id,
-                                content_type: visitor.content_type,
-                                page_title: visitor.page_title
-                              })
-                            }
-                            return (
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const filteredVisitors = getFilteredVisitors()
+                            const totalPages = getTotalPages({ totalItems: filteredVisitors.length, pageSize: visitorPageSize })
+                            const currentPage = clampPage({ page: visitorPage, totalPages })
+                            const paged = getPageSlice({ items: filteredVisitors, page: currentPage, pageSize: visitorPageSize })
+                            return paged
+                          })().map((visitor) => (
                             <tr key={visitor._id} className="border-b border-zinc-800 hover:bg-zinc-800/50 transition-colors">
-                              <td className="py-1 px-2 w-32">
-                                <span className="text-white font-mono text-xs">{visitor.ip_address}</span>
+                              <td className="py-3 px-4">
+                                <span className="text-white font-mono text-sm">{visitor.ip_address}</span>
                               </td>
-                              <td className="py-1 px-2 w-40">
+                              <td className="py-3 px-4 max-w-[200px]">
                                 <div>
-                                  <div className="text-white text-xs font-medium truncate" title={visitor.page_title || visitor.path || 'Unknown'}>
+                                  <div className="text-white text-sm font-medium truncate" title={visitor.page_title || visitor.path || 'Unknown'}>
                                     {visitor.page_title || (visitor.path ? visitor.path.split('?')[0] : 'Unknown')}
                                   </div>
                                   {visitor.path && visitor.path !== visitor.page_title && (
@@ -2657,9 +2249,9 @@ export default function Admin() {
                                   )}
                                 </div>
                               </td>
-                              <td className="py-1 px-2 w-24">
+                              <td className="py-3 px-4">
                                 {visitor.referrer_source ? (
-                                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
                                     visitor.referrer_source === 'twitter' ? 'bg-blue-900/50 text-blue-300' :
                                     visitor.referrer_source === 'facebook' ? 'bg-blue-800/50 text-blue-200' :
                                     visitor.referrer_source === 'google' ? 'bg-green-900/50 text-green-300' :
@@ -2672,18 +2264,18 @@ export default function Admin() {
                                   <span className="text-zinc-500 text-xs">Direct</span>
                                 )}
                               </td>
-                              <td className="py-1 px-2 w-28">
+                              <td className="py-3 px-4 max-w-[120px]">
                                 {visitor.campaign_id ? (
                                   <span className="text-zinc-300 text-xs font-mono truncate inline-block max-w-full" title={visitor.campaign_id}>
-                                    {visitor.campaign_id.length > 10 ? `${visitor.campaign_id.substring(0, 10)}...` : visitor.campaign_id}
+                                    {visitor.campaign_id.length > 12 ? `${visitor.campaign_id.substring(0, 12)}...` : visitor.campaign_id}
                                   </span>
                                 ) : (
                                   <span className="text-zinc-500 text-xs">-</span>
                                 )}
                               </td>
-                              <td className="py-1 px-2 w-32">
+                              <td className="py-3 px-4">
                                 {visitor.content_type ? (
-                                  <span className={`px-1.5 py-0.5 rounded text-xs font-medium ${
+                                  <span className={`px-2 py-1 rounded text-xs font-medium ${
                                     visitor.content_type === 'landing_page' ? 'bg-green-900/50 text-green-300' :
                                     visitor.content_type === 'dashboard' ? 'bg-blue-900/50 text-blue-300' :
                                     visitor.content_type === 'auth_page' ? 'bg-yellow-900/50 text-yellow-300' :
@@ -2696,22 +2288,19 @@ export default function Admin() {
                                   <span className="text-zinc-500 text-xs">Unknown</span>
                                 )}
                               </td>
-                              <td className="py-1 px-2 w-36">
+                              <td className="py-3 px-4">
                                 <div>
-                                  <div className="text-white text-xs">{visitor.city}</div>
+                                  <div className="text-white text-sm">{visitor.city}</div>
                                   <div className="text-zinc-400 text-xs">{visitor.region}, {visitor.country}</div>
                                 </div>
                               </td>
-                              <td className="py-1 px-2 w-28 text-zinc-400 text-xs">
+                              <td className="py-3 px-4 text-zinc-400 text-sm">
                                 {convertToEasternTime(visitor.time)}
                               </td>
                             </tr>
-                            )
-                          })}
-                          </tbody>
-                        </table>
-                      </div>
-                      
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   ) : (
                     <div className="text-center py-8 text-zinc-400">
@@ -2720,7 +2309,6 @@ export default function Admin() {
                   )}
                 </CardContent>
                   </Card>
-
                 </div>
               )}
 

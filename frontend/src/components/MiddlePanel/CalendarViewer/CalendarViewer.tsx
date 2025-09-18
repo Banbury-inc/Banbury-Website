@@ -222,7 +222,8 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                         e.stopPropagation()
                         handleEventClick(ev, { x: e.clientX, y: e.clientY })
                       }} 
-                      className="w-full text-left truncate text-xs px-1 py-0.5 rounded bg-blue-900/50 text-blue-300 hover:bg-blue-800/50 border border-blue-700/50"
+                      className="w-full text-left truncate text-xs px-1 py-0.5 rounded bg-blue-900/50 text-blue-300 hover:bg-blue-800/50 border border-blue-700/50 overflow-hidden"
+                      title={ev.summary || '(No title)'}
                     >
                       {ev.summary || '(No title)'}
                     </button>
@@ -388,7 +389,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                   return (
                     <div
                       key={event.id}
-                      className={`absolute rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor}`}
+                      className={`absolute rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden`}
                       style={{
                         left: `${(position.dayIndex / 7) * 100}%`,
                         width: `${100 / 7}%`,
@@ -399,16 +400,17 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                         e.stopPropagation()
                         handleEventClick(event, { x: e.clientX, y: e.clientY })
                       }}
+                      title={`${event.summary || '(No title)'}${event.location ? ` - ${event.location}` : ''}`}
                     >
-                      <div className="font-medium truncate">{event.summary || '(No title)'}</div>
-                      <div className="text-[10px] opacity-90">
+                      <div className="font-medium truncate leading-tight">{event.summary || '(No title)'}</div>
+                      <div className="text-[10px] opacity-90 truncate leading-tight">
                         {formatTime(event.start?.dateTime)}
                         {event.end?.dateTime && ` - ${formatTime(event.end?.dateTime)}`}
                       </div>
                       {event.location && (
-                        <div className="text-[10px] opacity-90 truncate flex items-center gap-1">
-                          <MapPin className="h-2 w-2" />
-                          {event.location}
+                        <div className="text-[10px] opacity-90 truncate flex items-center gap-1 leading-tight">
+                          <MapPin className="h-2 w-2 flex-shrink-0" />
+                          <span className="truncate">{event.location}</span>
                         </div>
                       )}
                     </div>
@@ -537,7 +539,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
               return (
                 <div
                   key={event.id}
-                  className={`absolute left-1 right-1 rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor}`}
+                  className={`absolute left-1 right-1 rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden`}
                   style={{
                     top: `${(position.top / 22) * 100}%`,
                     height: `${Math.max((position.height / 22) * 100, 4)}%`
@@ -546,16 +548,17 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                     e.stopPropagation()
                     handleEventClick(event, { x: e.clientX, y: e.clientY })
                   }}
+                  title={`${event.summary || '(No title)'}${event.location ? ` - ${event.location}` : ''}`}
                 >
-                  <div className="font-medium truncate">{event.summary || '(No title)'}</div>
-                  <div className="text-[10px] opacity-90">
+                  <div className="font-medium truncate leading-tight">{event.summary || '(No title)'}</div>
+                  <div className="text-[10px] opacity-90 truncate leading-tight">
                     {formatTime(event.start?.dateTime)}
                     {event.end?.dateTime && ` - ${formatTime(event.end.dateTime)}`}
                   </div>
                   {event.location && (
-                    <div className="text-[10px] opacity-90 truncate flex items-center gap-1">
-                      <MapPin className="h-2 w-2" />
-                      {event.location}
+                    <div className="text-[10px] opacity-90 truncate flex items-center gap-1 leading-tight">
+                      <MapPin className="h-2 w-2 flex-shrink-0" />
+                      <span className="truncate">{event.location}</span>
                     </div>
                   )}
                 </div>
