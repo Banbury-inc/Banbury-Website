@@ -389,7 +389,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
                   return (
                     <div
                       key={event.id}
-                      className={`absolute rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden`}
+                      className={`absolute rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden z-20`}
                       style={{
                         left: `${(position.dayIndex / 7) * 100}%`,
                         width: `${100 / 7}%`,
@@ -420,7 +420,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
               
               {/* Clickable area for creating new events */}
               <div 
-                className="absolute inset-0 cursor-pointer"
+                className="absolute inset-0 cursor-pointer z-10"
                 onClick={(e) => {
                   const container = e.currentTarget as HTMLElement
                   const rect = container.getBoundingClientRect()
@@ -539,7 +539,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
               return (
                 <div
                   key={event.id}
-                  className={`absolute left-1 right-1 rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden`}
+                  className={`absolute left-1 right-1 rounded p-1 text-white text-xs cursor-pointer hover:opacity-80 transition-opacity ${eventColor} overflow-hidden z-20`}
                   style={{
                     top: `${(position.top / 22) * 100}%`,
                     height: `${Math.max((position.height / 22) * 100, 4)}%`
@@ -567,7 +567,7 @@ export function CalendarViewer({ initialDate, initialView = 'month', onEventClic
             
             {/* Clickable area for creating new events */}
             <div 
-              className="absolute inset-0 cursor-pointer"
+              className="absolute inset-0 cursor-pointer z-10"
               onClick={(e) => {
                 const container = e.currentTarget as HTMLElement
                 const rect = container.getBoundingClientRect()
