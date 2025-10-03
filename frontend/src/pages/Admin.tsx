@@ -447,25 +447,57 @@ export default function Admin() {
   const loadVisitorData = async (days: number = 30) => {
     setVisitorLoading(true)
     try {
-      const response = await ApiService.getSiteVisitorInfoEnhanced(100, days) as any
+      const response = await ApiService.getSiteVisitorInfoEnhanced(10000, days) as any
       console.log('Enhanced visitor data response:', response)
       
       // Enhanced API returns data in a different format
-      setVisitorData(response.visitors || [])
+      const visitors = response.visitors || []
+      setVisitorData(visitors)
       setVisitorPage(1)
+      
+      // Process daily stats from visitor data
+      const dailyStatsMap: Record<string, number> = {}
+      const countryStatsMap: Record<string, number> = {}
+      const cityStatsMap: Record<string, number> = {}
+      
+      visitors.forEach((visitor: VisitorData) => {
+        // Daily stats
+        const date = new Date(visitor.time).toISOString().split('T')[0]
+        dailyStatsMap[date] = (dailyStatsMap[date] || 0) + 1
+        
+        // Country stats
+        if (visitor.country) {
+          countryStatsMap[visitor.country] = (countryStatsMap[visitor.country] || 0) + 1
+        }
+        
+        // City stats
+        if (visitor.city) {
+          cityStatsMap[visitor.city] = (cityStatsMap[visitor.city] || 0) + 1
+        }
+      })
+      
+      // Convert to arrays and sort
+      const dailyStatsArray = Object.entries(dailyStatsMap)
+        .map(([date, count]) => ({ date, count }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      
+      const countryStatsArray = Object.entries(countryStatsMap)
+        .map(([country, count]) => ({ _id: country, count }))
+        .sort((a, b) => b.count - a.count)
+      
+      const cityStatsArray = Object.entries(cityStatsMap)
+        .map(([city, count]) => ({ _id: city, count }))
+        .sort((a, b) => b.count - a.count)
       
       // Process enhanced visitor stats
       const stats = {
-        total_visitors: response.summary?.total_visitors || 0,
-        recent_visitors: response.summary?.total_visitors || 0, // Enhanced API doesn't split this
+        total_visitors: response.summary?.total_visitors || visitors.length,
+        recent_visitors: response.summary?.total_visitors || visitors.length,
         period_days: response.summary?.date_range_days || days,
-        country_stats: Object.entries(response.summary?.referrer_breakdown || {}).map(([country, count]) => ({
-          _id: country,
-          count: count as number
-        })),
-        city_stats: [],
+        country_stats: countryStatsArray,
+        city_stats: cityStatsArray,
         hourly_stats: [],
-        daily_stats: [] // Enhanced API doesn't provide daily breakdown yet
+        daily_stats: dailyStatsArray
       }
       
       console.log('Processed enhanced visitor stats:', stats)
@@ -475,7 +507,7 @@ export default function Admin() {
       
       // Fallback to legacy API
       try {
-        const legacyResponse = await ApiService.getSiteVisitorInfo(100, days) as any
+        const legacyResponse = await ApiService.getSiteVisitorInfo(10000, days) as any
         console.log('Legacy visitor data response:', legacyResponse)
         if (legacyResponse.result === 'success') {
           setVisitorData(legacyResponse.visitors || [])
@@ -511,7 +543,7 @@ export default function Admin() {
   const loadLoginData = async (days: number = 30) => {
     setLoginLoading(true)
     try {
-      const response = await ApiService.getLoginAnalytics(100, days) as any
+      const response = await ApiService.getLoginAnalytics(10000, days) as any
       console.log('Login analytics response:', response)
       if (response.result === 'success') {
         setLoginData(response.logins || [])
@@ -560,7 +592,7 @@ export default function Admin() {
   const loadConversationsAnalytics = async (days: number = 30, userFilter: string = '') => {
     setConversationsLoading(true)
     try {
-      const response = await ApiService.getConversationsAnalytics(50, 0, days, userFilter) as ConversationsAnalytics
+      const response = await ApiService.getConversationsAnalytics(1000, 0, days, userFilter) as ConversationsAnalytics
       console.log('Conversations analytics response:', response)
       if (response.success) {
         setConversationsAnalytics(response)
