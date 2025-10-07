@@ -2342,6 +2342,25 @@ async function agentNode(state: AgentState): Promise<AgentState> {
         dateTimeContext = `Current date and time: ${dateTimeContext.formatted}. ISO timestamp: ${dateTimeContext.isoString}`;
       }
       
+      // Get attached files information from the message context
+      let attachedFilesContext = "";
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage && Array.isArray(lastMessage.content)) {
+        const fileAttachments = lastMessage.content.filter((part: any) => part.type === 'file-attachment');
+        if (fileAttachments.length > 0) {
+          attachedFilesContext = "\n\nCurrently attached files:\n" + 
+            fileAttachments.map((file: any) => {
+              const fileName = file.fileName || 'Unknown file';
+              const fileType = fileName.toLowerCase().endsWith('.docx') ? 'DOCX document' :
+                              fileName.toLowerCase().endsWith('.xlsx') ? 'Excel spreadsheet' :
+                              fileName.toLowerCase().endsWith('.tldraw') ? 'Tldraw canvas' :
+                              'file';
+              return `- ${fileName} (${fileType})`;
+            }).join('\n') +
+            "\n\nIMPORTANT: When using docx_ai, sheet_ai, or tldraw_ai tools, you MUST include the actual file name in the documentName/sheetName/canvasName parameter. For example, if the user has attached 'Report.docx', use documentName: 'Report.docx' in your tool call.";
+        }
+      }
+      
       const systemMessage = new SystemMessage(
         "You are a helpful AI assistant with advanced capabilities. " +
         "You have access to web search, memory management, spreadsheet editing, DOCX document editing, tldraw canvas editing, file creation, file downloading, file search, datetime tools, X (Twitter) API, and browser automation. " +
@@ -2372,6 +2391,7 @@ async function agentNode(state: AgentState): Promise<AgentState> {
         "- stagehand_close: Close the Stagehand session " +
         "When the user asks you to browse the web or search online, first ensure the Browser feature is enabled; otherwise do not use any Stagehand tools. If enabled, use stagehand_create_session to open a browser in the center panel. " +
         "Provide clear, accurate, and helpful responses with proper citations when using web search. " +
+        attachedFilesContext +
         "\n\n" + dateTimeContext
       );
       messages = [systemMessage, ...messages];

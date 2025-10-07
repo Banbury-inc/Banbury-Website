@@ -8,6 +8,8 @@ import {
   RefreshCwIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  ChevronDown,
+  ChevronUp,
   Square,
   Globe,
   Wrench,
@@ -21,6 +23,10 @@ import {
   Trash2,
   Edit3,
   Mail,
+  FileText,
+  File,
+  Table,
+  PaintbrushIcon,
 } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 
@@ -95,6 +101,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
   const [drawioModalOpen, setDrawioModalOpen] = useState(false);
   const [selectedDrawioFile, setSelectedDrawioFile] = useState<FileSystemItem | null>(null);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(true);
+  const [pendingChanges, setPendingChanges] = useState<Array<{ id: string; type: string; description: string }>>([]);
   const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }>(() => {
     try {
       const saved = localStorage.getItem("toolPreferences");
@@ -705,6 +712,41 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     }
   }, [userInfo?.username]);
 
+  // Track pending changes from AI tools
+  useEffect(() => {
+    const handleChangeRegistered = (event: CustomEvent) => {
+      const { id, type, description } = event.detail;
+      setPendingChanges(prev => {
+        // Avoid duplicates
+        if (prev.some(c => c.id === id)) return prev;
+        return [...prev, { id, type, description }];
+      });
+    };
+
+    const handleChangeResolved = (event: CustomEvent) => {
+      const { id } = event.detail;
+      setPendingChanges(prev => prev.filter(c => c.id !== id));
+    };
+
+    window.addEventListener('ai-change-registered', handleChangeRegistered as EventListener);
+    window.addEventListener('ai-change-resolved', handleChangeResolved as EventListener);
+    
+    return () => {
+      window.removeEventListener('ai-change-registered', handleChangeRegistered as EventListener);
+      window.removeEventListener('ai-change-resolved', handleChangeResolved as EventListener);
+    };
+  }, []);
+
+  const handleAcceptAll = () => {
+    window.dispatchEvent(new CustomEvent('ai-accept-all'));
+    setPendingChanges([]);
+  };
+
+  const handleRejectAll = () => {
+    window.dispatchEvent(new CustomEvent('ai-reject-all'));
+    setPendingChanges([]);
+  };
+
   // Listen for DOCX AI response events
   useEffect(() => {
     const handleDocxResponse = (event: CustomEvent) => {
@@ -717,12 +759,13 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
 
   // Listen for Tldraw AI response events
   useEffect(() => {
-    const handleTldrawResponse = async (event: CustomEvent) => {
-      await handleTldrawAIResponse(event.detail);
+    const handleTldrawResponse = async (event: Event) => {
+      const customEvent = event as CustomEvent;
+      await handleTldrawAIResponse(customEvent.detail);
     };
 
-    window.addEventListener('tldraw-ai-response', handleTldrawResponse as EventListener);
-    return () => window.removeEventListener('tldraw-ai-response', handleTldrawResponse as EventListener);
+    window.addEventListener('tldraw-ai-response', handleTldrawResponse);
+    return () => window.removeEventListener('tldraw-ai-response', handleTldrawResponse);
   }, []);
 
   // Keep a copy of attachments in localStorage so the runtime can inject them
@@ -923,6 +966,9 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         onUpdateToolPreferences={(prefs) => setToolPreferences(prefs)}
         attachmentPayloads={attachmentPayloads}
         onFileView={handleDrawioFileView}
+        pendingChanges={pendingChanges}
+        onAcceptAll={handleAcceptAll}
+        onRejectAll={handleRejectAll}
       />
 
       {/* Conversation Dialogs */}
@@ -1074,11 +1120,15 @@ interface ComposerProps {
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
   onSend?: () => void;
   onFileView?: (file: FileSystemItem) => void;
+  pendingChanges: Array<{ id: string; type: string; description: string }>;
+  onAcceptAll: () => void;
+  onRejectAll: () => void;
 }
 
-const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAttach, onFileRemove, onEmailAttach, onEmailRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads, onSend, onFileView }) => {
+const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAttach, onFileRemove, onEmailAttach, onEmailRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads, onSend, onFileView, pendingChanges, onAcceptAll, onRejectAll }) => {
   const composer = useComposerRuntime();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
+  const [isPendingChangesExpanded, setIsPendingChangesExpanded] = useState(false);
 
   // Add attachments to the composer when files or emails are attached
   useEffect(() => {
@@ -1293,6 +1343,87 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
           </div>
         )}
 
+        {/* Global Accept/Reject Bar */}
+        {pendingChanges.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: -5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            className="w-full"
+          >
+            <div className="bg-zinc-800 backdrop-blur-sm border-b border-zinc-700 px-2 py-2">
+              <div className="space-y-1">
+                {/* Dropdown header */}
+                <div className="flex items-center justify-between gap-2">
+                  <div 
+                    className="flex items-center gap-2 cursor-pointer hover:bg-zinc-700 p-1 rounded flex-1"
+                    onClick={() => setIsPendingChangesExpanded(!isPendingChangesExpanded)}
+                  >
+                    {isPendingChangesExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-zinc-400" />
+                    ) : (
+                      <ChevronRightIcon className="h-4 w-4 text-zinc-400" />
+                    )}
+                    <span className="text-sm text-zinc-300 font-medium">
+                      {pendingChanges.length} File{pendingChanges.length !== 1 ? 's' : ''}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      onClick={onRejectAll}
+                      className="text-zinc-400 border-zinc-700 hover:text-zinc-300 h-7 text-xs px-2 mr-2"
+                    >
+                      Reject all
+                    </Button>
+                    <Button
+                      size="sm"
+                      onClick={onAcceptAll}
+                      className="bg-zinc-600 hover:bg-zinc-700 text-white border-0 h-7 text-xs px-2"
+                    >
+                      Accept all
+                    </Button>
+                  </div>
+                </div>
+
+                {/* File list */}
+                {isPendingChangesExpanded && (
+                  <div className="ml-6 space-y-1">
+                    {pendingChanges.map((change) => {
+                      const getIcon = () => {
+                        switch (change.type) {
+                          case 'document':
+                            return <FileText className="h-4 w-4 text-blue-400 flex-shrink-0" />;
+                          case 'spreadsheet':
+                            return <Table className="h-4 w-4 text-green-400 flex-shrink-0" />;
+                          case 'canvas':
+                            return <PaintbrushIcon className="h-4 w-4 text-purple-400 flex-shrink-0" />;
+                          default:
+                            return <File className="h-4 w-4 text-zinc-400 flex-shrink-0" />;
+                        }
+                      };
+
+                      return (
+                        <div
+                          key={change.id}
+                          className="flex items-center gap-2 py-1 px-2 hover:bg-zinc-700 rounded"
+                        >
+                          {getIcon()}
+                          <span className="text-sm text-zinc-300 truncate flex-1" title={change.description}>
+                            {change.description}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        )}
+
         <ComposerPrimitive.Root className="relative flex w-full flex-col rounded-2xl">
           {/* Hidden native input to keep @assistant-ui runtime in sync */}
           <ComposerPrimitive.Input
@@ -1306,7 +1437,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
           />
 
           {/* Visible Tiptap editor with @ mention for files */}
-          <div className={`bg-zinc-800 border-0 ${(attachedFiles.length > 0 || attachedEmails.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'}`}>
+          <div className={`bg-zinc-800 border-0 ${(attachedFiles.length > 0 || attachedEmails.length > 0 || pendingChanges.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t rounded-t-2xl'}`}>
             <ChatTiptapComposer
               hiddenInputRef={inputRef}
               userInfo={userInfo}

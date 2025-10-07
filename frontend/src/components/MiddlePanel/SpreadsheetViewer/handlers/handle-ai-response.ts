@@ -21,7 +21,13 @@ interface AiOperation {
 interface AiResponseDetail {
   operations?: AiOperation[];
   csvContent?: string;
+  preview?: boolean;
 }
+
+// Store original data for preview mode
+let originalSpreadsheetData: any[][] | null = null;
+let originalColumnWidths: Record<number, number> | null = null;
+let previewChangedCells: Set<string> | null = null;
 
 function createAiResponseHandler({
   hotTableRef,
@@ -31,25 +37,52 @@ function createAiResponseHandler({
 }: AiResponseHandlerParams) {
   return (event: any) => {
     const detail = event?.detail || {} as AiResponseDetail;
-    const { operations, csvContent } = detail;
+    const { operations, csvContent, preview } = detail;
 
     const hot = hotTableRef.current?.hotInstance;
     if (!hot) return;
 
     try {
+      // Store original data if this is a preview
+      if (preview) {
+        originalSpreadsheetData = JSON.parse(JSON.stringify(hot.getData()));
+        previewChangedCells = new Set();
+      }
+
+      const changedCells: Set<string> = preview ? previewChangedCells! : new Set();
+
       if (csvContent && csvContent.trim().length > 0) {
         // Replace entire data with provided CSV
         const parsed = parseCSV(csvContent);
+        
+        if (preview) {
+          // Track all cells as changed for CSV replacement
+          parsed.forEach((row, rowIndex) => {
+            row.forEach((_, colIndex) => {
+              changedCells.add(`${rowIndex},${colIndex}`);
+            });
+          });
+        }
+        
         hot.loadData(parsed);
         setData(parsed);
-        onContentChange?.(parsed);
+        
+        if (preview) {
+          // Apply highlights after a brief delay to ensure data is loaded
+          setTimeout(() => {
+            applyPreviewHighlights(hot, changedCells);
+          }, 50);
+        } else {
+          onContentChange?.(parsed);
+        }
+        
         setHasChanges(true);
         return;
       }
 
       if (operations && operations.length > 0) {
         // Get current data and apply operations to it
-        let currentData = hot.getData();
+        let currentData = JSON.parse(JSON.stringify(hot.getData()));
         
         // Apply operations to the data array directly
         operations.forEach((op) => {
@@ -64,7 +97,17 @@ function createAiResponseHandler({
                 while (currentData[row].length <= col) {
                   currentData[row].push('');
                 }
+                
+                // Track if value actually changed (handle undefined/null/empty as equivalent)
+                const oldValue = currentData[row][col];
+                const normalizedOld = oldValue === null || oldValue === undefined ? '' : String(oldValue);
+                const normalizedNew = value === null || value === undefined ? '' : String(value);
+                
                 currentData[row][col] = value;
+                
+                if (preview && normalizedOld !== normalizedNew) {
+                  changedCells.add(`${row},${col}`);
+                }
               }
               break;
             }
@@ -85,7 +128,17 @@ function createAiResponseHandler({
                       while (currentData[i].length <= j) {
                         currentData[i].push('');
                       }
+                      
+                      // Track if value actually changed (handle undefined/null/empty as equivalent)
+                      const oldValue = currentData[i][j];
+                      const normalizedOld = oldValue === null || oldValue === undefined ? '' : String(oldValue);
+                      const normalizedNew = v === null || v === undefined ? '' : String(v);
+                      
                       currentData[i][j] = v;
+                      
+                      if (preview && normalizedOld !== normalizedNew) {
+                        changedCells.add(`${i},${j}`);
+                      }
                     }
                     c++;
                   }
@@ -99,6 +152,14 @@ function createAiResponseHandler({
               if (index !== undefined) {
                 for (let i = 0; i < count; i++) {
                   currentData.splice(index, 0, []);
+                  
+                  if (preview) {
+                    // Mark entire row as new
+                    const maxCols = Math.max(...currentData.map(row => row.length));
+                    for (let col = 0; col < maxCols; col++) {
+                      changedCells.add(`${index + i},${col}`);
+                    }
+                  }
                 }
               }
               break;
@@ -113,9 +174,13 @@ function createAiResponseHandler({
             case 'insertCols': {
               const { index, count = 1 } = op;
               if (index !== undefined) {
-                currentData.forEach(row => {
+                currentData.forEach((row, rowIndex) => {
                   for (let i = 0; i < count; i++) {
                     row.splice(index, 0, '');
+                    
+                    if (preview) {
+                      changedCells.add(`${rowIndex},${index + i}`);
+                    }
                   }
                 });
               }
@@ -138,7 +203,23 @@ function createAiResponseHandler({
         // Use loadData to avoid triggering afterChange with 'edit' source
         hot.loadData(currentData);
         setData(currentData);
-        onContentChange?.(currentData);
+        
+        if (preview) {
+          // Apply highlights after a brief delay to ensure data is loaded
+          setTimeout(() => {
+            applyPreviewHighlights(hot, changedCells);
+          }, 50);
+        } else {
+          // Clear any existing highlights when applying final changes
+          clearPreviewHighlights(hot);
+          originalSpreadsheetData = null;
+          previewChangedCells = null;
+        }
+        
+        if (!preview) {
+          onContentChange?.(currentData);
+        }
+        
         setHasChanges(true);
       }
     } catch {
@@ -147,5 +228,54 @@ function createAiResponseHandler({
   };
 }
 
-export { createAiResponseHandler };
+function applyPreviewHighlights(hot: any, changedCells: Set<string>) {
+  if (!hot || !changedCells || changedCells.size === 0) return;
+  
+  // Use batch to avoid multiple renders
+  hot.batch(() => {
+    changedCells.forEach(cellKey => {
+      const [row, col] = cellKey.split(',').map(Number);
+      hot.setCellMeta(row, col, 'className', 'diff-cell-insertion');
+    });
+  });
+  
+  // Force a render after setting all metadata
+  hot.render();
+}
+
+function clearPreviewHighlights(hot: any) {
+  if (!hot || !previewChangedCells) return;
+  
+  // Only clear the cells that were highlighted
+  hot.batch(() => {
+    previewChangedCells?.forEach(cellKey => {
+      const [row, col] = cellKey.split(',').map(Number);
+      hot.removeCellMeta(row, col, 'className');
+    });
+  });
+  
+  hot.render();
+}
+
+// Create reject handler function
+function createRejectHandler(params: AiResponseHandlerParams) {
+  return () => {
+    const hot = params.hotTableRef.current?.hotInstance;
+    if (hot && originalSpreadsheetData) {
+      // Clear highlights first
+      clearPreviewHighlights(hot);
+      
+      // Restore original data
+      hot.loadData(originalSpreadsheetData);
+      params.setData(originalSpreadsheetData);
+      
+      // Clear stored data
+      originalSpreadsheetData = null;
+      originalColumnWidths = null;
+      previewChangedCells = null;
+    }
+  };
+}
+
+export { createAiResponseHandler, createRejectHandler };
 export type { AiResponseHandlerParams, AiOperation, AiResponseDetail };

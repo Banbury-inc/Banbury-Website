@@ -13,6 +13,12 @@ interface TiptapAIContextType {
   isConnected: boolean;
   registerAICommands: () => void;
   aiCommands: AICommand[];
+  previewMode: boolean;
+  setPreviewMode: (mode: boolean) => void;
+  previewContent: { originalContent: string; newContent: string } | null;
+  setPreviewContent: (content: { originalContent: string; newContent: string } | null) => void;
+  acceptPreview: () => void;
+  rejectPreview: () => void;
 }
 
 interface AICommand {
@@ -39,6 +45,8 @@ interface TiptapAIProviderProps {
 
 export const TiptapAIProvider: React.FC<TiptapAIProviderProps> = ({ children }) => {
   const [editor, setEditor] = useState<Editor | null>(null);
+  const [previewMode, setPreviewMode] = useState(false);
+  const [previewContent, setPreviewContent] = useState<{ originalContent: string; newContent: string } | null>(null);
   const aiBridge = useTiptapAI(editor);
   const commandsRef = useRef<AICommand[]>([]);
 
@@ -46,6 +54,28 @@ export const TiptapAIProvider: React.FC<TiptapAIProviderProps> = ({ children }) 
   useEffect(() => {
     setCurrentTiptapEditor(editor);
   }, [editor]);
+
+  const acceptPreview = useCallback(() => {
+    if (!editor || !previewContent) return;
+    
+    // Apply the new content
+    editor.commands.setContent(previewContent.newContent);
+    
+    // Clear preview state
+    setPreviewMode(false);
+    setPreviewContent(null);
+  }, [editor, previewContent]);
+
+  const rejectPreview = useCallback(() => {
+    if (!editor || !previewContent) return;
+    
+    // Restore original content
+    editor.commands.setContent(previewContent.originalContent);
+    
+    // Clear preview state
+    setPreviewMode(false);
+    setPreviewContent(null);
+  }, [editor, previewContent]);
 
   const executeAIAction = useCallback(async (action: TiptapAIAction): Promise<boolean> => {
     if (!aiBridge) return false;
@@ -233,7 +263,13 @@ export const TiptapAIProvider: React.FC<TiptapAIProviderProps> = ({ children }) 
     executeAIAction,
     isConnected: !!editor && !!aiBridge,
     registerAICommands,
-    aiCommands: commandsRef.current
+    aiCommands: commandsRef.current,
+    previewMode,
+    setPreviewMode,
+    previewContent,
+    setPreviewContent,
+    acceptPreview,
+    rejectPreview
   };
 
   return (

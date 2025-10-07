@@ -58,11 +58,11 @@ const AuthCallback = (): JSX.Element => {
             setStatus('success');
             ScopeService.clearRequestedFeatures();
             setTimeout(() => {
-              router.replace('/dashboard?scopeActivated=true');
+              router.replace('/workspaces?scopeActivated=true');
             }, 2000);
           } else {
             setStatus('success');
-            router.replace('/dashboard');
+            router.replace('/workspaces');
           }
         } else {
           setStatus('error');

@@ -286,7 +286,7 @@ export default function Admin() {
       setUsername(storedUsername || '')
       
       if (storedUsername !== 'mmills' && storedUsername !== 'mmills6060@gmail.com') {
-        router.push('/dashboard')
+        router.push('/workspaces')
         return
       }
     }

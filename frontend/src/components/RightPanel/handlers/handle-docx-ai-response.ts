@@ -3,6 +3,8 @@
  * This handles the structured document operations returned by the docx_ai tool
  */
 
+import { createStructuredHtmlDiff } from '../../../utils/htmlDiff';
+
 interface DocxOperation {
   type: 'insertText' | 'replaceText' | 'insertParagraph' | 'replaceParagraph' | 'insertHeading' | 'replaceHeading' | 'insertList' | 'insertTable' | 'formatText' | 'insertImage' | 'setPageSettings';
   [key: string]: any;
@@ -14,10 +16,12 @@ interface DocxAIResponse {
   operations?: DocxOperation[];
   htmlContent?: string;
   note?: string;
+  preview?: boolean;
 }
 
 // Global reference to current editor from TiptapAIContext
 let currentTiptapEditor: any = null;
+let originalContent: string | null = null;
 
 // Function to be called by TiptapAIContext to register the current editor
 export function setCurrentTiptapEditor(editor: any) {
@@ -31,7 +35,8 @@ export function handleDocxAIResponse(payload: DocxAIResponse) {
     hasHtmlContent: !!payload.htmlContent,
     htmlContentLength: payload.htmlContent?.length || 0,
     operationsCount: payload.operations?.length || 0,
-    action: payload.action
+    action: payload.action,
+    preview: payload.preview
   });
   
   // Find the active Tiptap editor instance
@@ -52,25 +57,50 @@ export function handleDocxAIResponse(payload: DocxAIResponse) {
   console.log('Found Tiptap editor instance:', editorInstance);
   
   try {
+    // Store original content if this is a preview
+    if (payload.preview) {
+      originalContent = editorInstance.getHTML();
+    }
+    
     if (payload.htmlContent && payload.htmlContent.trim().length > 0) {
-      // Replace entire content if htmlContent is provided
-      console.log('Applying HTML content to Tiptap editor');
-      applyHtmlContentToTiptap(editorInstance, payload.htmlContent);
+      if (payload.preview) {
+        // Show diff preview
+        console.log('Creating diff preview');
+        const currentContent = editorInstance.getHTML();
+        const diffHtml = createStructuredHtmlDiff(currentContent, payload.htmlContent);
+        editorInstance.chain().focus().setContent(diffHtml).run();
+        showPreviewFeedback('Preview mode active - Green highlights show additions, Red highlights show deletions');
+      } else {
+        // Apply changes directly
+        console.log('Applying HTML content to Tiptap editor');
+        applyHtmlContentToTiptap(editorInstance, payload.htmlContent);
+        originalContent = null; // Clear stored content
+      }
     } else if (payload.operations && payload.operations.length > 0) {
       // Apply individual operations using Tiptap commands
       console.log('Applying individual operations to Tiptap editor');
       applyTiptapOperations(editorInstance, payload.operations);
+      originalContent = null;
     } else {
       console.warn('No valid content or operations provided in payload');
       showErrorFeedback('No document changes to apply');
       return;
     }
-    
-    
   } catch (error) {
     console.error('Error applying DOCX operations:', error);
     showErrorFeedback('Failed to apply document changes');
   }
+}
+
+// Listen for reject events to restore original content
+if (typeof window !== 'undefined') {
+  window.addEventListener('docx-ai-response-reject', () => {
+    if (currentTiptapEditor && originalContent) {
+      currentTiptapEditor.commands.setContent(originalContent);
+      originalContent = null;
+      showInfoFeedback('Changes rejected - Document restored');
+    }
+  });
 }
 
 function findActiveTiptapEditor() {
@@ -440,7 +470,6 @@ function showSuccessFeedback(action: string) {
 }
 
 function showErrorFeedback(message: string) {
-  // Create a temporary error message
   const feedback = document.createElement('div');
   feedback.textContent = `✗ ${message}`;
   feedback.style.cssText = `
@@ -448,6 +477,52 @@ function showErrorFeedback(message: string) {
     top: 20px;
     right: 20px;
     background: #ef4444;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    z-index: 9999;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 3000);
+}
+
+function showPreviewFeedback(message: string) {
+  const feedback = document.createElement('div');
+  feedback.textContent = `👁️ ${message}`;
+  feedback.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #f59e0b;
+    color: white;
+    padding: 12px 16px;
+    border-radius: 8px;
+    z-index: 9999;
+    font-size: 14px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  `;
+  
+  document.body.appendChild(feedback);
+  
+  setTimeout(() => {
+    feedback.remove();
+  }, 5000);
+}
+
+function showInfoFeedback(message: string) {
+  const feedback = document.createElement('div');
+  feedback.textContent = `ℹ️ ${message}`;
+  feedback.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #3b82f6;
     color: white;
     padding: 12px 16px;
     border-radius: 8px;

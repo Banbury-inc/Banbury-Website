@@ -1,0 +1,55 @@
+/* Custom diff preview styling for track changes */
+/* This is a completely custom implementation without relying on paid Tiptap features */
+
+.diff-insertion {
+  background-color: #bbf7d0 !important; /* green-200 */
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+.diff-deletion {
+  background-color: #fecaca !important; /* red-200 */
+  text-decoration: line-through;
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+/* Support for <ins> and <del> tags in the editor */
+.ProseMirror ins,
+.ProseMirror span[data-diff="insertion"] {
+  background-color: #bbf7d0 !important;
+  text-decoration: none !important;
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+.ProseMirror del,
+.ProseMirror span[data-diff="deletion"] {
+  background-color: #fecaca !important;
+  text-decoration: line-through !important;
+  padding: 2px 0;
+  border-radius: 2px;
+}
+
+/* Dark mode support */
+.dark .diff-insertion,
+.dark .ProseMirror ins,
+.dark .ProseMirror span[data-diff="insertion"] {
+  background-color: rgba(34, 197, 94, 0.3) !important; /* green with opacity */
+}
+
+.dark .diff-deletion,
+.dark .ProseMirror del,
+.dark .ProseMirror span[data-diff="deletion"] {
+  background-color: rgba(239, 68, 68, 0.3) !important; /* red with opacity */
+}
+
+/* Ensure proper visibility */
+.diff-insertion,
+.diff-deletion,
+.ProseMirror ins,
+.ProseMirror del {
+  display: inline;
+  font-style: normal;
+}
+

@@ -3,7 +3,7 @@ import { HotTable } from '@handsontable/react';
 import { registerAllModules } from 'handsontable/registry';
 import { textRenderer, registerRenderer, checkboxRenderer } from 'handsontable/renderers';
 import 'handsontable/dist/handsontable.full.css';
-import { createAiResponseHandler } from './handlers/handle-ai-response';
+import { createAiResponseHandler, createRejectHandler } from './handlers/handle-ai-response';
 import { createDataChangeHandler } from './handlers/handle-data-change';
 import { createCellStyleHandlers } from './handlers/handle-cell-styles';
 import { createAlignmentHandlers } from './handlers/handle-alignment';
@@ -306,15 +306,23 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
 
   // Listen for AI spreadsheet responses and apply to table
   useEffect(() => {
-    const handler = createAiResponseHandler({
+    const handlerParams = {
       hotTableRef,
       setData,
       onContentChange: (data: any[][]) => onContentChangeRef.current?.(data),
       setHasChanges
-    });
+    };
+    
+    const handler = createAiResponseHandler(handlerParams);
+    const rejectHandler = createRejectHandler(handlerParams);
 
     window.addEventListener('sheet-ai-response', handler as EventListener);
-    return () => window.removeEventListener('sheet-ai-response', handler as EventListener);
+    window.addEventListener('sheet-ai-response-reject', rejectHandler as EventListener);
+    
+    return () => {
+      window.removeEventListener('sheet-ai-response', handler as EventListener);
+      window.removeEventListener('sheet-ai-response-reject', rejectHandler as EventListener);
+    };
   }, []); // Empty dependency array since we use refs for dynamic values
 
   // Configure plugins after table initialization
@@ -874,6 +882,36 @@ const searchFieldKeyupCallback = useCallback(
       .csv-search-overlay input#csv-editor-search-input::placeholder { color: #4b5563; opacity: 1; }
       .csv-search-overlay input#csv-editor-search-input:focus { outline: 2px solid #2563eb; outline-offset: 0; }
       .csv-search-overlay button:focus { outline: 2px solid #2563eb; outline-offset: 0; }
+      
+      /* AI Diff Preview Styles - matching document diff colors */
+      .handsontable td.diff-cell-insertion {
+        background-color: #bbf7d0 !important; /* green-200 - matches document insertion */
+        position: relative;
+      }
+      .handsontable td.diff-cell-insertion::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+      }
+      .handsontable td.diff-cell-deletion {
+        background-color: #fecaca !important; /* red-200 - matches document deletion */
+        position: relative;
+        text-decoration: line-through;
+      }
+      .handsontable td.diff-cell-deletion::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        border: 2px solid #ef4444; /* red-500 border for emphasis */
+        pointer-events: none;
+      }
     `;
     document.head.appendChild(styleElement);
     
@@ -1208,6 +1246,7 @@ const searchFieldKeyupCallback = useCallback(
           overflow: 'hidden',
           minHeight: 0, // Allow flex item to shrink below content size
           marginBottom: 0, // Remove any margin that might hide tabs
+          paddingBottom: '36px', // Add padding to prevent overlap with SheetTabs
         }}
       >
         <div 
@@ -1332,7 +1371,9 @@ const searchFieldKeyupCallback = useCallback(
                     for (const [prop, val] of styleEntries) {
                       if (val != null) {
                         try {
-                          td.style.setProperty(prop, String(val));
+                          // Convert camelCase to kebab-case for CSS property names
+                          const cssProperty = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+                          td.style.setProperty(cssProperty, String(val));
                         } catch {}
                       }
                     }
@@ -1341,7 +1382,11 @@ const searchFieldKeyupCallback = useCallback(
                     const entries = Object.entries(cfStyle)
                     for (const [prop, val] of entries) {
                       if (val != null) {
-                        try { td.style.setProperty(prop, String(val)) } catch {}
+                        try { 
+                          // Convert camelCase to kebab-case for CSS property names
+                          const cssProperty = prop.replace(/([A-Z])/g, '-$1').toLowerCase();
+                          td.style.setProperty(cssProperty, String(val)) 
+                        } catch {}
                       }
                     }
                   }
@@ -1355,6 +1400,16 @@ const searchFieldKeyupCallback = useCallback(
                       if (!currentClasses.includes('ht-dropdown-indicator')) {
                         currentClasses.push('ht-dropdown-indicator');
                         td.className = currentClasses.join(' ');
+                      }
+                      
+                      // Apply value-based styling for dropdown cells
+                      const cellValue = value ? String(value).trim() : '';
+                      if (cellValue === 'Rejected') {
+                        td.style.backgroundColor = '#fee2e2';  // light red/pink
+                        td.style.color = '#991b1b';  // dark red text
+                      } else if (cellValue === 'Applied') {
+                        td.style.backgroundColor = '#fef3c7';  // light yellow/tan
+                        td.style.color = '#92400e';  // dark yellow/brown text
                       }
                     }
                   } catch {}

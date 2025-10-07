@@ -1,4 +1,4 @@
-import { Home, FolderOpen, LogOut, Settings, UserStarIcon, Brain, Workflow, Video} from "lucide-react"
+import { FolderOpen, LogOut, Settings, UserStarIcon, Brain, Workflow, Video} from "lucide-react"
 import Image from 'next/image'
 import { useRouter } from "next/router"
 import { useState, useEffect } from "react"
@@ -23,12 +23,6 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
   }, [])
 
   const navItems = [
-    {
-      id: 'dashboard',
-      icon: Home,
-      label: 'Dashboard',
-      path: '/dashboard'
-    },
     {
       id: 'workspaces',
       icon: FolderOpen,

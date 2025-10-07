@@ -13,7 +13,6 @@ import Terms_of_use from './components/Terms_of_use';
 import Layout from './layout/Layout';
 import Admin from './pages/Admin';
 import AuthCallback from './pages/AuthCallback';
-import Dashboard from './pages/Dashboard';
 import FileDownload from './pages/Filedownload';
 import Home from './pages/Home';
 import Knowledge from './pages/Knowledge';
@@ -84,7 +83,6 @@ const App = (): JSX.Element => {
             <BrowserRouter>
               <PageTracker />
               <Routes>
-                <Route path='/dashboard' element={<Dashboard />} />
                 <Route path='/workspaces' element={<Workspaces />} />
                 <Route path='/knowledge' element={<Knowledge />} />
                 <Route path='/meeting-agent' element={<MeetingAgent />} />

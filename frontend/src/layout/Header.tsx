@@ -53,7 +53,7 @@ const Header = (): JSX.Element => {
 
   const handleDashboard = () => {
     setIsDropdownOpen(false);
-    router.push('/dashboard');
+    router.push('/workspaces');
   };
 
   const toggleDropdown = () => {

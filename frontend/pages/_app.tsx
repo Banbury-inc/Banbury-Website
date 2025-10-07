@@ -9,6 +9,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { ClaudeRuntimeProvider } from '@/assistant/ClaudeRuntimeProvider';
 import { Toaster } from '@/components/ui/toaster';
 import '@/index.css';
+import '@/styles/DiffPreview.css';
 import { useRouter } from 'next/router';
 import { attachRouteTracking } from '@/handlers/routeTracking';
 

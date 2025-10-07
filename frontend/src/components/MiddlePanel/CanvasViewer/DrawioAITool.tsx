@@ -1,9 +1,10 @@
-import { Network, CheckCircle, AlertCircle, Eye, Edit3 } from 'lucide-react';
-import React, { useMemo, useState, useEffect } from 'react';
+import { Network, CheckCircle, AlertCircle, Eye, Edit3, Check, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 
 import { Badge } from '../../ui/badge';
 import { Button } from '../../ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../ui/card';
+import { Typography } from '../../ui/typography';
 import DrawioViewer from './DrawioViewer';
 
 interface DrawioOperation {
@@ -37,8 +38,10 @@ interface DrawioAIToolProps {
 export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
   const { action, diagramName, operations, diagramXml, fileUrl, analysis, note } = props.args || props;
   const [applied, setApplied] = useState(false);
+  const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
+  const hasPreviewedRef = useRef(false);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -49,29 +52,22 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
-  // Automatically apply changes when component mounts
-  useEffect(() => {
-    const hasContent = 
-      (diagramXml && diagramXml.trim().length > 0) || 
-      (operations && operations.length > 0) ||
-      (analysis && analysis.trim().length > 0);
-    
-    if (hasContent) {
-      const payload = { 
-        action: action || 'Diagram changes', 
-        diagramName, 
-        operations: operations || [], 
-        diagramXml, 
-        fileUrl,
-        analysis,
-        note 
-      };
-      window.dispatchEvent(new CustomEvent('drawio-ai-response', { detail: payload }));
-      setApplied(true);
-    }
-  }, [action, diagramName, operations, diagramXml, fileUrl, analysis, note]);
+  const handlePreview = () => {
+    const payload = { 
+      action: action || 'Diagram changes', 
+      diagramName, 
+      operations: operations || [], 
+      diagramXml, 
+      fileUrl,
+      analysis,
+      note,
+      preview: true
+    };
+    window.dispatchEvent(new CustomEvent('drawio-ai-response', { detail: payload }));
+  };
 
-  const handleApply = () => {
+  const handleAcceptAll = () => {
+    if (applied || rejected) return;
     const payload = { 
       action: action || 'Diagram changes', 
       diagramName, 
@@ -79,19 +75,63 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
       diagramXml,
       fileUrl,
       analysis,
-      note 
+      note,
+      preview: false
     };
     window.dispatchEvent(new CustomEvent('drawio-ai-response', { detail: payload }));
     setApplied(true);
-    setTimeout(() => setApplied(false), 2000);
   };
 
-  const handleEdit = () => {
-    if (fileUrl) {
-      const editUrl = `https://app.diagrams.net/?url=${encodeURIComponent(fileUrl)}`;
-      window.open(editUrl, '_blank');
-    }
+  const handleReject = () => {
+    if (applied || rejected) return;
+    setRejected(true);
+    window.dispatchEvent(new CustomEvent('drawio-ai-response-reject'));
   };
+
+  // Automatically show preview when component mounts
+  useEffect(() => {
+    const hasContent = 
+      (diagramXml && diagramXml.trim().length > 0) || 
+      (operations && operations.length > 0) ||
+      (analysis && analysis.trim().length > 0);
+    
+    if (hasContent && !hasPreviewedRef.current) {
+      const changeId = `drawio-${Date.now()}-${Math.random()}`;
+      
+      window.dispatchEvent(new CustomEvent('ai-change-registered', {
+        detail: {
+          id: changeId,
+          type: 'diagram',
+          description: diagramName || 'Diagram'
+        }
+      }));
+      
+      const timer = setTimeout(() => {
+        handlePreview();
+        hasPreviewedRef.current = true;
+      }, 100);
+      
+      const handleGlobalAccept = () => {
+        handleAcceptAll();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      const handleGlobalReject = () => {
+        handleReject();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      window.addEventListener('ai-accept-all', handleGlobalAccept);
+      window.addEventListener('ai-reject-all', handleGlobalReject);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('ai-accept-all', handleGlobalAccept);
+        window.removeEventListener('ai-reject-all', handleGlobalReject);
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+    }
+  }, []);
 
   const hasContent = 
     (diagramXml && diagramXml.trim().length > 0) || 
@@ -111,120 +151,90 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
     );
   }
 
-  return (
-    <Card className="w-full max-w-4xl bg-muted">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Network className="h-4 w-4" />
-            <CardTitle className="text-base">Diagram Analysis & Changes</CardTitle>
-            {diagramName && <Badge variant="outline">Diagram: {diagramName}</Badge>}
-          </div>
-        </div>
-        <CardDescription>
-          {note ? note : 'Review the suggested diagram changes and analysis.'}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Analysis Section */}
-        {analysis && (
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-            <h4 className="font-medium text-blue-900 dark:text-blue-100 mb-2">Analysis</h4>
-            <p className="text-sm text-blue-800 dark:text-blue-200">{analysis}</p>
-          </div>
-        )}
-
-        {/* Operations Summary */}
-        {operations && operations.length > 0 && (
-          <div className="text-sm text-muted-foreground">
-            <p className="font-medium mb-2">Operations: {operations.length}</p>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(opSummary).map(([k, v]) => (
-                <Badge key={k} variant="secondary">{k}: {v}</Badge>
-              ))}
+  if (rejected) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Network className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {diagramName || 'Diagram'}
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <X className="h-4 w-4 text-red-400" />
             </div>
           </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 pt-2 flex-wrap">
-          <div className="flex-1" />
-          
-          {fileUrl && (
-            <>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => setShowViewer(!showViewer)}
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                {showViewer ? 'Hide Viewer' : 'View Diagram'}
-              </Button>
-              
-              <Button variant="outline" size="sm" onClick={handleEdit}>
-                <Edit3 className="h-4 w-4 mr-1" />
-                Edit in draw.io
-              </Button>
-            </>
-          )}
-          
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-            {showPreview ? 'Hide Details' : 'Show Details'}
-          </Button>
-          
-          {applied && (
-            <Button variant="outline" size="sm" onClick={handleApply} className="text-blue-600 hover:text-blue-700">
-              Reapply
-            </Button>
-          )}
         </div>
+      </div>
+    );
+  }
 
-        {/* Diagram Viewer */}
-        {showViewer && fileUrl && diagramName && (
-          <div className="mt-4">
-            <DrawioViewer
-              fileUrl={fileUrl}
-              fileName={diagramName}
-              isEmbedded={true}
-              className="border-2 border-dashed border-border"
-            />
-          </div>
-        )}
-
-        {/* Preview Details */}
-        {showPreview && (
-          <div className="mt-4 space-y-3">
-            {operations && operations.length > 0 && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Operations:</h4>
-                <div className="p-3 bg-muted rounded text-xs max-h-40 overflow-auto">
-                  {operations.slice(0, 10).map((op, idx) => (
-                    <div key={idx} className="break-words mb-2 last:mb-0">
-                      <span className="font-medium text-blue-600">{op.type}:</span> {op.description || JSON.stringify(op)}
-                    </div>
-                  ))}
-                  {operations.length > 10 && (
-                    <div className="opacity-70 italic">…{operations.length - 10} more operations</div>
-                  )}
-                </div>
-              </div>
-            )}
+  if (applied) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Network className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {diagramName || 'Diagram'}
+              </Typography>
+            </div>
             
-            {diagramXml && (
-              <div className="space-y-2">
-                <h4 className="font-medium text-sm">Diagram XML:</h4>
-                <div className="p-3 bg-muted rounded text-xs max-h-40 overflow-auto">
-                  <code className="whitespace-pre-wrap break-all">
-                    {diagramXml.slice(0, 2000)}{diagramXml.length > 2000 ? '…' : ''}
-                  </code>
-                </div>
-              </div>
-            )}
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+      <div className="p-2 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Network className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+            <Typography
+              variant="muted"
+              className="text-white truncate"
+            >
+              {diagramName || 'Diagram'}
+            </Typography>
+          </div>
+          
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleAcceptAll}
+              className="bg-green-600 hover:bg-green-700 text-white border border-zinc-700 p-2"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleReject}
+              className="bg-red-600 hover:bg-red-700 text-white border border-zinc-700 p-2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 };
 

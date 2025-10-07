@@ -1,9 +1,8 @@
-import { FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import React, { useMemo, useState, useEffect } from 'react';
-
-import { Badge } from './ui/badge';
+import { FileText, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Typography } from './ui/typography';
 
 interface DocxOperationInsertText { type: 'insertText'; position: number; text: string }
 interface DocxOperationReplaceText { type: 'replaceText'; startPosition: number; endPosition: number; text: string }
@@ -61,9 +60,33 @@ interface DocxAIToolProps {
 }
 
 export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
-  const { action, documentName, operations, htmlContent, note } = props.args || props;
+  const { action, documentName: providedDocumentName, operations, htmlContent, note } = props.args || props;
   const [applied, setApplied] = useState(false);
+  const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const hasPreviewedRef = useRef(false);
+
+  // Try to get the actual file name from attached files if not provided
+  const documentName = useMemo(() => {
+    if (providedDocumentName) return providedDocumentName;
+    
+    try {
+      const attachedFiles = JSON.parse(localStorage.getItem('pendingAttachments') || '[]');
+      const docxFile = attachedFiles.find((file: any) => 
+        file.fileName && (
+          file.fileName.toLowerCase().endsWith('.docx') ||
+          file.fileName.toLowerCase().endsWith('.doc')
+        )
+      );
+      if (docxFile) {
+        return docxFile.fileName;
+      }
+    } catch (error) {
+      console.warn('Could not get attached document file:', error);
+    }
+    
+    return 'Document';
+  }, [providedDocumentName]);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -74,22 +97,69 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
-  // Automatically apply changes when component mounts
-  useEffect(() => {
-    const hasContent = (htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0);
-    if (hasContent) {
-      const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note };
-      window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
-      setApplied(true);
-    }
-  }, [action, documentName, operations, htmlContent, note]);
+  const handlePreview = () => {
+    const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note, preview: true };
+    window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
+  };
 
-  const handleApply = () => {
-    const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note };
+  const handleAcceptAll = () => {
+    if (applied || rejected) return; // Prevent double-application
+    const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note, preview: false };
     window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
     setApplied(true);
-    setTimeout(() => setApplied(false), 2000);
   };
+
+  const handleReject = () => {
+    if (applied || rejected) return; // Prevent double-rejection
+    setRejected(true);
+    // Dispatch reject event to clear preview if active
+    window.dispatchEvent(new CustomEvent('docx-ai-response-reject'));
+  };
+
+  // Automatically show preview when component mounts
+  useEffect(() => {
+    const hasContent = (htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0);
+    if (hasContent && !hasPreviewedRef.current) {
+      // Generate unique ID for this change
+      const changeId = `docx-${Date.now()}-${Math.random()}`;
+      
+      // Register this change with the global tracker
+      window.dispatchEvent(new CustomEvent('ai-change-registered', {
+        detail: {
+          id: changeId,
+          type: 'document',
+          description: documentName || 'Document'
+        }
+      }));
+      
+      // Delay to ensure editor is ready
+      const timer = setTimeout(() => {
+        handlePreview();
+        hasPreviewedRef.current = true;
+      }, 100);
+      
+      // Listen for global accept/reject
+      const handleGlobalAccept = () => {
+        handleAcceptAll();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      const handleGlobalReject = () => {
+        handleReject();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      window.addEventListener('ai-accept-all', handleGlobalAccept);
+      window.addEventListener('ai-reject-all', handleGlobalReject);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('ai-accept-all', handleGlobalAccept);
+        window.removeEventListener('ai-reject-all', handleGlobalReject);
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+    }
+  }, []);
 
   const hasContent = (htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0);
 
@@ -106,65 +176,92 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
     );
   }
 
-  return (
-    <Card className="w-full max-w-2xl bg-muted">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            <CardTitle className="text-base">Document Changes</CardTitle>
-            {documentName && <Badge variant="outline">Doc: {documentName}</Badge>}
-          </div>
-        </div>
-        <CardDescription>
-          {note ? note : 'Review the suggested document changes and apply them to the open document.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {operations && operations.length > 0 && (
-          <div className="text-sm text-muted-foreground">
-            Operations: {operations.length}
-            <div className="mt-1 flex flex-wrap gap-2">
-              {Object.entries(opSummary).map(([k, v]) => (
-                <Badge key={k} variant="secondary">{k}: {v}</Badge>
-              ))}
+  if (rejected) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {documentName}
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <X className="h-4 w-4 text-red-400" />
             </div>
           </div>
-        )}
+        </div>
+      </div>
+    );
+  }
 
-        <div className="flex items-center gap-2 pt-2">
-          <div className="flex-1" />
+  if (applied) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {documentName}
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+      <div className="p-2 space-y-2">
+        {/* Header: Filename + Buttons */}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+            <Typography
+              variant="muted"
+              className="text-white truncate"
+            >
+              {documentName}
+            </Typography>
+          </div>
           
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-            {showPreview ? 'Hide' : 'Preview'}
-          </Button>
-          
-          {applied && (
-            <Button variant="outline" size="sm" onClick={handleApply} className="text-blue-600 hover:text-blue-700">
-              Reapply
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleAcceptAll}
+              className="bg-green-600 hover:bg-green-700 text-white border border-zinc-700 p-2"
+            >
+              <Check className="h-4 w-4" />
             </Button>
-          )}
+            
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleReject}
+              className="bg-red-600 hover:bg-red-700 text-white border border-zinc-700 p-2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        {showPreview && (
-          <div className="mt-2 space-y-2">
-            {operations && operations.length > 0 && (
-              <div className="p-3 bg-muted rounded text-xs">
-                {operations.slice(0, 10).map((op, idx) => (
-                  <div key={idx} className="break-words">{JSON.stringify(op)}</div>
-                ))}
-                {operations.length > 10 && <div className="opacity-70">…{operations.length - 10} more</div>}
-              </div>
-            )}
-            {htmlContent && (
-              <div className="p-3 bg-muted rounded text-xs max-h-40 overflow-auto">
-                <code className="whitespace-pre-wrap break-all">{htmlContent.slice(0, 2000)}{htmlContent.length > 2000 ? '…' : ''}</code>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

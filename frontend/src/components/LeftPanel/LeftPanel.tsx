@@ -1798,21 +1798,21 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                     onClick={() => handleFileViewModeChange('local')}
                     className={`px-3 py-1 rounded transition-colors ${
                       fileViewMode === 'local'
-                        ? 'bg-blue-600'
+                        ? 'bg-white text-black'
                         : 'hover:bg-zinc-700'
                     }`}
                   >
-                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'local' ? 'text-white' : 'text-gray-300'}`}>Local</Typography>
+                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'local' ? 'text-black' : 'text-gray-300'}`}>Local</Typography>
                   </button>
                   <button
                     onClick={() => handleFileViewModeChange('drive')}
                     className={`px-3 py-1 rounded transition-colors ${
                       fileViewMode === 'drive'
-                        ? 'bg-blue-600'
+                        ? 'bg-white text-black'
                         : 'hover:bg-zinc-700'
                     }`}
                   >
-                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'drive' ? 'text-white' : 'text-gray-300'}`}>Google Drive</Typography>
+                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'drive' ? 'text-black' : 'text-gray-300'}`}>Google Drive</Typography>
                   </button>
                 </div>
               </div>

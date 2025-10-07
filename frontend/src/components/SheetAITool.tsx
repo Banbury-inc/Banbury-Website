@@ -1,9 +1,10 @@
-import { Table, CheckCircle, AlertCircle } from 'lucide-react';
-import React, { useMemo, useState, useEffect, useRef, useCallback } from 'react';
+import { Table, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Typography } from './ui/typography';
 
 interface SheetOperationSetCell { type: 'setCell'; row: number; col: number; value: string | number }
 interface SheetOperationSetRange { type: 'setRange'; range: { startRow: number; startCol: number; endRow: number; endCol: number }; values: (string | number)[][] }
@@ -36,10 +37,34 @@ interface SheetAIToolProps {
 }
 
 export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
-  const { action, sheetName, operations, csvContent, note } = props.args || props;
+  const { action, sheetName: providedSheetName, operations, csvContent, note } = props.args || props;
   const [applied, setApplied] = useState(false);
+  const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
-  const hasAppliedRef = useRef(false);
+  const hasPreviewedRef = useRef(false);
+
+  // Try to get the actual file name from attached files if not provided
+  const sheetName = useMemo(() => {
+    if (providedSheetName) return providedSheetName;
+    
+    try {
+      const attachedFiles = JSON.parse(localStorage.getItem('pendingAttachments') || '[]');
+      const sheetFile = attachedFiles.find((file: any) => 
+        file.fileName && (
+          file.fileName.toLowerCase().endsWith('.xlsx') ||
+          file.fileName.toLowerCase().endsWith('.xls') ||
+          file.fileName.toLowerCase().endsWith('.csv')
+        )
+      );
+      if (sheetFile) {
+        return sheetFile.fileName;
+      }
+    } catch (error) {
+      console.warn('Could not get attached spreadsheet file:', error);
+    }
+    
+    return 'Spreadsheet';
+  }, [providedSheetName]);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -50,29 +75,70 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
-  const handleApply = useCallback(() => {
-    if (hasAppliedRef.current) return; // Prevent multiple applications
-    
-    const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note };
+  const handlePreview = () => {
+    const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note, preview: true };
+    window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
+  };
+
+  const handleAcceptAll = () => {
+    if (applied || rejected) return; // Prevent double-application
+    const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note, preview: false };
     window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
     setApplied(true);
-    hasAppliedRef.current = true;
-    
-    setTimeout(() => setApplied(false), 2000);
-  }, [action, sheetName, operations, csvContent, note]);
+  };
 
-  // Automatically apply changes when the component mounts - only once
+  const handleReject = () => {
+    if (applied || rejected) return; // Prevent double-rejection
+    setRejected(true);
+    // Dispatch reject event to clear preview if active
+    window.dispatchEvent(new CustomEvent('sheet-ai-response-reject'));
+  };
+
+  // Automatically show preview when component mounts
   useEffect(() => {
     const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
-    if (hasContent && !hasAppliedRef.current) {
-      // Apply changes automatically after a short delay to ensure UI is ready
+    if (hasContent && !hasPreviewedRef.current) {
+      // Generate unique ID for this change
+      const changeId = `sheet-${Date.now()}-${Math.random()}`;
+      
+      // Register this change with the global tracker
+      window.dispatchEvent(new CustomEvent('ai-change-registered', {
+        detail: {
+          id: changeId,
+          type: 'spreadsheet',
+          description: sheetName || 'Spreadsheet'
+        }
+      }));
+      
+      // Delay to ensure editor is ready
       const timer = setTimeout(() => {
-        handleApply();
+        handlePreview();
+        setShowPreview(true);
+        hasPreviewedRef.current = true;
       }, 100);
       
-      return () => clearTimeout(timer);
+      // Listen for global accept/reject
+      const handleGlobalAccept = () => {
+        handleAcceptAll();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      const handleGlobalReject = () => {
+        handleReject();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      window.addEventListener('ai-accept-all', handleGlobalAccept);
+      window.addEventListener('ai-reject-all', handleGlobalReject);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('ai-accept-all', handleGlobalAccept);
+        window.removeEventListener('ai-reject-all', handleGlobalReject);
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
     }
-  }, []); // Empty dependency array - only run once on mount
+  }, []);
 
   const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
 
@@ -89,68 +155,90 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     );
   }
 
+  if (rejected) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Table className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {sheetName}
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <X className="h-4 w-4 text-red-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (applied) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Table className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                {sheetName}
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Table className="h-4 w-4" />
-            <CardTitle className="text-base">AI Spreadsheet Changes</CardTitle>
+    <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+      <div className="p-2 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Table className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+            <Typography
+              variant="muted"
+              className="text-white truncate"
+            >
+              {sheetName}
+            </Typography>
+          </div>
+          
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleAcceptAll}
+              className="bg-green-600 hover:bg-green-700 text-white border border-zinc-700 p-2"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleReject}
+              className="bg-red-600 hover:bg-red-700 text-white border border-zinc-700 p-2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
         </div>
-        <CardDescription>
-          {note ? note : 'AI spreadsheet changes have been automatically applied to the open sheet.'}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {operations && operations.length > 0 && (
-          <div className="text-sm text-muted-foreground">
-            Operations: {operations.length}
-            <div className="mt-1 flex flex-wrap gap-2">
-              {Object.entries(opSummary).map(([k, v]) => (
-                <Badge key={k} variant="secondary">{k}: {v}</Badge>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {csvContent && (
-          <div className="text-xs text-muted-foreground">
-            CSV replacement provided ({csvContent.length.toLocaleString()} chars)
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 pt-2">
-          {applied && (
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm">Changes applied automatically</span>
-            </div>
-          )}
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-            {showPreview ? 'Hide' : 'Preview'}
-          </Button>
-        </div>
-
-        {showPreview && (
-          <div className="mt-2 space-y-2">
-            {operations && operations.length > 0 && (
-              <div className="p-3 bg-muted rounded text-xs">
-                {operations.slice(0, 10).map((op, idx) => (
-                  <div key={idx} className="break-words">{JSON.stringify(op)}</div>
-                ))}
-                {operations.length > 10 && <div className="opacity-70">…{operations.length - 10} more</div>}
-              </div>
-            )}
-            {csvContent && (
-              <div className="p-3 bg-muted rounded text-xs max-h-40 overflow-auto">
-                <code className="whitespace-pre-wrap break-all">{csvContent.slice(0, 2000)}{csvContent.length > 2000 ? '…' : ''}</code>
-              </div>
-            )}
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 

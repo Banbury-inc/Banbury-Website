@@ -18,6 +18,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
+import { Insertion, Deletion } from '../../../extensions/TrackChanges';
 import { Button } from '../../../components/ui/button';
 import {
   Bold,
@@ -164,6 +165,8 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
       Highlight.configure({
         multicolor: true,
       }),
+      Insertion,
+      Deletion,
       ResizableImage.configure({
         allowBase64: true,
         HTMLAttributes: {

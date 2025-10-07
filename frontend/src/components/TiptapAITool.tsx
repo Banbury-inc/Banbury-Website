@@ -1,9 +1,10 @@
-import { Wand2, FileText, CheckCircle, AlertCircle } from 'lucide-react';
-import React, { useEffect, useState } from 'react';
+import { Wand2, FileText, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
+import React, { useEffect, useState, useRef } from 'react';
 
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
+import { Typography } from './ui/typography';
 import { handleAIResponse } from '../contexts/TiptapAIContext';
 
 interface TiptapAIToolProps {
@@ -44,25 +45,68 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
     language
   } = props.args || props;
   const [applied, setApplied] = useState(false);
+  const [rejected, setRejected] = useState(false);
   const [preview, setPreview] = useState(false);
+  const hasPreviewedRef = useRef(false);
 
-  // Auto-apply the changes to the document when the tool result is received
-  useEffect(() => {
-    if (content && actionType && !applied) {
-      handleAIResponse(content, actionType, selection);
-      setApplied(true);
-    }
-  }, [content, actionType, selection, applied]);
-
-  const handleApplyToEditor = () => {
+  const handlePreview = () => {
     if (content && actionType) {
-      handleAIResponse(content, actionType, selection);
-      setApplied(true);
-      
-      // Show confirmation for a moment
-      setTimeout(() => setApplied(false), 2000);
+      handleAIResponse(content, actionType, selection, true);
     }
   };
+
+  const handleAcceptAll = () => {
+    if (applied || rejected) return;
+    if (content && actionType) {
+      handleAIResponse(content, actionType, selection, false);
+      setApplied(true);
+    }
+  };
+
+  const handleReject = () => {
+    if (applied || rejected) return;
+    setRejected(true);
+  };
+
+  // Auto-preview the changes when component mounts
+  useEffect(() => {
+    if (content && actionType && !hasPreviewedRef.current) {
+      const changeId = `tiptap-${Date.now()}-${Math.random()}`;
+      
+      window.dispatchEvent(new CustomEvent('ai-change-registered', {
+        detail: {
+          id: changeId,
+          type: 'tiptap',
+          description: 'Document'
+        }
+      }));
+      
+      const timer = setTimeout(() => {
+        handlePreview();
+        hasPreviewedRef.current = true;
+      }, 100);
+      
+      const handleGlobalAccept = () => {
+        handleAcceptAll();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      const handleGlobalReject = () => {
+        handleReject();
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+      
+      window.addEventListener('ai-accept-all', handleGlobalAccept);
+      window.addEventListener('ai-reject-all', handleGlobalReject);
+      
+      return () => {
+        clearTimeout(timer);
+        window.removeEventListener('ai-accept-all', handleGlobalAccept);
+        window.removeEventListener('ai-reject-all', handleGlobalReject);
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+      };
+    }
+  }, []);
 
   // Add safety check - if no content, don't render
   if (!content) {
@@ -78,131 +122,89 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
     );
   }
 
-  const getActionIcon = () => {
-    switch (actionType) {
-      case 'rewrite':
-      case 'correct':
-      case 'expand':
-        return <Wand2 className="h-4 w-4" />;
-      case 'translate':
-        return <FileText className="h-4 w-4" />;
-      default:
-        return <FileText className="h-4 w-4" />;
-    }
-  };
+  if (rejected) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                Document
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <X className="h-4 w-4 text-red-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
-  const getActionColor = () => {
-    switch (actionType) {
-      case 'correct':
-        return 'destructive';
-      case 'translate':
-        return 'secondary';
-      case 'rewrite':
-      case 'expand':
-        return 'default';
-      default:
-        return 'outline';
-    }
-  };
-
-  const getActionDescription = () => {
-    switch (actionType) {
-      case 'rewrite':
-        return 'Improved version of the selected text';
-      case 'correct':
-        return 'Grammar and spelling corrections applied';
-      case 'expand':
-        return 'Expanded content with more details';
-      case 'translate':
-        return `Translated to ${language || 'target language'}`;
-      case 'summarize':
-        return 'Summary of the content';
-      case 'outline':
-        return 'Structured outline of the content';
-      default:
-        return 'AI-generated content';
-    }
-  };
+  if (applied) {
+    return (
+      <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+        <div className="p-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+              <Typography
+                variant="muted"
+                className="text-white truncate"
+              >
+                Document
+              </Typography>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Check className="h-4 w-4 text-green-400" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {getActionIcon()}
-            <CardTitle className="text-base">AI Content Suggestion</CardTitle>
-            <Badge variant={getActionColor()}>{action}</Badge>
-          </div>
-          {applied && (
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-sm">Applied!</span>
-            </div>
-          )}
-        </div>
-        <CardDescription>{getActionDescription()}</CardDescription>
-      </CardHeader>
-      
-      <CardContent className="space-y-4">
-        {/* Original Text (if applicable) */}
-        {targetText && (
-          <div className="space-y-2">
-            <div className="text-sm font-medium text-muted-foreground">Original:</div>
-            <div className="p-3 bg-muted rounded-lg text-sm border-l-4 border-muted-foreground/20">
-              {targetText}
-            </div>
-          </div>
-        )}
-        
-        {/* AI Generated Content */}
-        <div className="space-y-2">
-          <div className="text-sm font-medium text-muted-foreground">
-            AI Suggestion:
-          </div>
-          <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg text-sm border-l-4 border-blue-400">
-            <div 
-              className="prose prose-sm max-w-none"
-              dangerouslySetInnerHTML={{ __html: content }}
-            />
-          </div>
-        </div>
-        
-        {/* Action Status */}
-        <div className="flex items-center gap-2 pt-2">
-          <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
-            <CheckCircle className="h-4 w-4" />
-            <span className="text-sm font-medium">Automatically Applied to Document</span>
+    <div className="w-full max-w-2xl bg-zinc-800 border border-zinc-700 rounded-lg overflow-hidden">
+      <div className="p-2 space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <FileText className="h-4 w-4 text-white stroke-[2.5] flex-shrink-0" />
+            <Typography
+              variant="muted"
+              className="text-white truncate"
+            >
+              Document
+            </Typography>
           </div>
           
-          <Button
-            variant="outline"
-            onClick={handleApplyToEditor}
-            size="sm"
-            className="flex items-center gap-2"
-          >
-            <Wand2 className="h-4 w-4" />
-            Re-apply
-          </Button>
-          
-          <Button
-            variant="outline"
-            onClick={() => setPreview(!preview)}
-            size="sm"
-          >
-            {preview ? 'Hide' : 'Preview'} HTML
-          </Button>
-        </div>
-        
-        {/* HTML Preview */}
-        {preview && (
-          <div className="mt-4 p-3 bg-gray-100 dark:bg-gray-800 rounded-lg">
-            <div className="text-xs font-medium text-muted-foreground mb-2">HTML:</div>
-            <code className="text-xs text-muted-foreground whitespace-pre-wrap break-all">
-              {content}
-            </code>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleAcceptAll}
+              className="bg-green-600 hover:bg-green-700 text-white border border-zinc-700 p-2"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+            
+            <Button 
+              variant="primary" 
+              size="xsm" 
+              onClick={handleReject}
+              className="bg-red-600 hover:bg-red-700 text-white border border-zinc-700 p-2"
+            >
+              <X className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </CardContent>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 };

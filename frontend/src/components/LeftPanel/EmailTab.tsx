@@ -453,41 +453,41 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
               onClick={() => handleTabChange('inbox')}
               className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'inbox'
-                  ? 'bg-blue-600'
+                  ? 'bg-white text-black'
                   : 'hover:bg-zinc-700'
               }`}
             >
-              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'inbox' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Inbox</Typography>
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'inbox' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`}>Inbox</Typography>
             </button>
             <button
               onClick={() => handleTabChange('sent')}
               className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'sent'
-                  ? 'bg-blue-600'
+                  ? 'bg-white text-black'
                   : 'hover:bg-zinc-700'
               }`}
             >
-              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'sent' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Sent</Typography>
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'sent' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`}>Sent</Typography>
             </button>
             <button
               onClick={() => handleTabChange('drafts')}
               className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'drafts'
-                  ? 'bg-blue-600'
+                  ? 'bg-white text-black'
                   : 'hover:bg-zinc-700'
               }`}
             >
-              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'drafts' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Drafts</Typography>
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'drafts' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`}>Drafts</Typography>
             </button>
             <button
               onClick={() => handleTabChange('starred')}
               className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'starred'
-                  ? 'bg-blue-600'
+                  ? 'bg-white text-black'
                   : 'hover:bg-zinc-700'
               }`}
             >
-              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'starred' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Starred</Typography>
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'starred' ? 'text-black' : 'text-gray-300 group-hover:text-white'}`}>Starred</Typography>
             </button>
           </div>
         </div>

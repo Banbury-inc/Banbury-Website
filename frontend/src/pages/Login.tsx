@@ -74,8 +74,8 @@ const Login = (): JSX.Element => {
       const result = await ApiService.login(formData.username, formData.password);
       
       if (result.success) {
-        // Redirect to dashboard
-        router.push('/dashboard');
+        // Redirect to workspaces
+        router.push('/workspaces');
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
