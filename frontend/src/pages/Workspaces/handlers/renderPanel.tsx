@@ -18,6 +18,7 @@ import { FileSystemItem } from '../../../utils/fileTreeUtils';
 import { isNotebookFile, isTldrawFile } from './fileTypeUtils';
 import DrawioViewer from '../../../components/MiddlePanel/CanvasViewer/DrawioViewer';
 import TldrawViewer from '../../../components/MiddlePanel/CanvasViewer/TldrawViewer';
+import { Typography } from '../../../components/ui/typography';
 
 interface UserInfo {
   username: string;
@@ -307,10 +308,10 @@ export const renderPanel = ({
                 return (
                   <div className="h-full flex items-center justify-center">
                     <div className="text-center max-w-md">
-                      <h3 className="text-xl font-semibold text-white mb-2">File Type Not Supported</h3>
-                      <p className="text-gray-400">
+                      <Typography variant="h3" className="text-xl font-semibold text-white mb-2">File Type Not Supported</Typography>
+                      <Typography variant="p" className="text-gray-400">
                         Preview for this file type is not available yet.
-                      </p>
+                      </Typography>
                     </div>
                   </div>
                 );
@@ -332,13 +333,10 @@ export const renderPanel = ({
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-md">
-              <h2 className="text-2xl font-bold text-white mb-4">Welcome to Workspaces</h2>
-              <p className="text-gray-300 mb-4">
+              <Typography variant="h2" className="text-2xl font-bold text-white mb-4">Welcome to Workspaces</Typography>
+              <Typography variant="p" className="text-gray-300 mb-4">
                 This panel is ready for files. Select a file from the sidebar to open it here.
-              </p>
-              <p className="text-gray-400 text-sm">
-                You can also drag tabs from other panels or use the split options.
-              </p>
+              </Typography>
             </div>
           </div>
         )}

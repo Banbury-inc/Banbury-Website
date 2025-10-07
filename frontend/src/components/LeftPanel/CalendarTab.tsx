@@ -133,15 +133,6 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
-            onClick={() => loadEvents(undefined, searchQuery)}
-            disabled={loading}
-          >
-            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
             className="h-6 px-2 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
             onClick={() => {
               if (onOpenCalendarApp) {
@@ -154,9 +145,17 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
             Open Calendar
           </Button>
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
+            variant="primary"
+            size="xsm"
+            onClick={() => loadEvents(undefined, searchQuery)}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
+          <Button
+            variant="primary"
+            size="xsm"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
             onClick={handleCreateEvent}
             title="Create Event"
           >
@@ -165,7 +164,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
         </div>
       </div>
 
-      <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
+      {/* <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
         <div className="flex gap-2">
           <Input
             placeholder="Search events..."
@@ -178,7 +177,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
             <Search className="h-3 w-3" />
           </Button>
         </div>
-      </div>
+      </div> */}
 
       <div className="flex-1 overflow-hidden">
         {checkingAccess ? (

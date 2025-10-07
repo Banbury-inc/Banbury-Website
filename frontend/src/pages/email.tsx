@@ -90,11 +90,11 @@ export default function EmailPage() {
             <div className="p-4 max-w-2xl">
               <div className="mb-3">
                 <div className="text-zinc-300 text-sm mb-1">To</div>
-                <Input value={to} onChange={(e) => setTo(e.target.value)} className="bg-black text-white border-zinc-700" />
+                <Input value={to} onChange={(e) => setTo(e.target.value)} variant="primary" />
               </div>
               <div className="mb-3">
                 <div className="text-zinc-300 text-sm mb-1">Subject</div>
-                <Input value={subject} onChange={(e) => setSubject(e.target.value)} className="bg-black text-white border-zinc-700" />
+                <Input value={subject} onChange={(e) => setSubject(e.target.value)} variant="primary" />
               </div>
               <div className="mb-4">
                 <div className="text-zinc-300 text-sm mb-1">Body</div>

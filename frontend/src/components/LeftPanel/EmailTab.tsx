@@ -17,6 +17,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { EmailViewer } from '../MiddlePanel/EmailViewer/EmailViewer'
 import { Button } from '../ui/button'
 import { Input } from '../ui/input'
+import { Typography } from '../ui/typography'
 import { EmailService, GmailMessage, GmailMessageListResponse } from '../../services/emailService'
 import { ScopeService } from '../../services/scopeService'
 
@@ -442,71 +443,78 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
   }, [loadMoreMessages])
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col overflow-hidden">
       {/* Email Tab Header */}
-      <div className="flex items-center justify-between px-4 py-3 bg-zinc-800">
+      <div className="flex items-center justify-between px-4 py-3 bg-zinc-800 flex-shrink-0">
         <div className="flex items-center gap-4">
           {/* Tab Navigation */}
           <div className="flex gap-1">
             <button
               onClick={() => handleTabChange('inbox')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'inbox'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
+                  ? 'bg-blue-600'
+                  : 'hover:bg-zinc-700'
               }`}
             >
-              Inbox
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'inbox' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Inbox</Typography>
             </button>
             <button
               onClick={() => handleTabChange('sent')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'sent'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
+                  ? 'bg-blue-600'
+                  : 'hover:bg-zinc-700'
               }`}
             >
-              Sent
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'sent' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Sent</Typography>
             </button>
             <button
               onClick={() => handleTabChange('drafts')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'drafts'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
+                  ? 'bg-blue-600'
+                  : 'hover:bg-zinc-700'
               }`}
             >
-              Drafts
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'drafts' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Drafts</Typography>
             </button>
             <button
               onClick={() => handleTabChange('starred')}
-              className={`px-3 py-1 text-xs font-medium rounded transition-colors ${
+              className={`px-3 py-1 rounded transition-colors ${
                 activeTab === 'starred'
-                  ? 'bg-blue-600 text-white'
-                  : 'text-gray-300 hover:text-white hover:bg-zinc-700'
+                  ? 'bg-blue-600'
+                  : 'hover:bg-zinc-700'
               }`}
             >
-              Starred
+              <Typography variant="small" className={`text-xs font-medium ${activeTab === 'starred' ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>Starred</Typography>
             </button>
           </div>
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="ghost"
-            size="sm"
-            className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-700/50"
+            variant="primary"
+            size="xsm"
             onClick={() => loadMessages()}
             disabled={loading}
           >
             <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
           </Button>
+          <Button
+            variant="primary"
+            size="xsm"
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+            onClick={() => onComposeEmail ? onComposeEmail() : setComposeOpen(true)}
+          >
+            <Send className="h-3 w-3" />
+          </Button>
         </div>
       </div>
 
       {/* Search Bar and Compose Button */}
-      <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700">
-        <div className="flex gap-2">
-          <Input
+      {/* <div className="px-4 py-2 bg-zinc-800 border-b border-zinc-700"> */}
+        {/* <div className="flex gap-2"> */}
+          {/* <Input
             placeholder="Search emails..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -514,49 +522,42 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
             className="flex-1 bg-zinc-900 border-zinc-700 text-white text-sm"
           />
           <Button
+            variant="primary"
             size="sm"
             onClick={handleSearch}
-            className="bg-zinc-800 hover:bg-zinc-700 text-white h-9 px-3"
           >
             <Search className="h-3 w-3" />
-          </Button>
-          <Button
-            size="sm"
-            onClick={() => onComposeEmail ? onComposeEmail() : setComposeOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white h-9 px-3"
-          >
-            <Send className="h-3 w-3" />
-          </Button>
-        </div>
-      </div>
+          </Button> */}
+        {/* </div> */}
+      {/* </div> */}
 
       {/* Email Content */}
-      <div className="flex-1 overflow-hidden">
+      <div className="flex-1 overflow-hidden min-w-0">
         {checkingGmailAccess ? (
-          <div className="flex items-center justify-center h-full text-gray-400">
-            <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-            Checking Gmail access...
+          <div className="flex items-center justify-center h-full">
+            <RefreshCw className="h-4 w-4 animate-spin mr-2 text-gray-400" />
+            <Typography variant="muted">Checking Gmail access...</Typography>
           </div>
         ) : gmailAvailable === false ? (
-          <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4">
-            <Mail className="h-12 w-12 mb-4 opacity-50" />
-            <h3 className="text-lg font-medium text-white mb-2">Gmail Access Required</h3>
-            <p className="text-sm text-gray-400 text-center mb-4 max-w-md">
+          <div className="flex flex-col items-center justify-center h-full p-4">
+            <Mail className="h-12 w-12 mb-4 opacity-50 text-gray-400" />
+            <Typography variant="h3" className="mb-2">Gmail Access Required</Typography>
+            <Typography variant="small" className="text-center mb-4 max-w-md text-gray-400">
               To use the email features, you need to grant Gmail access to your Google account.
-            </p>
+            </Typography>
             <Button
               onClick={requestGmailAccess}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
               <Settings className="h-4 w-4 mr-2" />
-              Activate Gmail Access
+              <Typography variant="small" className="text-white">Activate Gmail Access</Typography>
             </Button>
           </div>
         ) : composeOpen ? (
           /* Compose Form */
-          <div className="h-full flex flex-col p-4">
+          <div className="h-full flex flex-col p-4 overflow-hidden min-w-0">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white text-sm font-medium">New Message</h3>
+              <Typography variant="small" className="font-medium">New Message</Typography>
               <Button
                 variant="ghost"
                 size="sm"
@@ -569,27 +570,27 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
             
             <div className="space-y-3 flex-1">
               <div>
-                <label className="text-gray-300 text-xs mb-1 block">To</label>
+                <Typography variant="small" className="text-xs text-gray-300 mb-1 block">To</Typography>
                 <Input
                   value={composeForm.to}
                   onChange={(e) => setComposeForm(prev => ({ ...prev, to: e.target.value }))}
-                  className="bg-zinc-800 border-zinc-600 text-white text-sm"
+                  variant="primary"
                   placeholder="recipient@example.com"
                 />
               </div>
               
               <div>
-                <label className="text-gray-300 text-xs mb-1 block">Subject</label>
+                <Typography variant="small" className="text-xs text-gray-300 mb-1 block">Subject</Typography>
                 <Input
                   value={composeForm.subject}
                   onChange={(e) => setComposeForm(prev => ({ ...prev, subject: e.target.value }))}
-                  className="bg-zinc-800 border-zinc-600 text-white text-sm"
+                  variant="primary"
                   placeholder="Subject"
                 />
               </div>
               
               <div className="flex-1">
-                <label className="text-gray-300 text-xs mb-1 block">Message</label>
+                <Typography variant="small" className="text-xs text-gray-300 mb-1 block">Message</Typography>
                 <textarea
                   value={composeForm.body}
                   onChange={(e) => setComposeForm(prev => ({ ...prev, body: e.target.value }))}
@@ -606,14 +607,14 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
                 disabled={!composeForm.to || !composeForm.subject || !composeForm.body}
               >
                 <Send className="h-3 w-3 mr-2" />
-                Send
+                <Typography variant="small" className="text-white">Send</Typography>
               </Button>
               <Button
                 variant="outline"
                 onClick={() => setComposeOpen(false)}
-                className="border-zinc-600 text-gray-300 hover:text-white"
+                className="border-zinc-600"
               >
-                Cancel
+                <Typography variant="small" className="text-gray-300 hover:text-white">Cancel</Typography>
               </Button>
             </div>
           </div>
@@ -630,77 +631,77 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
           />
         ) : (
           /* Message List */
-                     <div className="h-full flex flex-col">
+                     <div className="h-full flex flex-col overflow-hidden">
              {error && (
-               <div className="p-4 text-red-400 text-sm bg-red-900/20 border border-red-800 rounded m-2">
-                 {error}
+               <div className="p-4 bg-red-900/20 border border-red-800 rounded m-2 flex-shrink-0">
+                 <Typography variant="small" className="text-red-400">{error}</Typography>
                </div>
              )}
              {loading && !parsedMessages.length ? (
-               <div className="flex items-center justify-center h-full text-gray-400">
-                 <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                 Loading emails...
+               <div className="flex items-center justify-center h-full">
+                 <RefreshCw className="h-4 w-4 animate-spin mr-2 text-gray-400" />
+                 <Typography variant="muted">Loading emails...</Typography>
                </div>
              ) : (
                              <>
-                                  <div className="flex-1 overflow-y-auto" onScroll={handleScroll}>
-                   {parsedMessages.length === 0 ? (
-                     <div className="flex flex-col items-center justify-center h-full text-gray-400 p-4">
-                       <Mail className="h-12 w-12 mb-4 opacity-50" />
-                       <p className="text-sm mb-2">
-                         {activeTab === 'inbox' ? 'No emails found' : 
-                          activeTab === 'sent' ? 'No sent emails found' : 
-                          activeTab === 'drafts' ? 'No drafts found' :
-                          'No starred emails found'}
-                       </p>
-                       <p className="text-xs text-gray-500">
-                         {activeTab === 'inbox' ? 'Your inbox is empty or try refreshing' :
-                          activeTab === 'sent' ? 'You haven\'t sent any emails yet' :
-                          activeTab === 'drafts' ? 'You don\'t have any saved drafts' :
-                          'You haven\'t starred any emails yet'}
-                       </p>
-                     </div>
-                   ) : (
+                                  <div className="flex-1 overflow-y-auto overflow-x-hidden" onScroll={handleScroll}>
+                  {parsedMessages.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full p-4">
+                      <Mail className="h-12 w-12 mb-4 opacity-50 text-gray-400" />
+                      <Typography variant="small" className="mb-2 text-gray-400">
+                        {activeTab === 'inbox' ? 'No emails found' : 
+                         activeTab === 'sent' ? 'No sent emails found' : 
+                         activeTab === 'drafts' ? 'No drafts found' :
+                         'No starred emails found'}
+                      </Typography>
+                      <Typography variant="muted" className="text-xs text-gray-500">
+                        {activeTab === 'inbox' ? 'Your inbox is empty or try refreshing' :
+                         activeTab === 'sent' ? 'You haven\'t sent any emails yet' :
+                         activeTab === 'drafts' ? 'You don\'t have any saved drafts' :
+                         'You haven\'t starred any emails yet'}
+                      </Typography>
+                    </div>
+                  ) : (
                      <>
-                       {parsedMessages.map((email) => (
-                         <div
-                           key={email.id}
-                           onClick={() => loadMessageDetails(email.id)}
-                           className={`group p-3 border-b border-zinc-700 cursor-pointer hover:bg-zinc-800/50 transition-colors ${
-                             !email.isRead ? 'bg-zinc-800/30' : ''
-                           }`}
-                         >
-                           <div className="flex items-start justify-between">
-                             <div className="flex-1 min-w-0">
-                               <div className="flex items-center gap-2 mb-1">
-                                 {!email.isRead && (
-                                   <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
-                                 )}
-                                 <span className={`text-sm font-medium truncate ${
-                                   !email.isRead ? 'text-white' : 'text-gray-300'
-                                 }`}>
-                                   {email.isDraft ? 'Draft' : email.from}
-                                 </span>
-                                 {email.hasAttachments && (
-                                   <Paperclip className="h-3 w-3 text-gray-400 flex-shrink-0" />
-                                 )}
-                               </div>
-                               <div className={`text-sm truncate mb-1 ${
-                                 !email.isRead ? 'text-white' : 'text-gray-300'
-                               }`}>
-                                 {email.subject}
-                               </div>
-                               <div className="text-xs text-gray-400 truncate">
-                                 {email.snippet}
-                               </div>
-                             </div>
-                             <div className="relative ml-2">
-                               <span className="text-xs text-gray-500 group-hover:opacity-0 transition-opacity">
-                                 {formatDate(email.date)}
-                               </span>
+                      {parsedMessages.map((email) => (
+                        <div
+                          key={email.id}
+                          onClick={() => loadMessageDetails(email.id)}
+                          className={`group p-3 border-b border-zinc-700 cursor-pointer hover:bg-zinc-800/50 transition-colors min-w-0 ${
+                            !email.isRead ? 'bg-zinc-800/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1 min-w-0">
+                                {!email.isRead && (
+                                  <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0" />
+                                )}
+                                <Typography variant="small" className={`font-medium truncate min-w-0 ${
+                                  !email.isRead ? 'text-white' : 'text-gray-300'
+                                }`}>
+                                  {email.isDraft ? 'Draft' : email.from}
+                                </Typography>
+                                {email.hasAttachments && (
+                                  <Paperclip className="h-3 w-3 text-gray-400 flex-shrink-0" />
+                                )}
+                              </div>
+                              <Typography variant="small" className={`truncate mb-1 block ${
+                                !email.isRead ? 'text-white' : 'text-gray-300'
+                              }`}>
+                                {email.subject}
+                              </Typography>
+                              <Typography variant="muted" className="text-xs">
+                                {email.snippet}
+                              </Typography>
+                            </div>
+                            <div className="relative ml-2">
+                              <Typography variant="muted" className="text-xs text-gray-500 group-hover:opacity-0 transition-opacity">
+                                {formatDate(email.date)}
+                              </Typography>
                                <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
                                  <Button
-                                   variant="ghost"
+                                   variant="primary"
                                    size="sm"
                                    onClick={(e: React.MouseEvent) => {
                                      e.stopPropagation()
@@ -715,7 +716,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
                                    )}
                                  </Button>
                                  <Button
-                                   variant="ghost"
+                                   variant="primary"
                                    size="sm"
                                    onClick={(e: React.MouseEvent) => {
                                      e.stopPropagation()
@@ -731,13 +732,13 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
                          </div>
                        ))}
                        
-                       {/* Loading indicator for infinite scroll */}
-                       {isLoadingMore && (
-                         <div className="flex items-center justify-center py-4 text-gray-400">
-                           <RefreshCw className="h-4 w-4 animate-spin mr-2" />
-                           Loading more emails...
-                         </div>
-                       )}
+                      {/* Loading indicator for infinite scroll */}
+                      {isLoadingMore && (
+                        <div className="flex items-center justify-center py-4">
+                          <RefreshCw className="h-4 w-4 animate-spin mr-2 text-gray-400" />
+                          <Typography variant="muted">Loading more emails...</Typography>
+                        </div>
+                      )}
                      </>
                    )}
                  </div>

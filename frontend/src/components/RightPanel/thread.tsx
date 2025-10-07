@@ -63,6 +63,7 @@ import { FileSystemItem } from "../../utils/fileTreeUtils";
 import { createHandleDrawioFileView } from "./handlers/handle-drawio-file-view";
 
 import type { FC } from "react";
+import { Typography } from "../ui/typography";
 
 
 // Destructure Assistant UI primitives from namespace import to avoid named import type issues
@@ -979,18 +980,16 @@ const ThreadWelcome: FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ delay: 0.5 }}
-              className="text-2xl font-semibold"
             >
-              Hello there!
+              <Typography variant="h2">Hello there!</Typography>
             </motion.div>
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: 10 }}
               transition={{ delay: 0.6 }}
-              className="text-muted-foreground/65 text-2xl"
             >
-              How can I help you today?
+              <Typography variant="p">How can I help you today?</Typography>
             </motion.div>
           </div>
         </div>
@@ -1463,13 +1462,14 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
         />
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button
-              className="h-8 w-8 p-0 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded flex items-center justify-center"
+            <Button
+              variant="primary"
               title="Tools"
               aria-label="Tools"
+              size="xsm"
             >
               <Wrench className="h-4 w-4" />
-            </button>
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent side="top" align="start" className="w-56">
             <DropdownMenuLabel>
@@ -1530,11 +1530,13 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
             </DropdownMenuCheckboxItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <button
-          className={`h-8 w-8 p-0 rounded flex items-center justify-center ${
+        <Button
+          variant="primary"
+          size="xsm"
+          className={`h-8 w-8 ${
             isRecording
               ? "bg-red-600 text-white hover:bg-red-700"
-              : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+              : ""
           }`}
           onClick={isRecording ? stopRecording : startRecording}
           title={isRecording ? "Stop recording" : "Start voice input"}
@@ -1542,50 +1544,53 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
           disabled={!(typeof window !== 'undefined' && (((window as any).SpeechRecognition) || ((window as any).webkitSpeechRecognition)))}
         >
           {isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-        </button>
-        <button
-          className={`h-8 w-8 p-0 rounded flex items-center justify-center ${
+        </Button>
+        <Button
+          variant="primary"
+          size="xsm"
+          className={`${
             isWebSearchEnabled 
               ? "bg-blue-600 hover:bg-blue-700 text-white" 
-              : "text-zinc-400 hover:text-white hover:bg-zinc-800"
+              : ""
           }`}
           onClick={onToggleWebSearch}
           title={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
           aria-label={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
         >
           <Globe className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
 
       <ThreadPrimitive.If running={false}>
-        <TooltipIconButton
-          tooltip="Send"
+        <Button
           type="button"
-          variant="default"
-          className={`dark:border-muted-foreground/90 border-muted-foreground/60 p-2 border border-zinc-300 dark:border-zinc-600 scale-100 ${
+          variant="primary"
+          size="xsm"
+          className={`${
             hasText 
-              ? 'hover:bg-primary/75 cursor-pointer' 
-              : 'opacity-50 cursor-not-allowed'
+              ? 'cursor-pointer bg-white text-black' 
+              : 'opacity-50 bg-white text-black cursor-not-allowed'
           }`}
+          title="Send"
           aria-label="Send message"
           onClick={handleSendFromButton}
           disabled={!hasText}
         >
           <ChevronRightIcon />
-        </TooltipIconButton>
+        </Button>
       </ThreadPrimitive.If>
 
       <ThreadPrimitive.If running>
         <ComposerPrimitive.Cancel asChild>
-          <TooltipIconButton
-            tooltip="Stop generating"
+          <Button
             type="button"
-            variant="default"
-            className="dark:border-muted-foreground/90 border-muted-foreground/60 hover:bg-primary/75 p-2 border border-zinc-300 dark:border-zinc-600 scale-100"
+            variant="primary"
+            size="xsm"
+            title="Stop generating"
             aria-label="Stop generating"
           >
             <Square size={20} />
-          </TooltipIconButton>
+          </Button>
         </ComposerPrimitive.Cancel>
       </ThreadPrimitive.If>
     </div>

@@ -96,9 +96,8 @@ export function NavSidebar({ onLogout }: NavSidebarProps) {
             return (
               <div key={item.id} className="relative">
                 <Button
-                  variant={isActive(item.path) ? "default" : "ghost"}
+                  variant={isActive(item.path) ? "primary" : "ghost"}
                   size="icon"
-                  className="h-10 w-10 text-white hover:bg-zinc-700 hover:text-white bg-black transition-colors peer"
                   onClick={() => router.push(item.path)}
                 >
                   <Icon className="h-5 w-5" />

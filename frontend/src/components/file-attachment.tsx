@@ -129,12 +129,13 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
         }
       }}>
         <DropdownMenuTrigger asChild>
-          <button
-            className="h-8 w-8 p-0 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded flex items-center justify-center"
+          <Button
+            variant="primary"
+            size="xsm"
             title="Attach file"
           >
             <Paperclip className="h-4 w-4" />
-          </button>
+          </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           className="w-80 max-h-96 overflow-hidden bg-zinc-900 border-zinc-700"

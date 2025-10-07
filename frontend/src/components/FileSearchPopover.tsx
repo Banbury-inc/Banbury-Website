@@ -5,6 +5,7 @@ import { ApiService } from '../services/apiService';
 import { FileSystemItem } from '../utils/fileTreeUtils';
 import { useToast } from './ui/use-toast';
 import { Popover, PopoverContent, PopoverTrigger } from './tiptap-ui-primitive/popover/popover';
+import { Input } from './ui/input';
 
 interface FileSearchPopoverProps {
   onFileSelect: (file: FileSystemItem) => void;
@@ -219,6 +220,7 @@ export const FileSearchPopover: React.FC<FileSearchPopoverProps> = ({ onFileSele
               <input
                 ref={inputRef}
                 type="text"
+                // variant="ghost"
                 placeholder="Search all files..."
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}

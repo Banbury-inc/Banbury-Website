@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
+import { Input } from '../../ui/input'
 
 interface SuggestionItem {
   label: string
@@ -177,7 +178,7 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
   return (
     <div className={`relative ${className || ''}`} ref={wrapperRef}>
       <div
-        className={`flex flex-wrap items-center gap-1 min-h-9 w-full rounded-md border px-3 py-1.5 text-sm shadow-sm transition-colors focus-within:outline-none focus-within:ring-2 focus-within:ring-slate-500 focus-within:border-slate-500 bg-white border-slate-300 ${
+        className={`flex flex-wrap items-center gap-2 w-full rounded-lg border px-4 py-[9px] text-sm transition-all focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500/50 focus-within:border-blue-500 bg-zinc-800/50 border-zinc-700 hover:border-zinc-600 ${
           disabled ? 'opacity-50 pointer-events-none' : ''
         }`}
         onClick={() => inputRef.current?.focus()}
@@ -185,10 +186,10 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
         {tokens.map((t, idx) => (
           <span
             key={`${t}-${idx}`}
-            className={`flex items-center gap-1 max-w-full rounded-full bg-slate-100 text-slate-800 border border-slate-200 px-2 py-0.5`}
+            className="inline-flex items-center gap-1.5 max-w-full rounded-md bg-blue-600/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 hover:bg-blue-600/30 transition-colors"
             title={t}
           >
-            <span className="truncate">
+            <span className="truncate text-sm font-medium">
               {isLikelyEmail(t) ? t : t}
             </span>
             <button
@@ -197,7 +198,7 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
                 e.stopPropagation()
                 removeTokenAt(idx)
               }}
-              className="text-slate-500 hover:text-slate-700"
+              className="text-blue-400 hover:text-blue-200 hover:bg-blue-500/20 rounded p-0.5 transition-colors"
               aria-label={`Remove ${t}`}
             >
               <X className="h-3 w-3" />
@@ -205,7 +206,8 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
           </span>
         ))}
 
-        <input
+        <Input
+          variant="ghost"
           ref={inputRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
@@ -222,17 +224,21 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
           }}
           placeholder={inputPlaceholder}
           disabled={disabled}
-          className="flex-1 min-w-[120px] border-none outline-none focus:ring-0 bg-transparent text-slate-900 placeholder-slate-400"
+          className="flex-1 min-w-[120px] text-white placeholder-zinc-500 bg-transparent border-0 ring-0 focus-visible:ring-0 h-auto p-0 text-sm"
         />
       </div>
 
       {showSuggestions && suggestions.length > 0 && (
-        <div className="absolute z-50 mt-1 w-full rounded-md border border-slate-200 bg-white shadow-lg">
-          <ul className="max-h-64 overflow-auto py-1 text-sm">
+        <div className="absolute z-50 mt-2 w-full rounded-lg border border-zinc-700 bg-zinc-800 shadow-xl overflow-hidden">
+          <ul className="max-h-64 overflow-auto py-1">
             {suggestions.map((s, i) => (
               <li
                 key={`${s.value}-${i}`}
-                className={`px-3 py-2 cursor-pointer ${i === highlightIndex ? 'bg-slate-100' : ''}`}
+                className={`px-4 py-2.5 cursor-pointer transition-colors ${
+                  i === highlightIndex 
+                    ? 'bg-blue-600/20 border-l-2 border-blue-500' 
+                    : 'hover:bg-zinc-700/50 border-l-2 border-transparent'
+                }`}
                 onMouseEnter={() => setHighlightIndex(i)}
                 onMouseDown={(e) => {
                   e.preventDefault()
@@ -240,9 +246,9 @@ export function RecipientChipsInput({ value, onChange, placeholder, disabled, cl
                 }}
                 title={s.value}
               >
-                <div className="flex flex-col">
-                  <span className="text-slate-900">{s.label}</span>
-                  <span className="text-slate-500 text-xs">{s.value}</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="text-zinc-100 font-medium text-sm">{s.label}</span>
+                  <span className="text-zinc-400 text-xs">{s.value}</span>
                 </div>
               </li>
             ))}

@@ -280,107 +280,73 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
   }, [])
 
   return (
-    <div className="h-full flex flex-col bg-white">
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 bg-zinc-800 border-b border-zinc-700">
-        <div className="flex items-center gap-3">
-          {onBack && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onBack}
-              className="text-zinc-400 hover:bg-slate-100 hover:text-slate-700 p-1 h-8 w-8 rounded-md transition-colors duration-200"
-            >
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <h1 className="text-white text-lg font-semibold">
-            {replyTo ? 'Reply' : 'New Message'}
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSaveDraft}
-            className="text-zinc-400 hover:text-slate-700 hover:bg-slate-100 px-3 py-1.5 rounded-md transition-colors duration-200"
-            disabled={sending}
-          >
-            <Save className="h-4 w-4 mr-2" />
-            Save Draft
-          </Button>
-          <Button
-            onClick={handleSend}
-            disabled={
-              sending || parseRecipients(form.to).length === 0 || !form.subject || isContentEmpty(form.body)
-            }
-            className="bg-white hover:bg-slate-700 text-black px-4 py-1.5 rounded-md transition-colors duration-200 disabled:bg-slate-300 disabled:text-slate-500"
-          >
-            <Send className="h-4 w-4 mr-2" />
-            {sending ? 'Sending...' : 'Send'}
-          </Button>
-        </div>
-      </div>
-
+    <div className="h-full flex flex-col bg-zinc-800">
       {/* Email Form */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-100 hover:scrollbar-thumb-gray-500">
+      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-600 scrollbar-track-zinc-800 hover:scrollbar-thumb-zinc-500">
         <div className="w-full">
           {/* Recipients */}
-          <div className="px-6 py-4 border-b border-zinc-700 bg-zinc-800">
-            <div className="space-y-4">
-              <div>
-                <label className="text-zinc-400 text-sm font-medium mb-2 block">To</label>
-                <RecipientChipsInput
-                  value={form.to}
-                  onChange={(next) => setForm(prev => ({ ...prev, to: next }))}
-                  className=""
-                  placeholder="Add recipients"
-                  disabled={sending}
-                  loadSuggestions={loadRecipientSuggestions}
-                />
+          <div className="px-2 py-2 border-b border-zinc-700 bg-zinc-800/50">
+            <div className="space-y-2">
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <RecipientChipsInput
+                    value={form.to}
+                    onChange={(next) => setForm(prev => ({ ...prev, to: next }))}
+                    placeholder="To"
+                    disabled={sending}
+                    loadSuggestions={loadRecipientSuggestions}
+                  />
+                </div>
               </div>
               
-              <div>
-                <label className="text-zinc-400 text-sm font-medium mb-2 block">Subject</label>
-                <Input
-                  value={form.subject}
-                  onChange={(e) => setForm(prev => ({ ...prev, subject: e.target.value }))}
-                  className="bg-white border-slate-300 text-slate-900 focus:border-slate-500 focus:ring-slate-500"
-                  placeholder="Subject"
-                />
+              <div className="flex items-center">
+                <div className="flex-1">
+                  <Input
+                    value={form.subject}
+                    onChange={(e) => setForm(prev => ({ ...prev, subject: e.target.value }))}
+                    variant="primaryBlack"
+                    placeholder="Subject"
+                    className="placeholder:text-sm"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
                     {/* Attachments */}
           {attachments.length > 0 && (
-            <div className="px-6 py-3 border-b border-gray-200 bg-white">
-              <div className="flex items-center gap-2 mb-2">
-                <Paperclip className="h-4 w-4 text-slate-500" />
-                <span className="text-sm font-medium text-slate-700">Attachments</span>
-                <span className="text-xs text-slate-500">({attachments.length})</span>
+            <div className="px-6 py-4 border-b border-zinc-700 bg-zinc-800/50">
+              <div className="flex items-center gap-2 mb-3">
+                <Paperclip className="h-4 w-4 text-zinc-300" />
+                <span className="text-sm font-semibold text-zinc-200">Attachments</span>
+                <span className="text-xs text-zinc-500 bg-zinc-700/50 px-2 py-0.5 rounded-full">
+                  {attachments.length}
+                </span>
               </div>
               <div className="space-y-2">
                 {attachments.map((file, index) => (
                   <div 
                     key={index}
-                    className="flex items-center justify-between p-2 bg-gray-50 rounded border border-gray-200"
+                    className="flex items-center justify-between p-3 bg-zinc-800 hover:bg-zinc-750 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-all group"
                   >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <Paperclip className="h-3 w-3 text-slate-500 flex-shrink-0" />
-                      <span className="text-sm text-slate-900 truncate">{file.name}</span>
-                      <span className="text-xs text-slate-600">
-                        ({(file.size / 1024).toFixed(1)} KB)
-                      </span>
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="flex-shrink-0 w-8 h-8 bg-blue-600/20 rounded-lg flex items-center justify-center">
+                        <Paperclip className="h-4 w-4 text-blue-400" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-medium text-zinc-200 truncate">{file.name}</p>
+                        <p className="text-xs text-zinc-500 mt-0.5">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => removeAttachment(index)}
-                      className="text-slate-500 hover:text-red-500 p-1 h-6 w-6 rounded-md transition-colors duration-200"
+                      className="text-zinc-400 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover:opacity-100 transition-all"
                     >
-                      <X className="h-3 w-3" />
+                      <X className="h-4 w-4" />
                     </Button>
                   </div>
                 ))}
@@ -412,18 +378,40 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
             </div>
           </div>
 
-          {/* Attachment Button */}
-          <div className="px-6 py-4 bg-white border-t border-gray-200">
-            <div className="flex items-center gap-4">
+          {/* Attachment Button and Action Buttons */}
+          <div className="px-2 py-2 bg-zinc-800/50 border-t border-zinc-700">
+            <div className="flex items-center flex-wrap gap-3">
               <Button
-                variant="outline"
-                size="sm"
-                onClick={() => document.getElementById('attachment-input')?.click()}
-                className="bg-slate-50 border-slate-300 hover:bg-slate-100 hover:border-slate-400 hover:text-slate-700 text-slate-600 px-4 py-2 rounded-md transition-colors duration-200"
-                disabled={sending}
+                variant="primary"
+                size="xsm"
+                onClick={handleSend}
+                disabled={
+                  sending || parseRecipients(form.to).length === 0 || !form.subject || isContentEmpty(form.body)
+                }
+                className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 w-auto px-2"
               >
-                <Paperclip className="h-4 w-4 mr-2" />
-                Attach Files
+                <Send className="h-4 w-10" />
+                {sending ? 'Sending...' : 'Send'}
+              </Button>
+              <Button
+                variant="primary"
+                size="xsm"
+                onClick={handleSaveDraft}
+                disabled={sending}
+                className="text-zinc-300 hover:text-white hover:bg-zinc-700 flex-shrink-0 w-auto px-2"
+              >
+                <Save className="h-4 w-10" />
+                Draft
+              </Button>
+              <Button
+                variant="primary"
+                size="xsm"
+                onClick={() => document.getElementById('attachment-input')?.click()}
+                disabled={sending}
+                className="text-zinc-300 hover:text-white hover:bg-zinc-700 flex-shrink-0 w-auto px-2"
+              >
+                <Paperclip className="h-4 w-10" />
+                Attach
               </Button>
               <input
                 id="attachment-input"
@@ -432,9 +420,11 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
                 onChange={handleAttachmentChange}
                 className="hidden"
               />
-              <span className="text-xs text-gray-500">
-                {attachments.length > 0 && `${attachments.length} file(s) attached`}
-              </span>
+              {attachments.length > 0 && (
+                <span className="text-xs text-zinc-400 bg-zinc-700/50 px-3 py-1.5 rounded-md flex-shrink-0">
+                  {attachments.length} file{attachments.length !== 1 ? 's' : ''} attached
+                </span>
+              )}
             </div>
           </div>
         </div>

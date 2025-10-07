@@ -55,6 +55,7 @@ import { loadConversations, saveCurrentConversation, loadConversation, deleteCon
 import { findPanel, getAllTabs, updatePanelActiveTab, addTabToPanel, removeTabFromPanel } from './handlers/panelUtils';
 import { openFileInTab, openEmailInTab, handleCloseTab, handleTabChange } from './handlers/tabManagement';
 import { isDrawioFile, isTldrawFile } from './handlers/fileTypeUtils';
+import { Typography } from '../../components/ui/typography';
 
 interface UserInfo {
   username: string;
@@ -404,13 +405,10 @@ const Workspaces = (): JSX.Element => {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center max-w-md">
-          <h1 className="text-4xl font-bold text-white mb-4">Welcome to Workspaces</h1>
-          <p className="text-gray-300 text-lg mb-6">
+          <Typography variant="h1" className="text-4xl font-bold text-white mb-4">Welcome to Workspaces</Typography>
+          <Typography variant="p" className="text-gray-300 text-lg mb-6">
             Your collaborative workspace environment is ready. Create, organize, and manage your projects with ease.
-          </p>
-          <p className="text-gray-400 text-sm">
-            Select a file from the sidebar to open it in a new tab. Use split options to view multiple files simultaneously.
-          </p>
+          </Typography>
         </div>
       </div>
     );

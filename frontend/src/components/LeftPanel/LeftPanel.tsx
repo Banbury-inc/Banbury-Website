@@ -38,6 +38,7 @@ import { ApiService } from "../../services/apiService"
 import { buildFileTree, FileSystemItem } from "../../utils/fileTreeUtils"
 import InlineFileSearch from "../InlineFileSearch"
 import { useToast } from "../ui/use-toast"
+import { Typography } from "../ui/typography"
 
 interface AppSidebarProps {
   currentView: 'dashboard' | 'workspaces'
@@ -611,7 +612,7 @@ function FileTreeItem({
         )}
         {!hasChildren && <div className="w-3" />}
         <FileIconComponent className={`h-4 w-4 flex-shrink-0 ${fileIconData.color}`} />
-        <span className="text-sm truncate min-w-0 flex-1">{item.name}</span>
+        <Typography variant="small" className="truncate min-w-0 flex-1">{item.name}</Typography>
       </button>
     )
   )
@@ -675,8 +676,8 @@ function FileTreeItem({
             >
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <span className="text-sm truncate min-w-0 flex-1">{pendingFolderName}</span>
-              <span className="text-xs text-gray-400">Creating...</span>
+              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingFolderName}</Typography>
+              <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}
           
@@ -1388,7 +1389,9 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
       {/* Search Bar - Above tabs */}
       {onFileSelect && (
         <div className="px-4 py-2 bg-black border-zinc-700">
-          <InlineFileSearch onFileSelect={onFileSelect} onEmailSelect={onEmailSelect} />
+          <InlineFileSearch
+           onFileSelect={onFileSelect}
+            onEmailSelect={onEmailSelect} />
         </div>
       )}
       
@@ -1438,17 +1441,26 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
          </div>
         
                  {/* Tab Content Header */}
-         {activeTab === 'files' && (
-           <div className="flex items-center justify-between px-4 py-3 bg-zinc-800 border-b">
-             <h2 className="text-gray-200 text-sm font-medium">Files</h2>
-             <div className="flex items-center gap-2">
+        {activeTab === 'files' && (
+          <div className="flex items-center justify-between px-4 py-3 bg-zinc-800 border-b">
+            <Typography variant="small" className="text-gray-200">Files</Typography>
+            <div className="flex items-center gap-2">
+               <Button
+                 variant="primary"
+                 size="xsm"
+                 onClick={fetchUserFiles}
+                 disabled={loading}
+                 title="Refresh"
+               >
+                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+               </Button>
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
                    <Button
-                     variant="ghost"
-                     size="sm"
-                     className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
+                     variant="primary"
+                     size="xsm"
                      title="Add New"
+                     className="bg-blue-600 hover:bg-blue-700 text-white"
                    >
                      <Plus className="h-3 w-3" />
                    </Button>
@@ -1507,16 +1519,6 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                   </DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>
-               <Button
-                 variant="ghost"
-                 size="sm"
-                 className="h-6 w-6 p-0 text-gray-400 hover:text-gray-200 hover:bg-zinc-800"
-                 onClick={fetchUserFiles}
-                 disabled={loading}
-                 title="Refresh"
-               >
-                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
-               </Button>
              </div>
            </div>
          )}
@@ -1632,36 +1634,36 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
             {/* Drag over indicator */}
             {isDragOver && (
               <div className="absolute inset-0 bg-blue-500 bg-opacity-20 border-2 border-dashed border-blue-500 z-50 flex items-center justify-center">
-                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
+                <div className="bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center gap-2">
                   <Upload className="h-4 w-4" />
-                  <span>Drop files or folders here to upload</span>
+                  <Typography variant="small" className="font-medium text-white">Drop files or folders here to upload</Typography>
                 </div>
               </div>
             )}
             
             {loading && !fileSystem.length && (
-              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Loading files...
+              <div className="flex items-center gap-2 px-3 py-2">
+                <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                <Typography variant="muted">Loading files...</Typography>
               </div>
             )}
             
             {error && (
-              <div className="px-3 py-2 text-sm text-red-500">
-                {error}
+              <div className="px-3 py-2">
+                <Typography variant="small" className="text-red-500">{error}</Typography>
               </div>
             )}
             
             {uploadingFolder && (
-              <div className="flex items-center gap-2 px-3 py-2 text-sm text-gray-400">
-                <RefreshCw className="h-4 w-4 animate-spin" />
-                Uploading folder...
+              <div className="flex items-center gap-2 px-3 py-2">
+                <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                <Typography variant="muted">Uploading folder...</Typography>
               </div>
             )}
             
             {!loading && !error && fileSystem.length === 0 && !uploadingFolder && (
-              <div className="px-3 py-2 text-sm text-gray-400">
-                No files found
+              <div className="px-3 py-2">
+                <Typography variant="muted">No files found</Typography>
               </div>
             )}
 
@@ -1687,8 +1689,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingRootFolderName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingRootFolderName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
 
@@ -1714,8 +1716,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingDocumentName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingDocumentName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
 
@@ -1741,8 +1743,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingSpreadsheetName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingSpreadsheetName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
 
@@ -1768,8 +1770,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingNotebookName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingNotebookName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
 
@@ -1795,8 +1797,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingDrawioName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingDrawioName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
 
@@ -1822,8 +1824,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
-                <span className="text-sm truncate min-w-0 flex-1">{pendingTldrawName}</span>
-                <span className="text-xs text-gray-400">Creating...</span>
+                <Typography variant="small" className="truncate min-w-0 flex-1">{pendingTldrawName}</Typography>
+                <Typography variant="muted" className="text-xs">Creating...</Typography>
               </div>
             )}
             
