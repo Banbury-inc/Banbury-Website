@@ -67,3 +67,85 @@ export const isViewableFile = (fileName: string): boolean => {
          isDrawioFile(fileName) ||
          isTldrawFile(fileName);
 };
+
+// Google Drive file type detection based on mimeType
+export const isDriveImageFile = (mimeType?: string): boolean => {
+  if (!mimeType) return false
+  return mimeType.includes('image/')
+}
+
+export const isDrivePdfFile = (mimeType?: string): boolean => {
+  if (!mimeType) return false
+  return mimeType.includes('pdf')
+}
+
+export const isDriveDocumentFile = (mimeType?: string): boolean => {
+  if (!mimeType) return false
+  // Exclude Google Docs - they should use GoogleDriveViewer
+  if (mimeType.includes('vnd.google-apps')) return false
+  // Only match downloadable document formats
+  return mimeType.includes('msword') || 
+         mimeType.includes('wordprocessingml') ||
+         mimeType.includes('text/plain') ||
+         mimeType.includes('text/rtf')
+}
+
+export const isDriveSpreadsheetFile = (mimeType?: string): boolean => {
+  if (!mimeType) return false
+  // Exclude Google Sheets - they should use GoogleDriveViewer
+  if (mimeType.includes('vnd.google-apps')) return false
+  // Only match downloadable spreadsheet formats
+  return mimeType.includes('excel') || 
+         mimeType.includes('ms-excel') ||
+         mimeType.includes('csv') ||
+         mimeType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml')
+}
+
+export const isDriveVideoFile = (mimeType?: string): boolean => {
+  if (!mimeType) return false
+  return mimeType.includes('video/')
+}
+
+export const isDriveCodeFile = (mimeType?: string, fileName?: string): boolean => {
+  if (!mimeType && !fileName) return false
+  // Check by mimeType
+  if (mimeType?.includes('text/') || 
+      mimeType?.includes('application/json') || 
+      mimeType?.includes('application/xml') ||
+      mimeType?.includes('application/javascript')) {
+    return true
+  }
+  // Check by filename if available
+  if (fileName) {
+    return isCodeFile(fileName)
+  }
+  return false
+}
+
+// Check if file type from Drive can be viewed
+export const isDriveFileViewable = (mimeType?: string, fileName?: string): boolean => {
+  if (!mimeType && !fileName) return false
+  // Google Workspace files are always viewable
+  if (mimeType?.includes('vnd.google-apps')) return true
+  // Other Drive files
+  return isDriveImageFile(mimeType) ||
+         isDrivePdfFile(mimeType) ||
+         isDriveDocumentFile(mimeType) ||
+         isDriveSpreadsheetFile(mimeType) ||
+         isDriveVideoFile(mimeType) ||
+         isDriveCodeFile(mimeType, fileName)
+}
+
+// Extended isViewableFile that handles both local and Drive files
+export const isViewableFileExtended = (file: { name: string; path?: string; mimeType?: string }): boolean => {
+  // Check if it's a Drive file
+  const isDriveFile = file.path?.startsWith('drive://')
+  
+  if (isDriveFile) {
+    // Use Drive-specific detection
+    return isDriveFileViewable(file.mimeType, file.name)
+  }
+  
+  // Use local file detection
+  return isViewableFile(file.name)
+}

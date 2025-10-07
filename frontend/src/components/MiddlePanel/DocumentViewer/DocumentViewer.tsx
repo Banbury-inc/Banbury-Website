@@ -3,6 +3,7 @@ import { inlineImagesInHtml } from './handlers/inlineImages';
 import { useToast } from '../../ui/use-toast';
 import WordViewer from './WordViewer';
 import { ApiService } from '../../../services/apiService';
+import { DriveService } from '../../../services/driveService';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
 
 interface DocumentViewerProps {
@@ -52,16 +53,31 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       setError(null);
 
       try {
-        // Download the document file content
-        const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
-        if (result.success && result.url) {
-          currentUrl = result.url;
-          setDocumentUrl(result.url);
-          setDocumentBlob(result.blob);
+        // Check if this is a Google Drive file
+        const isDriveFile = currentFile.path?.startsWith('drive://');
+        const isGoogleDoc = currentFile.mimeType?.includes('vnd.google-apps.document');
+        
+        if (isDriveFile && isGoogleDoc) {
+          console.log('DocumentViewer: Exporting Google Doc as DOCX:', currentFile.file_id);
+          // Export Google Doc as DOCX
+          const blob = await DriveService.exportDocAsDocx(currentFile.file_id);
+          currentUrl = URL.createObjectURL(blob);
+          console.log('DocumentViewer: Created blob URL for exported DOCX:', currentUrl);
+          setDocumentUrl(currentUrl);
+          setDocumentBlob(blob);
         } else {
-          setError('Failed to load document content');
+          // Download regular file from S3
+          const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
+          if (result.success && result.url) {
+            currentUrl = result.url;
+            setDocumentUrl(result.url);
+            setDocumentBlob(result.blob);
+          } else {
+            setError('Failed to load document content');
+          }
         }
       } catch (err) {
+        console.error('DocumentViewer: Error loading document:', err);
         setError('Failed to load document content');
       } finally {
         setLoading(false);
@@ -177,26 +193,48 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     if (!currentFile.file_id) return;
     
     try {
+      const isDriveFile = currentFile.path?.startsWith('drive://');
+      const isGoogleDoc = currentFile.mimeType?.includes('vnd.google-apps.document');
+      
+      // Determine download filename
+      let downloadName = currentFile.name;
+      if (isDriveFile && isGoogleDoc && !downloadName.toLowerCase().endsWith('.docx')) {
+        downloadName += '.docx';
+      }
+      
       // Prefer reusing the existing blob URL to avoid another fetch
       if (documentUrl) {
         const a = document.createElement('a');
         a.href = documentUrl;
-        a.download = currentFile.name;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         return;
       }
+      
       // Fallback to fetching if no URL is available
-      const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
-      if (result.success && result.url) {
+      if (isDriveFile && isGoogleDoc) {
+        const blob = await DriveService.exportDocAsDocx(currentFile.file_id);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = result.url;
-        a.download = currentFile.name;
+        a.href = url;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      } else {
+        const result = await ApiService.downloadFromS3(currentFile.file_id, currentFile.name);
+        if (result.success && result.url) {
+          const a = document.createElement('a');
+          a.href = result.url;
+          a.download = downloadName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
+        }
       }
     } catch (err) {
       // no-op
@@ -212,6 +250,10 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
     
     setSaving(true);
     try {
+      // Check if this is a Google Drive file
+      const isDriveFile = currentFile.path?.startsWith('drive://');
+      const isGoogleDoc = currentFile.mimeType?.includes('vnd.google-apps.document');
+      
       // Clean up the current blob URL before saving
       if (documentUrl && documentUrl.startsWith('blob:')) {
         window.URL.revokeObjectURL(documentUrl);
@@ -219,7 +261,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       
       // Determine the file extension and content format
       const fileExtension = currentFile.name.toLowerCase().split('.').pop() || '';
-      const isDocxFile = fileExtension === 'docx';
+      const isDocxFile = fileExtension === 'docx' || isGoogleDoc;
       
       let blob;
       let contentType;
@@ -273,23 +315,51 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
       // Wrap Blob in a File to ensure filename and type are preserved for multipart
       const fileToUpload = new File([blob], currentFile.name, { type: contentType })
 
-      // Update the existing file in S3 using the new update endpoint
-      const updateResult: any = await ApiService.updateS3File(
-        currentFile.file_id || currentFile.id,
-        fileToUpload,
-        currentFile.name
-      );
+      // Save to Google Drive or S3 depending on file type
+      if (isDriveFile && isGoogleDoc) {
+        console.log('DocumentViewer: Saving to Google Drive:', currentFile.file_id);
+        const driveResult = await DriveService.updateFile(
+          currentFile.file_id,
+          fileToUpload,
+          currentFile.name
+        );
+        console.log('DocumentViewer: Google Drive save result:', driveResult);
+        
+        // Show success toast
+        toast({
+          title: "Document saved to Google Drive",
+          description: `${currentFile.name} has been updated successfully.`,
+          variant: "success",
+        });
+        
+        // Call save complete callback if provided
+        if (onSaveComplete) {
+          onSaveComplete();
+        }
+      } else {
+        // Update the existing file in S3 using the new update endpoint
+        const updateResult = await ApiService.updateS3File(
+          currentFile.file_id || currentFile.id,
+          fileToUpload,
+          currentFile.name
+        );
+        
+        if (!updateResult.success) {
+          throw new Error('Failed to update file');
+        }
 
-      if (!updateResult.success) {
-        throw new Error('Failed to update file');
+        // Show success toast
+        toast({
+          title: "Document saved successfully",
+          description: `${currentFile.name} has been saved.`,
+          variant: "success",
+        });
+        
+        // Call save complete callback if provided
+        if (onSaveComplete) {
+          onSaveComplete();
+        }
       }
-
-      // Show success toast
-      toast({
-        title: "Document saved successfully",
-        description: `${currentFile.name} has been saved.`,
-        variant: "success",
-      });
      
 
     } finally {

@@ -42,12 +42,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   List,
   ListItem,
   ListItemText
 } from '@mui/material';
-
+import { Button } from '../../../../components/ui/button';
+import styles from '../../../../styles/SimpleTiptapEditor.module.css';
 // Import custom SVG icons
 const MergeCellsIcon: React.FC<{ sx?: any }> = ({ sx }) => (
   <svg
@@ -413,8 +413,9 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
                 {showDividerBefore() && (
                   <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: '#3f3f46' }} />
                 )}
-                <IconButton
-                  size="small"
+                <Button
+                  variant="primary"
+                  size="xsm"
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     console.log('Button clicked:', button.id);
                     try {
@@ -429,19 +430,10 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
                     }
                   }}
                   title={button.title}
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    color: '#9ca3af',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: '#374151',
-                      color: '#f3f4f6',
-                    },
-                  }}
+                  className={styles['toolbar-button']}
                 >
                   {button.icon}
-                </IconButton>
+                </Button>
                 
                                  {/* Font Size Control - Positioned after text format button */}
                  {button.id === 'text' && (
@@ -542,23 +534,15 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
         {toolbarButtons.some(button => !visibleButtons.includes(button.id)) && (
           <>
             <Divider orientation="vertical" flexItem sx={{ mx: 0.5, borderColor: '#3f3f46' }} />
-            <IconButton
-              size="small"
+            <Button
+              variant="primary"
+              size="xsm"
               onClick={handleOverflowClick}
               title="More tools"
-              sx={{
-                width: 32,
-                height: 32,
-                color: '#64748b',
-                borderRadius: '4px',
-                '&:hover': {
-                  backgroundColor: '#e2e8f0',
-                  color: '#475569',
-                },
-              }}
+              className={styles['toolbar-button']}
             >
               <MoreVert sx={{ fontSize: 16 }} />
-            </IconButton>
+            </Button>
           </>
         )}
 
@@ -568,64 +552,37 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
             <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: '#3f3f46' }} />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 'auto' }}>
               {onSaveDocument && (
-                <IconButton
-                  size="small"
+                <Button
+                  variant="primary"
+                  size="xsm"
                   onClick={onSaveDocument}
                   disabled={saving || !canSave}
                   title="Save spreadsheet (Ctrl+S)"
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    color: saving || !canSave ? '#6b7280' : '#9ca3af',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: '#374151',
-                      color: saving || !canSave ? '#6b7280' : '#f3f4f6',
-                    },
-                    '&:disabled': {
-                      color: '#6b7280',
-                    },
-                  }}
+                  className={styles['toolbar-button']}
                 >
                   <Save sx={{ fontSize: 16 }} />
-                </IconButton>
+                </Button>
               )}
               {onDownloadDocument && (
-                <IconButton
-                  size="small"
+                <Button
+                  variant="primary"
+                  size="xsm"
                   onClick={onDownloadDocument}
                   title="Download spreadsheet"
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    color: '#9ca3af',
-                    borderRadius: '4px',
-                    '&:hover': {
-                      backgroundColor: '#374151',
-                      color: '#f3f4f6',
-                    },
-                  }}
+                  className={styles['toolbar-button']}
                 >
                   <Download sx={{ fontSize: 16 }} />
-                </IconButton>
+                </Button>
               )}
-              <IconButton
-                size="small"
+              <Button
+                variant="primary"
+                size="xsm"
                 onClick={handleOpenHelpDialog}
                 title="Keyboard shortcuts (F1)"
-                sx={{
-                  width: 32,
-                  height: 32,
-                  color: '#64748b',
-                  borderRadius: '4px',
-                  '&:hover': {
-                    backgroundColor: '#e2e8f0',
-                    color: '#475569',
-                  },
-                }}
+                className={styles['toolbar-button']}
               >
                 <Help sx={{ fontSize: 16 }} />
-              </IconButton>
+              </Button>
             </Box>
           </>
         )}

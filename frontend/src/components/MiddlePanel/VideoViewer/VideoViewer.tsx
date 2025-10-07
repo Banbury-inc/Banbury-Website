@@ -2,6 +2,7 @@ import { AlertCircle, Download, Play, Pause, Volume2, VolumeX, Maximize2, Rotate
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '../../ui/button';
 import { ApiService } from '../../../services/apiService';
+import { DriveService } from '../../../services/driveService';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
 import { CONFIG } from '../../../config/config';
 import { MeetingAgentService } from '@/services/meetingAgentService';
@@ -42,8 +43,17 @@ export function VideoViewer({ file, userInfo }: VideoViewerProps) {
     setLoading(true);
     setIsRetrying(true);
 
+    const isDriveFile = file.path?.startsWith('drive://');
+
     // For regular videos, retry the download
-    ApiService.downloadS3File(file.file_id || '', file.name)
+    const fetchPromise = isDriveFile
+      ? DriveService.getFileBlob(file.file_id || '').then(blob => {
+          const url = window.URL.createObjectURL(blob);
+          return { success: true, url };
+        })
+      : ApiService.downloadS3File(file.file_id || '', file.name);
+
+    fetchPromise
       .then(result => {
         if (result.success && result.url) {
           setVideoUrl(result.url);
@@ -68,19 +78,31 @@ export function VideoViewer({ file, userInfo }: VideoViewerProps) {
     setLoading(true);
     setError(null);
 
+    const isDriveFile = file.path?.startsWith('drive://');
+
     // For regular videos, use the download endpoint
     const fetchRegularVideo = async () => {
       try {
         console.log('Starting video download for file_id:', file.file_id);
-        const result = await ApiService.downloadS3File(file.file_id || '', file.name);
-        console.log('Video download result:', result);
         
-        if (result.success && result.url) {
-          console.log('Video URL obtained successfully:', result.url);
-          setVideoUrl(result.url);
+        if (isDriveFile) {
+          // Handle Google Drive video
+          const blob = await DriveService.getFileBlob(file.file_id || '');
+          const url = window.URL.createObjectURL(blob);
+          console.log('Drive video URL obtained successfully:', url);
+          setVideoUrl(url);
         } else {
-          console.log('Failed to get video download URL, result:', result);
-          throw new Error('Failed to get video download URL');
+          // Handle local/S3 video
+          const result = await ApiService.downloadS3File(file.file_id || '', file.name);
+          console.log('Video download result:', result);
+          
+          if (result.success && result.url) {
+            console.log('Video URL obtained successfully:', result.url);
+            setVideoUrl(result.url);
+          } else {
+            console.log('Failed to get video download URL, result:', result);
+            throw new Error('Failed to get video download URL');
+          }
         }
       } catch (err) {
         console.error('Error fetching video URL:', err);
@@ -91,7 +113,7 @@ export function VideoViewer({ file, userInfo }: VideoViewerProps) {
     };
 
     fetchRegularVideo();
-  }, [file.file_id, file.name, file.s3_url]);
+  }, [file.file_id, file.name, file.s3_url, file.path]);
 
   // If this is a Recall video, use the specialized component
   if (isRecallVideo) {

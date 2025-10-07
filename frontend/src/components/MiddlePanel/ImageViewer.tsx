@@ -4,6 +4,7 @@ import Image from 'next/image';
 
 import { Button } from '../ui/button';
 import { ApiService } from '../../services/apiService';
+import { DriveService } from '../../services/driveService';
 import { FileSystemItem } from '../../utils/fileTreeUtils';
 
 interface ImageViewerProps {
@@ -33,13 +34,23 @@ export function ImageViewer({ file, userInfo }: ImageViewerProps) {
       setError(null);
 
       try {
-        // Download the image file content
-        const result = await ApiService.downloadS3File(file.file_id, file.name);
-        if (result.success && result.url) {
-          currentUrl = result.url;
-          setImageUrl(result.url);
+        const isDriveFile = file.path?.startsWith('drive://');
+        
+        if (isDriveFile) {
+          // Handle Google Drive file
+          const blob = await DriveService.getFileBlob(file.file_id);
+          const url = window.URL.createObjectURL(blob);
+          currentUrl = url;
+          setImageUrl(url);
         } else {
-          setError('Failed to load image content');
+          // Handle local/S3 file
+          const result = await ApiService.downloadS3File(file.file_id, file.name);
+          if (result.success && result.url) {
+            currentUrl = result.url;
+            setImageUrl(result.url);
+          } else {
+            setError('Failed to load image content');
+          }
         }
       } catch (_err) {
         setError('Failed to load image content');
@@ -56,23 +67,32 @@ export function ImageViewer({ file, userInfo }: ImageViewerProps) {
         window.URL.revokeObjectURL(currentUrl);
       }
     };
-  }, [file.file_id, file.name]);
+  }, [file.file_id, file.name, file.path]);
 
   const handleDownload = async () => {
     if (!file.file_id) return;
     
     try {
-      const result = await ApiService.downloadS3File(file.file_id, file.name);
-      if (result.success && result.url) {
-        const a = document.createElement('a');
-        a.href = result.url;
-        a.download = file.name;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        // Clean up the blob URL after download
-        setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
+      const isDriveFile = file.path?.startsWith('drive://');
+      let url: string;
+      
+      if (isDriveFile) {
+        const blob = await DriveService.getFileBlob(file.file_id);
+        url = window.URL.createObjectURL(blob);
+      } else {
+        const result = await ApiService.downloadS3File(file.file_id, file.name);
+        if (!result.success || !result.url) return;
+        url = result.url;
       }
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      // Clean up the blob URL after download
+      setTimeout(() => window.URL.revokeObjectURL(url), 1000);
     } catch (_err) {
       // swallow download error to avoid console output
     }

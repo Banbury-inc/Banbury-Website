@@ -10,6 +10,7 @@ export interface FileSystemItem {
   children?: FileSystemItem[]
   s3_url?: string
   file_id?: string
+  mimeType?: string // For Google Drive files
 }
 
 export interface ApiFileInfo {

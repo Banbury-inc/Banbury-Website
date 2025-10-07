@@ -19,6 +19,7 @@ import { handleEditDropdownOptions } from './handlers/handle-edit-dropdown-optio
 import { parseCSV, convertToCSV, convertToCSVWithMeta } from './utils/csv-parser';
 import { createFormulaSuggestionHandlers } from './handlers/handle-formula-suggestions';
 import CSVEditorToolbar from './components/CSVEditorToolbar';
+import { SheetTabs } from './components/SheetTabs';
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
 import { Label } from '../../ui/label'
@@ -27,6 +28,7 @@ import { ArrowUpward, ArrowDownward, BorderAll as BorderAllIcon, Delete as Delet
 import { createConditionalFormattingHandlers, computeConditionalFormats } from './handlers/handle-conditional-formatting';
 import { createAddCFRuleHandler } from './handlers/handle-add-cf-rule'
 import type { ConditionalFormattingRule } from './handlers/handle-conditional-formatting';
+import type { SheetData } from './handlers/handle-csv-load';
 // Register all Handsontable modules
 registerAllModules();
 
@@ -48,6 +50,7 @@ interface CSVEditorProps {
   }) => void;
   onSaveDocument?: () => void;
   onDownloadDocument?: () => void;
+  onSheetsLoaded?: (sheets: SheetData[], activeSheetIndex: number) => void;
   saving?: boolean;
   canSave?: boolean;
 }
@@ -63,6 +66,7 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   onFormattingChange,
   onSaveDocument,
   onDownloadDocument,
+  onSheetsLoaded,
   saving = false,
   canSave = false,
 }) => {
@@ -87,6 +91,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const [conditionalClassOverlay, setConditionalClassOverlay] = useState<{[key: string]: string}>({});
   const [conditionalStyleOverlay, setConditionalStyleOverlay] = useState<{[key: string]: React.CSSProperties}>({});
   const [queryResultIndex, setQueryResultIndex] = useState<number>(0);
+  
+  // Multi-sheet support
+  const [allSheets, setAllSheets] = useState<SheetData[]>([]);
+  const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
 
   // Search state
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -588,7 +596,12 @@ const searchFieldKeyupCallback = useCallback(
       setCellFormats,
       setCellStyles,
       pendingCellMetaRef,
-      parseCSVWithMeta
+      parseCSVWithMeta,
+      onSheetsLoaded: (sheets, initialActiveIndex) => {
+        console.log('Loaded sheets:', sheets.map(s => s.name));
+        setAllSheets(sheets);
+        setActiveSheetIndex(initialActiveIndex);
+      }
     });
 
     loadCSVContent();
@@ -603,6 +616,156 @@ const searchFieldKeyupCallback = useCallback(
     window.addEventListener('spreadsheet-conditional-formatting-loaded', handler as EventListener)
     return () => window.removeEventListener('spreadsheet-conditional-formatting-loaded', handler as EventListener)
   }, [])
+
+  // Sheet management functions
+  const saveCurrentSheetState = useCallback(() => {
+    if (allSheets.length === 0) return;
+    
+    const updatedSheets = [...allSheets];
+    updatedSheets[activeSheetIndex] = {
+      ...updatedSheets[activeSheetIndex],
+      data,
+      cellFormats,
+      cellStyles,
+      cellMeta: pendingCellMetaRef.current || {},
+      conditionalRules,
+      columnWidths
+    };
+    setAllSheets(updatedSheets);
+  }, [allSheets, activeSheetIndex, data, cellFormats, cellStyles, conditionalRules, columnWidths]);
+
+  const handleSheetChange = useCallback((newIndex: number) => {
+    if (newIndex < 0 || newIndex >= allSheets.length || newIndex === activeSheetIndex) return;
+    
+    // Save current sheet state
+    saveCurrentSheetState();
+    
+    // Load new sheet
+    const sheet = allSheets[newIndex];
+    setData(sheet.data);
+    setCellFormats(sheet.cellFormats);
+    setCellStyles(sheet.cellStyles);
+    pendingCellMetaRef.current = sheet.cellMeta || {};
+    setConditionalRules(sheet.conditionalRules || []);
+    setColumnWidths(sheet.columnWidths || {});
+    setActiveSheetIndex(newIndex);
+    
+    // Apply cell metadata to Handsontable
+    setTimeout(() => {
+      if (hotTableRef.current) {
+        const hot = hotTableRef.current.hotInstance;
+        if (hot && sheet.cellMeta) {
+          Object.entries(sheet.cellMeta).forEach(([key, meta]) => {
+            const [row, col] = key.split('-').map(Number);
+            if (!isNaN(row) && !isNaN(col)) {
+              hot.setCellMeta(row, col, 'type', meta.type);
+              if (meta.source) hot.setCellMeta(row, col, 'source', meta.source);
+            }
+          });
+          hot.render();
+        }
+      }
+    }, 100);
+  }, [allSheets, activeSheetIndex, saveCurrentSheetState]);
+
+  const handleAddSheet = useCallback(() => {
+    const newSheetName = `Sheet${allSheets.length + 1}`;
+    const newSheet: SheetData = {
+      name: newSheetName,
+      data: [['']],
+      cellFormats: {},
+      cellStyles: {},
+      cellMeta: {}
+    };
+    
+    // Save current sheet state
+    saveCurrentSheetState();
+    
+    const updatedSheets = [...allSheets, newSheet];
+    setAllSheets(updatedSheets);
+    setActiveSheetIndex(updatedSheets.length - 1);
+    
+    // Load the new sheet
+    setData(newSheet.data);
+    setCellFormats({});
+    setCellStyles({});
+    pendingCellMetaRef.current = {};
+    setConditionalRules([]);
+    setColumnWidths({});
+  }, [allSheets, saveCurrentSheetState]);
+
+  const handleDeleteSheet = useCallback((index: number) => {
+    if (allSheets.length <= 1) return; // Don't delete the last sheet
+    
+    const updatedSheets = allSheets.filter((_, i) => i !== index);
+    setAllSheets(updatedSheets);
+    
+    // If we deleted the active sheet, switch to the previous one
+    if (index === activeSheetIndex) {
+      const newActiveIndex = Math.max(0, index - 1);
+      setActiveSheetIndex(newActiveIndex);
+      const sheet = updatedSheets[newActiveIndex];
+      setData(sheet.data);
+      setCellFormats(sheet.cellFormats);
+      setCellStyles(sheet.cellStyles);
+      pendingCellMetaRef.current = sheet.cellMeta || {};
+      setConditionalRules(sheet.conditionalRules || []);
+      setColumnWidths(sheet.columnWidths || {});
+    } else if (index < activeSheetIndex) {
+      // Adjust active index if we deleted a sheet before it
+      setActiveSheetIndex(activeSheetIndex - 1);
+    }
+  }, [allSheets, activeSheetIndex]);
+
+  const handleRenameSheet = useCallback((index: number, newName: string) => {
+    const updatedSheets = [...allSheets];
+    updatedSheets[index] = {
+      ...updatedSheets[index],
+      name: newName
+    };
+    setAllSheets(updatedSheets);
+  }, [allSheets]);
+
+  const handleDuplicateSheet = useCallback((index: number) => {
+    if (index < 0 || index >= allSheets.length) return;
+    
+    // Save current sheet state
+    saveCurrentSheetState();
+    
+    const sheetToDuplicate = allSheets[index];
+    const newSheetName = `${sheetToDuplicate.name} (Copy)`;
+    const duplicatedSheet: SheetData = {
+      ...sheetToDuplicate,
+      name: newSheetName,
+      // Deep copy the data and formatting
+      data: sheetToDuplicate.data.map(row => [...row]),
+      cellFormats: { ...sheetToDuplicate.cellFormats },
+      cellStyles: { ...sheetToDuplicate.cellStyles },
+      cellMeta: { ...sheetToDuplicate.cellMeta },
+      conditionalRules: sheetToDuplicate.conditionalRules ? [...sheetToDuplicate.conditionalRules] : [],
+      columnWidths: { ...sheetToDuplicate.columnWidths }
+    };
+    
+    const updatedSheets = [...allSheets];
+    updatedSheets.splice(index + 1, 0, duplicatedSheet);
+    setAllSheets(updatedSheets);
+    
+    // Switch to the duplicated sheet
+    setActiveSheetIndex(index + 1);
+    setData(duplicatedSheet.data);
+    setCellFormats(duplicatedSheet.cellFormats);
+    setCellStyles(duplicatedSheet.cellStyles);
+    pendingCellMetaRef.current = duplicatedSheet.cellMeta || {};
+    setConditionalRules(duplicatedSheet.conditionalRules || []);
+    setColumnWidths(duplicatedSheet.columnWidths || {});
+  }, [allSheets, saveCurrentSheetState]);
+
+  // Auto-save current sheet state when data changes
+  useEffect(() => {
+    if (allSheets.length > 0 && data.length > 0) {
+      saveCurrentSheetState();
+    }
+  }, [data, cellFormats, cellStyles, conditionalRules, columnWidths]);
 
   useEffect(() => {
     try {
@@ -969,7 +1132,7 @@ const searchFieldKeyupCallback = useCallback(
   return (
     <div 
       className="csv-editor-container"
-      style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}
+      style={{ height: '100%', display: 'flex', flexDirection: 'column' }}
       onClick={(e: React.MouseEvent<HTMLDivElement>) => {
         // Check if click is outside the table area but not on toolbar
         const target = e.target as HTMLElement;
@@ -1044,6 +1207,7 @@ const searchFieldKeyupCallback = useCallback(
           backgroundColor: '#ffffff',
           overflow: 'hidden',
           minHeight: 0, // Allow flex item to shrink below content size
+          marginBottom: 0, // Remove any margin that might hide tabs
         }}
       >
         <div 
@@ -1420,7 +1584,20 @@ const searchFieldKeyupCallback = useCallback(
         </div>
       )}
 
-
+      
+      {/* Sheet tabs navigation - always visible */}
+      <SheetTabs
+        sheets={allSheets.length > 0 ? allSheets.map((sheet, index) => ({
+          name: sheet.name,
+          index
+        })) : [{ name: 'Sheet1', index: 0 }]}
+        activeIndex={activeSheetIndex}
+        onTabChange={handleSheetChange}
+        onAddSheet={handleAddSheet}
+        onDeleteSheet={handleDeleteSheet}
+        onRenameSheet={handleRenameSheet}
+        onDuplicateSheet={handleDuplicateSheet}
+      />
     </div>
   );
 };

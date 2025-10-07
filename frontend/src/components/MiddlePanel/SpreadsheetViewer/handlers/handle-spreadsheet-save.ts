@@ -1,5 +1,7 @@
 import { ApiService } from '../../../../services/apiService';
+import { DriveService } from '../../../../services/driveService';
 import { FileSystemItem } from '../../../../utils/fileTreeUtils';
+import type { SheetData } from './handle-csv-load';
 
 interface SaveSpreadsheetParams {
   currentFile: FileSystemItem;
@@ -17,6 +19,8 @@ interface SaveSpreadsheetParams {
   cellTypeMeta?: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }};
   columnWidths?: {[key: string]: number};
   conditionalFormatting?: any[];
+  allSheets?: SheetData[];
+  activeSheetIndex?: number;
 }
 
 // Convert table data to XLSX blob using ExcelJS with formatting
@@ -198,6 +202,165 @@ export async function convertToXLSX(
   });
 }
 
+// Convert multiple sheets to XLSX blob
+export async function convertMultiSheetToXLSX(sheets: SheetData[]): Promise<Blob> {
+  const ExcelJSImport = await import('exceljs');
+  const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport;
+  
+  const workbook = new ExcelJS.Workbook();
+  
+  // Helper function to convert CSS color to ARGB
+  const cssToArgb = (cssColor: string): string => {
+    if (cssColor.startsWith('#')) {
+      const hex = cssColor.slice(1);
+      if (hex.length === 6) {
+        return `FF${hex.toUpperCase()}`;
+      }
+    }
+    const colorMap: {[key: string]: string} = {
+      'black': 'FF000000',
+      'white': 'FFFFFFFF',
+      'red': 'FFFF0000',
+      'blue': 'FF0000FF',
+      'green': 'FF00FF00',
+      'yellow': 'FFFFFF00',
+    };
+    return colorMap[cssColor.toLowerCase()] || 'FF000000';
+  };
+  
+  // Process each sheet
+  for (const sheet of sheets) {
+    const worksheet = workbook.addWorksheet(sheet.name);
+    
+    // Add the data to the worksheet with formatting
+    sheet.data.forEach((row, rowIndex) => {
+      row.forEach((cell, colIndex) => {
+        const excelCell = worksheet.getCell(rowIndex + 1, colIndex + 1);
+        // Preserve formulas
+        if (typeof cell === 'string' && cell.startsWith('=')) {
+          excelCell.value = { formula: cell.slice(1) } as any
+        } else {
+          excelCell.value = cell ?? ''
+        }
+        
+        const cellKey = `${rowIndex}-${colIndex}`;
+        const formats = sheet.cellFormats[cellKey];
+        const styles = sheet.cellStyles[cellKey];
+        const typeMeta = sheet.cellMeta[cellKey];
+        
+        // Apply text formatting
+        if (formats?.className) {
+          const classes = formats.className.split(' ');
+          const font: any = {};
+          
+          if (classes.includes('ht-bold')) font.bold = true;
+          if (classes.includes('ht-italic')) font.italic = true;
+          if (classes.includes('ht-underline')) font.underline = true;
+          
+          if (Object.keys(font).length > 0) {
+            excelCell.font = font;
+          }
+          
+          // Apply alignment
+          const alignment: any = {};
+          if (classes.includes('ht-align-left')) alignment.horizontal = 'left';
+          if (classes.includes('ht-align-center')) alignment.horizontal = 'center';
+          if (classes.includes('ht-align-right')) alignment.horizontal = 'right';
+          
+          if (Object.keys(alignment).length > 0) {
+            excelCell.alignment = alignment;
+          }
+        }
+        
+        // Apply direct styles
+        if (styles) {
+          const font: any = excelCell.font || {};
+          const fill: any = {};
+          const border: any = {};
+          
+          if (styles.color) {
+            font.color = { argb: cssToArgb(styles.color as string) };
+          }
+          
+          if (styles.fontSize) {
+            const size = parseInt(String(styles.fontSize).replace('px', ''));
+            if (!isNaN(size)) font.size = size;
+          }
+          
+          if (styles.backgroundColor) {
+            fill.type = 'pattern';
+            fill.pattern = 'solid';
+            fill.fgColor = { argb: cssToArgb(styles.backgroundColor as string) };
+          }
+          
+          if (styles.borderTop) border.top = { style: 'thin', color: { argb: 'FF000000' } };
+          if (styles.borderRight) border.right = { style: 'thin', color: { argb: 'FF000000' } };
+          if (styles.borderBottom) border.bottom = { style: 'thin', color: { argb: 'FF000000' } };
+          if (styles.borderLeft) border.left = { style: 'thin', color: { argb: 'FF000000' } };
+          
+          if (Object.keys(font).length > 0) excelCell.font = font;
+          if (Object.keys(fill).length > 0) excelCell.fill = fill;
+          if (Object.keys(border).length > 0) excelCell.border = border;
+        }
+        
+        // Apply data validation for dropdowns
+        if (typeMeta?.type === 'dropdown' && typeMeta.source && Array.isArray(typeMeta.source)) {
+          excelCell.dataValidation = {
+            type: 'list',
+            allowBlank: true,
+            formulae: [`"${typeMeta.source.join(',')}"`]
+          };
+        }
+        
+        // Apply numeric formatting
+        if (typeMeta?.type === 'numeric' && typeMeta.numericFormat?.pattern) {
+          excelCell.numFmt = typeMeta.numericFormat.pattern;
+        }
+        
+        // Apply date formatting
+        if (typeMeta?.type === 'date' && typeMeta.dateFormat) {
+          const formatMap: {[key: string]: string} = {
+            'MM/DD/YYYY': 'mm/dd/yyyy',
+            'DD/MM/YYYY': 'dd/mm/yyyy', 
+            'YYYY-MM-DD': 'yyyy-mm-dd',
+            'DD-MM-YYYY': 'dd-mm-yyyy',
+            'MM-DD-YYYY': 'mm-dd-yyyy'
+          };
+          
+          const excelDateFormat = formatMap[typeMeta.dateFormat] || 'mm/dd/yyyy';
+          excelCell.numFmt = excelDateFormat;
+        }
+      });
+    });
+    
+    // Apply column widths
+    if (sheet.columnWidths) {
+      worksheet.columns?.forEach((column: any, index: number) => {
+        if (sheet.columnWidths && sheet.columnWidths[index.toString()]) {
+          column.width = sheet.columnWidths[index.toString()] / 7;
+        } else {
+          // Auto-fit columns if no saved width
+          let maxLength = 0;
+          if (column && column.eachCell) {
+            column.eachCell({ includeEmpty: false }, (cell: any) => {
+              const columnLength = cell.value ? String(cell.value).length : 0;
+              if (columnLength > maxLength) {
+                maxLength = columnLength;
+              }
+            });
+            column.width = Math.min(maxLength + 2, 50);
+          }
+        }
+      });
+    }
+  }
+  
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { 
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+  });
+}
+
 export async function handleSpreadsheetSave({
   currentFile,
   latestData,
@@ -209,19 +372,44 @@ export async function handleSpreadsheetSave({
   cellStyles,
   cellTypeMeta,
   columnWidths,
-  conditionalFormatting
+  conditionalFormatting,
+  allSheets,
+  activeSheetIndex
 }: SaveSpreadsheetParams): Promise<void> {
   if (!currentFile.file_id) return;
   if (!latestData || latestData.length === 0) return;
   
   try {
+    // Check if this is a Google Drive file
+    const isDriveFile = currentFile.path?.startsWith('drive://');
+    const isGoogleSheet = currentFile.mimeType?.includes('vnd.google-apps.spreadsheet');
+    
     // Clean up the current blob URL before saving
     if (documentUrl && documentUrl.startsWith('blob:')) {
       window.URL.revokeObjectURL(documentUrl);
     }
     
-    // Create XLSX blob from the current data with formatting
-    const xlsxBlob = await convertToXLSX(latestData, cellFormats, cellStyles, cellTypeMeta, columnWidths, conditionalFormatting);
+    // Create XLSX blob - use multi-sheet if available, otherwise single sheet
+    let xlsxBlob: Blob;
+    if (allSheets && allSheets.length > 0) {
+      // Update current sheet data in allSheets before saving
+      const updatedSheets = [...allSheets];
+      if (activeSheetIndex !== undefined && updatedSheets[activeSheetIndex]) {
+        updatedSheets[activeSheetIndex] = {
+          ...updatedSheets[activeSheetIndex],
+          data: latestData,
+          cellFormats: cellFormats || {},
+          cellStyles: cellStyles || {},
+          cellMeta: cellTypeMeta || {},
+          conditionalRules: conditionalFormatting || [],
+          columnWidths: columnWidths || {}
+        };
+      }
+      console.log('Saving multi-sheet workbook:', updatedSheets.map(s => s.name));
+      xlsxBlob = await convertMultiSheetToXLSX(updatedSheets);
+    } else {
+      xlsxBlob = await convertToXLSX(latestData, cellFormats, cellStyles, cellTypeMeta, columnWidths, conditionalFormatting);
+    }
     
     // Ensure the filename has .xlsx extension
     let fileName = currentFile.name;
@@ -235,25 +423,44 @@ export async function handleSpreadsheetSave({
       }
     }
     
-    // Use updateS3File endpoint to update the file content
-    const updateResult = await ApiService.updateS3File(
-      currentFile.file_id,
-      xlsxBlob,
-      fileName
-    );
-    
-    if (updateResult.success) {
+    // Save to Google Drive or S3 depending on file type
+    if (isDriveFile && isGoogleSheet) {
+      console.log('SpreadsheetViewer: Saving to Google Drive:', currentFile.file_id);
+      await DriveService.updateFile(
+        currentFile.file_id,
+        xlsxBlob,
+        fileName
+      );
+      console.log('SpreadsheetViewer: Google Drive save successful');
+      
       // Call the save complete callback to refresh the sidebar
       onSaveComplete?.();
       // Show success toast
       toast({
-        title: "Spreadsheet saved successfully",
-        description: "Your spreadsheet has been saved.",
+        title: "Spreadsheet saved to Google Drive",
+        description: "Your Google Sheet has been updated successfully.",
         variant: "success",
       });
-
     } else {
-      throw new Error('Update failed');
+      // Use updateS3File endpoint to update the file content
+      const updateResult = await ApiService.updateS3File(
+        currentFile.file_id,
+        xlsxBlob,
+        fileName
+      );
+      
+      if (updateResult.success) {
+        // Call the save complete callback to refresh the sidebar
+        onSaveComplete?.();
+        // Show success toast
+        toast({
+          title: "Spreadsheet saved successfully",
+          description: "Your spreadsheet has been saved.",
+          variant: "success",
+        });
+      } else {
+        throw new Error('Update failed');
+      }
     }
     
   } catch (err) {

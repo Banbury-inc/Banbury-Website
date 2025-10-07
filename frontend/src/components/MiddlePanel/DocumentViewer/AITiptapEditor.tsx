@@ -18,6 +18,7 @@ import { EditorContent, useEditor } from '@tiptap/react';
 import { StarterKit } from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { FontFamily } from '@tiptap/extension-font-family';
+import { Button } from '../../../components/ui/button';
 import {
   Bold,
   Italic,
@@ -212,7 +213,7 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
 
   const toolbarButtons = useMemo(() => (
     [
-      { id: 'undo', title: 'Undo', icon: <Undo size={16} />, onClick: handlers.undo },
+      { id: 'undo', title: 'Undo', icon: <Undo width={16} height={16} />, onClick: handlers.undo },
       { id: 'redo', title: 'Redo', icon: <Redo size={16} />, onClick: handlers.redo },
       { id: 'bold', title: 'Bold', icon: <Bold size={16} />, onClick: handlers.toggleBold },
       { id: 'italic', title: 'Italic', icon: <Italic size={16} />, onClick: handlers.toggleItalic },
@@ -476,14 +477,16 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
           <div className={styles['toolbar-group']}>
             {toolbarButtons.map((btn) => (
               visibleButtons.includes(btn.id) ? (
-                <button
+                <Button
+                  variant="primary"
+                  size="xsm"
                   key={btn.id}
                   onClick={btn.onClick}
                   className={styles['toolbar-button']}
                   title={btn.title}
                 >
                   {btn.icon}
-                </button>
+                </Button>
               ) : null
             ))}
             {/* Overflow trigger if any hidden buttons */}
@@ -740,23 +743,25 @@ export const AITiptapEditor: React.FC<AITiptapEditorProps> = ({
             <div className={styles['toolbar-separator']} style={{ marginLeft: 8, marginRight: 8 }} />
             <div className={styles['toolbar-group']}>
               {onSave && (
-                <button
+                <Button
+                  variant="primary"
                   onClick={onSave}
                   disabled={saving || !canSave}
                   className={styles['toolbar-button']}
                   title="Save document"
                 >
                   <Save size={16} />
-                </button>
+                </Button>
               )}
               {onDownload && (
-                <button
+                <Button
+                  variant="primary"
                   onClick={onDownload}
                   className={styles['toolbar-button']}
                   title="Download document"
                 >
                   <Download size={16} />
-                </button>
+                </Button>
               )}
             </div>
           </div>

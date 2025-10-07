@@ -25,6 +25,8 @@ import {
   Upload,
   Plus,
   Network,
+  Star,
+  Settings,
 } from "lucide-react"
 import { useRouter } from 'next/router'
 import { useState, useEffect, useCallback, useRef } from 'react'
@@ -35,6 +37,8 @@ import { CalendarTab } from "./CalendarTab"
 import { Button } from "../ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "../ui/dropdown-menu"
 import { ApiService } from "../../services/apiService"
+import { DriveService, DriveFile } from "../../services/driveService"
+import { ScopeService } from "../../services/scopeService"
 import { buildFileTree, FileSystemItem } from "../../utils/fileTreeUtils"
 import InlineFileSearch from "../InlineFileSearch"
 import { useToast } from "../ui/use-toast"
@@ -717,6 +721,157 @@ function FileTreeItem({
   )
 }
 
+// DriveFileTreeItem - Recursive component for Google Drive files
+interface DriveFileTreeItemProps {
+  file: DriveFile
+  level: number
+  expandedItems: Set<string>
+  toggleExpanded: (id: string) => void
+  folderContents: Map<string, DriveFile[]>
+  loadingFolders: Set<string>
+  onFileSelect?: (file: FileSystemItem) => void
+  selectedFile?: FileSystemItem | null
+}
+
+// Convert DriveFile to FileSystemItem for middle panel compatibility
+function convertDriveFileToFileSystemItem(driveFile: DriveFile): FileSystemItem {
+  return {
+    id: driveFile.id,
+    name: driveFile.name,
+    type: driveFile.mimeType?.includes('folder') ? 'folder' : 'file',
+    path: `drive://${driveFile.id}`, // Use drive:// protocol to identify as Drive file
+    size: driveFile.size ? parseInt(driveFile.size) : undefined,
+    modified: driveFile.modifiedTime ? new Date(driveFile.modifiedTime) : undefined,
+    s3_url: driveFile.webViewLink, // Store webViewLink for reference
+    file_id: driveFile.id, // Use Drive file ID
+    mimeType: driveFile.mimeType // Store mimeType for file type detection
+  }
+}
+
+function DriveFileTreeItem({
+  file,
+  level,
+  expandedItems,
+  toggleExpanded,
+  folderContents,
+  loadingFolders,
+  onFileSelect,
+  selectedFile
+}: DriveFileTreeItemProps) {
+  const isFolder = file.mimeType?.includes('folder')
+  const isExpanded = expandedItems.has(file.id)
+  const isLoading = loadingFolders.has(file.id)
+  const children = folderContents.get(file.id) || []
+  const isSelected = selectedFile?.file_id === file.id
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (isFolder) {
+      toggleExpanded(file.id)
+    } else {
+      // For files, call onFileSelect to open in middle panel
+      if (onFileSelect) {
+        const fileSystemItem = convertDriveFileToFileSystemItem(file)
+        onFileSelect(fileSystemItem)
+      }
+    }
+  }
+
+  // Get file icon component with matching colors from local files
+  const getFileIcon = () => {
+    if (isFolder) return <Folder className="h-4 w-4 flex-shrink-0 text-yellow-400" />
+    if (file.mimeType?.includes('document')) return <FileText className="h-4 w-4 flex-shrink-0 text-blue-500" />
+    if (file.mimeType?.includes('spreadsheet')) return <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-green-500" />
+    if (file.mimeType?.includes('presentation')) return <FileBarChart className="h-4 w-4 flex-shrink-0 text-orange-400" />
+    if (file.mimeType?.includes('image')) return <FileImage className="h-4 w-4 flex-shrink-0 text-green-400" />
+    if (file.mimeType?.includes('video')) return <FileVideo className="h-4 w-4 flex-shrink-0 text-red-400" />
+    if (file.mimeType?.includes('audio')) return <FileAudio className="h-4 w-4 flex-shrink-0 text-blue-400" />
+    if (file.mimeType?.includes('pdf')) return <FileText className="h-4 w-4 flex-shrink-0 text-red-400" />
+    return <File className="h-4 w-4 flex-shrink-0 text-gray-400" />
+  }
+
+  return (
+    <>
+      <button
+        onClick={handleClick}
+        className={`w-full flex items-center gap-2 text-left px-3 py-2 hover:bg-zinc-800 cursor-pointer transition-colors ${
+          isSelected ? 'bg-zinc-800 text-white' : 'text-zinc-300'
+        }`}
+        style={{ paddingLeft: `${(level * 12) + 12}px` }}
+      >
+        {isFolder && (
+          isLoading ? (
+            <RefreshCw className="h-3 w-3 animate-spin" />
+          ) : isExpanded ? (
+            <ChevronDown className="h-3 w-3" />
+          ) : (
+            <ChevronRight className="h-3 w-3" />
+          )
+        )}
+        {!isFolder && <div className="w-3" />}
+        {getFileIcon()}
+        <Typography variant="small" className="truncate min-w-0 flex-1">
+          {file.name}
+        </Typography>
+        {file.starred && (
+          <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+        )}
+      </button>
+
+      {/* Render children if folder is expanded */}
+      {isFolder && isExpanded && !isLoading && children.length > 0 && (
+        <>
+          {children
+            .sort((a, b) => {
+              // Sort folders first, then files
+              const aIsFolder = a.mimeType?.includes('folder')
+              const bIsFolder = b.mimeType?.includes('folder')
+              if (aIsFolder && !bIsFolder) return -1
+              if (!aIsFolder && bIsFolder) return 1
+              return a.name.localeCompare(b.name)
+            })
+            .map((child) => (
+              <DriveFileTreeItem
+                key={child.id}
+                file={child}
+                level={level + 1}
+                expandedItems={expandedItems}
+                toggleExpanded={toggleExpanded}
+                folderContents={folderContents}
+                loadingFolders={loadingFolders}
+                onFileSelect={onFileSelect}
+                selectedFile={selectedFile}
+              />
+            ))}
+        </>
+      )}
+
+      {/* Show loading state for empty expanded folders */}
+      {isFolder && isExpanded && isLoading && (
+        <div
+          className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-500"
+          style={{ paddingLeft: `${((level + 1) * 12) + 12}px` }}
+        >
+          <div className="w-3" />
+          <RefreshCw className="h-3 w-3 animate-spin" />
+          <Typography variant="muted" className="text-xs">Loading...</Typography>
+        </div>
+      )}
+
+      {/* Show empty state for expanded folders with no contents */}
+      {isFolder && isExpanded && !isLoading && children.length === 0 && (
+        <div
+          className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-500"
+          style={{ paddingLeft: `${((level + 1) * 12) + 12}px` }}
+        >
+          <div className="w-3" />
+          <Typography variant="muted" className="text-xs">Empty folder</Typography>
+        </div>
+      )}
+    </>
+  )
+}
+
 export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, onRefreshComplete, refreshTrigger, onFileDeleted, onFileRenamed, onFileMoved, onFolderCreated, onFolderRenamed, onFolderDeleted, triggerRootFolderCreation, onEmailSelect, onComposeEmail, onCreateDocument, onCreateSpreadsheet, onCreateNotebook, onCreateDrawio, onCreateTldraw, onCreateFolder, onGenerateImage, onEventSelect, onOpenCalendar }: AppSidebarProps) {
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
   const [fileSystem, setFileSystem] = useState<FileSystemItem[]>([])
@@ -764,7 +919,20 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
   const tldrawInputRef = useRef<HTMLInputElement | null>(null)
   
   const [activeTab, setActiveTab] = useState<'files' | 'email' | 'calendar'>('files')
+  const [fileViewMode, setFileViewMode] = useState<'local' | 'drive'>('local')
+  const [driveFiles, setDriveFiles] = useState<DriveFile[]>([])
+  const [driveLoading, setDriveLoading] = useState(false)
+  const [driveError, setDriveError] = useState<string | null>(null)
+  const [driveAvailable, setDriveAvailable] = useState<boolean | null>(null)
+  const [driveNextPageToken, setDriveNextPageToken] = useState<string | undefined>(undefined)
+  const [isLoadingMoreDrive, setIsLoadingMoreDrive] = useState(false)
+  const [checkingDriveAccess, setCheckingDriveAccess] = useState(false)
   const [uploadingFolder, setUploadingFolder] = useState(false)
+  
+  // Drive folder expansion state (tree view)
+  const [expandedDriveItems, setExpandedDriveItems] = useState<Set<string>>(new Set())
+  const [driveFolderContents, setDriveFolderContents] = useState<Map<string, DriveFile[]>>(new Map())
+  const [loadingDriveFolders, setLoadingDriveFolders] = useState<Set<string>>(new Set())
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const folderInputRef = useRef<HTMLInputElement | null>(null)
   const [isDragOver, setIsDragOver] = useState(false)
@@ -905,10 +1073,189 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
     }
   }, [userInfo?.username])
 
+  // Check Google Drive access
+  const checkDriveAccess = useCallback(async () => {
+    try {
+      setCheckingDriveAccess(true)
+      
+      // Debug: Check if auth token exists
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+      console.log('Auth token exists:', !!token)
+      if (!token) {
+        console.error('No auth token found in localStorage!')
+        setDriveAvailable(false)
+        setDriveError('Please log in to access Google Drive')
+        return
+      }
+      
+      const isAvailable = await ScopeService.isFeatureAvailable('drive')
+      setDriveAvailable(isAvailable)
+    } catch (error) {
+      console.error('Error checking Drive access:', error)
+      setDriveAvailable(false)
+    } finally {
+      setCheckingDriveAccess(false)
+    }
+  }, [])
+
+  // Request Google Drive access
+  const requestDriveAccess = useCallback(async () => {
+    try {
+      await ScopeService.requestFeatureAccess(['drive'])
+    } catch (error) {
+      console.error('Error requesting Drive access:', error)
+    }
+  }, [])
+
+  // Fetch Google Drive files (root level)
+  const fetchDriveFiles = useCallback(async (pageToken?: string) => {
+    // If we're loading more, use different loading state
+    if (pageToken) {
+      setIsLoadingMoreDrive(true)
+    } else {
+      setDriveLoading(true)
+      setDriveError(null)
+      // Reset pagination state when starting fresh
+      setDriveNextPageToken(undefined)
+    }
+    
+    try {
+      // Debug: Check auth token before making request
+      const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null
+      console.log('fetchDriveFiles - Auth token exists:', !!token, 'pageToken:', pageToken)
+      
+      if (!token) {
+        throw new Error('No authentication token found')
+      }
+      
+      // Fetch root-level files with pagination
+      console.log('Fetching Drive root files...')
+      const response = await DriveService.listRootFiles(100, pageToken)
+      console.log('Drive files response:', response)
+      
+      if (response.files) {
+        // If pageToken exists, append to existing files; otherwise replace
+        if (pageToken) {
+          setDriveFiles(prev => [...prev, ...response.files])
+          console.log('Loaded', response.files.length, 'more Drive files')
+        } else {
+          setDriveFiles(response.files)
+          console.log('Successfully loaded', response.files.length, 'Drive files')
+        }
+        
+        // Store the next page token for pagination
+        setDriveNextPageToken(response.nextPageToken)
+        console.log('Next page token:', response.nextPageToken)
+      }
+    } catch (error: any) {
+      console.error('Failed to load Drive files:', error)
+      console.error('Error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      })
+      
+      // Provide specific error messages
+      if (error.message === 'No authentication token found') {
+        setDriveError('Not logged in. Please log in to access Google Drive.')
+      } else if (error.response?.status === 401) {
+        setDriveError('Authentication failed. Please log in again or grant Drive access.')
+        // Trigger a re-check of Drive access
+        checkDriveAccess()
+      } else if (error.response?.status === 403) {
+        setDriveError('Access forbidden. Please activate Google Drive permissions.')
+        setDriveAvailable(false)
+      } else {
+        setDriveError(`Failed to load Google Drive files: ${error.message || 'Unknown error'}`)
+      }
+    } finally {
+      setDriveLoading(false)
+      setIsLoadingMoreDrive(false)
+    }
+  }, [checkDriveAccess])
+
+  // Load more Google Drive files for infinite scroll
+  const loadMoreDriveFiles = useCallback(() => {
+    if (driveNextPageToken && !isLoadingMoreDrive) {
+      console.log('Loading more Drive files with token:', driveNextPageToken)
+      fetchDriveFiles(driveNextPageToken)
+    }
+  }, [driveNextPageToken, isLoadingMoreDrive, fetchDriveFiles])
+
+  // Handle scroll for infinite loading in Drive files
+  const handleDriveScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop <= clientHeight + 100) { // Load when 100px from bottom
+      loadMoreDriveFiles()
+    }
+  }, [loadMoreDriveFiles])
+
+  // Fetch contents of a specific Drive folder (for tree expansion)
+  const fetchDriveFolderContents = useCallback(async (folderId: string) => {
+    setLoadingDriveFolders(prev => new Set(prev).add(folderId))
+    
+    try {
+      const response = await DriveService.listFilesInFolder(folderId)
+      
+      if (response.files) {
+        setDriveFolderContents(prev => {
+          const newMap = new Map(prev)
+          newMap.set(folderId, response.files || [])
+          return newMap
+        })
+      }
+    } catch (error) {
+      console.error(`Failed to load folder contents for ${folderId}:`, error)
+    } finally {
+      setLoadingDriveFolders(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(folderId)
+        return newSet
+      })
+    }
+  }, [])
+
+  // Handle file view mode change
+  const handleFileViewModeChange = useCallback((mode: 'local' | 'drive') => {
+    setFileViewMode(mode)
+  }, [])
+
+  // Toggle Drive folder expansion (tree view)
+  const toggleDriveExpanded = useCallback((folderId: string) => {
+    setExpandedDriveItems(prev => {
+      const newSet = new Set(prev)
+      const isExpanding = !newSet.has(folderId)
+      
+      if (isExpanding) {
+        newSet.add(folderId)
+        // Lazy load folder contents if not already loaded
+        if (!driveFolderContents.has(folderId)) {
+          fetchDriveFolderContents(folderId)
+        }
+      } else {
+        newSet.delete(folderId)
+      }
+      
+      return newSet
+    })
+  }, [driveFolderContents, fetchDriveFolderContents])
+
   // Fetch files when component mounts or user changes
   useEffect(() => {
     fetchUserFiles()
   }, [fetchUserFiles])
+
+  // Check Drive access on component mount
+  useEffect(() => {
+    checkDriveAccess()
+  }, [checkDriveAccess])
+
+  // Fetch Drive files when view mode changes to 'drive'
+  useEffect(() => {
+    if (fileViewMode === 'drive' && driveAvailable) {
+      fetchDriveFiles()
+    }
+  }, [fileViewMode, driveAvailable, fetchDriveFiles])
 
   // Listen for assistant create_file completion to refresh and optionally open the file
   useEffect(() => {
@@ -1442,18 +1789,44 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
         
                  {/* Tab Content Header */}
         {activeTab === 'files' && (
-          <div className="flex items-center justify-between px-4 py-3 bg-zinc-800 border-b">
-            <Typography variant="small" className="text-gray-200">Files</Typography>
-            <div className="flex items-center gap-2">
+          <div className="flex flex-col bg-zinc-800">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-700">
+              <div className="flex items-center gap-4">
+                {/* File View Mode Navigation */}
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => handleFileViewModeChange('local')}
+                    className={`px-3 py-1 rounded transition-colors ${
+                      fileViewMode === 'local'
+                        ? 'bg-blue-600'
+                        : 'hover:bg-zinc-700'
+                    }`}
+                  >
+                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'local' ? 'text-white' : 'text-gray-300'}`}>Local</Typography>
+                  </button>
+                  <button
+                    onClick={() => handleFileViewModeChange('drive')}
+                    className={`px-3 py-1 rounded transition-colors ${
+                      fileViewMode === 'drive'
+                        ? 'bg-blue-600'
+                        : 'hover:bg-zinc-700'
+                    }`}
+                  >
+                    <Typography variant="small" className={`text-xs font-medium ${fileViewMode === 'drive' ? 'text-white' : 'text-gray-300'}`}>Google Drive</Typography>
+                  </button>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
                <Button
                  variant="primary"
                  size="xsm"
-                 onClick={fetchUserFiles}
-                 disabled={loading}
+                 onClick={fileViewMode === 'local' ? fetchUserFiles : () => fetchDriveFiles()}
+                 disabled={fileViewMode === 'local' ? loading : driveLoading}
                  title="Refresh"
                >
-                <RefreshCw className={`h-3 w-3 ${loading ? 'animate-spin' : ''}`} />
+                <RefreshCw className={`h-3 w-3 ${(fileViewMode === 'local' ? loading : driveLoading) ? 'animate-spin' : ''}`} />
                </Button>
+               {fileViewMode === 'local' && (
                <DropdownMenu>
                  <DropdownMenuTrigger asChild>
                    <Button
@@ -1510,7 +1883,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                     <Network size={20} className="mr-2" />
                     Canvas
                   </DropdownMenuItem>
-                  <DropdownMenuItem 
+                   <DropdownMenuItem 
                     onSelect={onCreateFolder}
                     className="text-white hover:bg-zinc-700 focus:bg-zinc-700"
                   >
@@ -1519,13 +1892,18 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                   </DropdownMenuItem>
                  </DropdownMenuContent>
                </DropdownMenu>
+               )}
              </div>
+            </div>
            </div>
          )}
       </div>
 
       {/* Tab Content */}
-      <div className="flex-1 overflow-y-auto sidebar-scrollbar">
+      <div 
+        className="flex-1 overflow-y-auto sidebar-scrollbar"
+        onScroll={fileViewMode === 'drive' ? handleDriveScroll : undefined}
+      >
         {activeTab === 'files' && (
           <div 
             onContextMenu={(e) => {
@@ -1641,34 +2019,86 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
             
-            {loading && !fileSystem.length && (
-              <div className="flex items-center gap-2 px-3 py-2">
-                <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
-                <Typography variant="muted">Loading files...</Typography>
-              </div>
-            )}
-            
-            {error && (
-              <div className="px-3 py-2">
-                <Typography variant="small" className="text-red-500">{error}</Typography>
-              </div>
-            )}
-            
-            {uploadingFolder && (
-              <div className="flex items-center gap-2 px-3 py-2">
-                <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
-                <Typography variant="muted">Uploading folder...</Typography>
-              </div>
-            )}
-            
-            {!loading && !error && fileSystem.length === 0 && !uploadingFolder && (
-              <div className="px-3 py-2">
-                <Typography variant="muted">No files found</Typography>
-              </div>
+            {/* Local Files View */}
+            {fileViewMode === 'local' && (
+              <>
+                {loading && !fileSystem.length && (
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                    <Typography variant="muted">Loading files...</Typography>
+                  </div>
+                )}
+                
+                {error && (
+                  <div className="px-3 py-2">
+                    <Typography variant="small" className="text-red-500">{error}</Typography>
+                  </div>
+                )}
+                
+                {uploadingFolder && (
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                    <Typography variant="muted">Uploading folder...</Typography>
+                  </div>
+                )}
+                
+                {!loading && !error && fileSystem.length === 0 && !uploadingFolder && (
+                  <div className="px-3 py-2">
+                    <Typography variant="muted">No files found</Typography>
+                  </div>
+                )}
+              </>
             )}
 
-            {/* Root level folder creation */}
-            {isCreatingRootFolder && (
+            {/* Google Drive View */}
+            {fileViewMode === 'drive' && (
+              <>
+                {checkingDriveAccess && (
+                  <div className="flex items-center justify-center h-full px-3 py-8">
+                    <RefreshCw className="h-4 w-4 animate-spin mr-2 text-gray-400" />
+                    <Typography variant="muted">Checking Google Drive access...</Typography>
+                  </div>
+                )}
+                
+                {!checkingDriveAccess && driveAvailable === false && (
+                  <div className="flex flex-col items-center justify-center px-4 py-8">
+                    <Folder className="h-12 w-12 mb-4 opacity-50 text-gray-400" />
+                    <Typography variant="h3" className="mb-2 text-center">Google Drive Access Required</Typography>
+                    <Typography variant="small" className="text-center mb-4 max-w-md text-gray-400">
+                      To view your Google Drive files, you need to grant Drive access to your Google account.
+                    </Typography>
+                    <Button
+                      onClick={requestDriveAccess}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Typography variant="small" className="text-white">Activate Google Drive Access</Typography>
+                    </Button>
+                  </div>
+                )}
+
+                {!checkingDriveAccess && driveAvailable && driveLoading && !driveFiles.length && (
+                  <div className="flex items-center gap-2 px-3 py-2">
+                    <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                    <Typography variant="muted">Loading Google Drive files...</Typography>
+                  </div>
+                )}
+                
+                {!checkingDriveAccess && driveAvailable && driveError && (
+                  <div className="px-3 py-2">
+                    <Typography variant="small" className="text-red-500">{driveError}</Typography>
+                  </div>
+                )}
+                
+                {!checkingDriveAccess && driveAvailable && !driveLoading && driveFiles.length === 0 && !driveError && (
+                  <div className="px-3 py-2">
+                    <Typography variant="muted">No Google Drive files found</Typography>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* Root level folder creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingRootFolder && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <Folder className="h-4 w-4" />
@@ -1685,7 +2115,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingRootFolderPending && pendingRootFolderName && (
+            {fileViewMode === 'local' && isCreatingRootFolderPending && pendingRootFolderName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1694,8 +2124,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
 
-            {/* Root level document creation */}
-            {isCreatingDocument && (
+            {/* Root level document creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingDocument && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <FileText className="h-4 w-4" />
@@ -1712,7 +2142,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingDocumentPending && pendingDocumentName && (
+            {fileViewMode === 'local' && isCreatingDocumentPending && pendingDocumentName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1721,8 +2151,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
 
-            {/* Root level spreadsheet creation */}
-            {isCreatingSpreadsheet && (
+            {/* Root level spreadsheet creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingSpreadsheet && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <FileSpreadsheet className="h-4 w-4" />
@@ -1739,7 +2169,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingSpreadsheetPending && pendingSpreadsheetName && (
+            {fileViewMode === 'local' && isCreatingSpreadsheetPending && pendingSpreadsheetName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1748,8 +2178,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
 
-            {/* Root level notebook creation */}
-            {isCreatingNotebook && (
+            {/* Root level notebook creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingNotebook && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <FileCode className="h-4 w-4" />
@@ -1766,7 +2196,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingNotebookPending && pendingNotebookName && (
+            {fileViewMode === 'local' && isCreatingNotebookPending && pendingNotebookName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1775,8 +2205,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
 
-            {/* Root level draw.io diagram creation */}
-            {isCreatingDrawio && (
+            {/* Root level draw.io diagram creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingDrawio && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <Network className="h-4 w-4" />
@@ -1793,7 +2223,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingDrawioPending && pendingDrawioName && (
+            {fileViewMode === 'local' && isCreatingDrawioPending && pendingDrawioName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1802,8 +2232,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
 
-            {/* Root level tldraw canvas creation */}
-            {isCreatingTldraw && (
+            {/* Root level tldraw canvas creation - only for local files */}
+            {fileViewMode === 'local' && isCreatingTldraw && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <Network className="h-4 w-4 text-purple-400" />
@@ -1820,7 +2250,7 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 />
               </div>
             )}
-            {isCreatingTldrawPending && pendingTldrawName && (
+            {fileViewMode === 'local' && isCreatingTldrawPending && pendingTldrawName && (
               <div className="w-full flex items-center gap-2 text-left px-3 py-2 text-zinc-300" style={{ paddingLeft: '12px' }}>
                 <div className="w-3" />
                 <RefreshCw className="h-4 w-4 animate-spin" />
@@ -1829,7 +2259,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
               </div>
             )}
             
-            {fileSystem.map((item) => (
+            {/* Local file tree */}
+            {fileViewMode === 'local' && fileSystem.map((item) => (
               <FileTreeItem
                 key={item.id}
                 item={item}
@@ -1858,6 +2289,46 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
                 onDeleteSelectedFiles={onDeleteSelectedFiles}
               />
             ))}
+
+            {/* Google Drive file tree */}
+            {fileViewMode === 'drive' && driveAvailable && driveFiles
+              .sort((a, b) => {
+                // Sort folders first, then files
+                const aIsFolder = a.mimeType?.includes('folder')
+                const bIsFolder = b.mimeType?.includes('folder')
+                if (aIsFolder && !bIsFolder) return -1
+                if (!aIsFolder && bIsFolder) return 1
+                return a.name.localeCompare(b.name)
+              })
+              .map((file) => (
+                <DriveFileTreeItem
+                  key={file.id}
+                  file={file}
+                  level={0}
+                  expandedItems={expandedDriveItems}
+                  toggleExpanded={toggleDriveExpanded}
+                  folderContents={driveFolderContents}
+                  loadingFolders={loadingDriveFolders}
+                  onFileSelect={onFileSelect}
+                  selectedFile={selectedFile}
+                />
+              ))
+            }
+            
+            {/* Loading more Drive files indicator */}
+            {fileViewMode === 'drive' && isLoadingMoreDrive && (
+              <div className="flex items-center gap-2 px-3 py-2">
+                <RefreshCw className="h-4 w-4 animate-spin text-gray-400" />
+                <Typography variant="muted">Loading more files...</Typography>
+              </div>
+            )}
+            
+            {/* End of Drive files indicator */}
+            {fileViewMode === 'drive' && !driveLoading && !isLoadingMoreDrive && driveFiles.length > 0 && !driveNextPageToken && (
+              <div className="flex items-center justify-center px-3 py-4">
+                <Typography variant="muted" className="text-xs">End of files</Typography>
+              </div>
+            )}
           </div>
         )}
         

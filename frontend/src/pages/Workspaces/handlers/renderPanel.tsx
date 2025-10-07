@@ -15,9 +15,10 @@ import NotebookLabViewer from '../../../components/MiddlePanel/NotebookViewer/No
 import { CONFIG } from '../../../config/config';
 import { PDFViewer } from '../../../components/MiddlePanel/PDFViewer';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
-import { isNotebookFile, isTldrawFile } from './fileTypeUtils';
+import { isNotebookFile, isTldrawFile, isDriveImageFile, isDrivePdfFile, isDriveDocumentFile, isDriveSpreadsheetFile, isDriveVideoFile, isDriveCodeFile } from './fileTypeUtils';
 import DrawioViewer from '../../../components/MiddlePanel/CanvasViewer/DrawioViewer';
 import TldrawViewer from '../../../components/MiddlePanel/CanvasViewer/TldrawViewer';
+import { GoogleDriveViewer } from '../../../components/MiddlePanel/GoogleDriveViewer';
 import { Typography } from '../../../components/ui/typography';
 
 interface UserInfo {
@@ -190,146 +191,239 @@ export const renderPanel = ({
       
       {/* Panel Content */}
       <div className="flex-1 overflow-hidden relative">
-        {panel.activeTabId && panel.tabs.length > 0 ? (
-          (() => {
-            const activeTab = panel.tabs.find(tab => tab.id === panel.activeTabId);
-            if (!activeTab) return null;
-            
-            // Handle email tabs
-            if (activeTab.type === 'email') {
-              // Check if this is a compose tab (email is null)
-              if (activeTab.email === null) {
-                return (
-                  <EmailComposer 
-                    onBack={() => {
-                      // Close the compose tab when back is clicked
-                      handleCloseTab(activeTab.id, panel.id);
-                    }}
-                    onSendComplete={() => {
-                      // Close the compose tab when send is complete
-                      handleCloseTab(activeTab.id, panel.id);
-                    }}
-                    replyTo={replyToEmail ? {
-                      to: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'from')?.value || '',
-                      subject: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'subject')?.value || '',
-                      body: extractReplyBody(replyToEmail),
-                      messageId: replyToEmail.id || ''
-                    } : undefined}
-                  />
-                );
-              } else {
-                return (
-                  <EmailViewer 
-                    email={activeTab.email} 
-                    onBack={() => {
-                      // Close the email tab when back is clicked
-                      handleCloseTab(activeTab.id, panel.id);
-                    }}
-                    onReply={handleReplyToEmail}
-                  />
-                );
-              }
-            }
-            
-            // Handle file tabs
-            if (activeTab.type === 'file') {
-              const file = activeTab.file;
-              console.log('Rendering file tab:', file.name, 'file type:', file.name.split('.').pop());
+        {panel.tabs.length > 0 ? (
+          <>
+            {/* Render all tabs but hide inactive ones to preserve state */}
+            {panel.tabs.map((tab) => {
+              const isTabActive = tab.id === panel.activeTabId;
               
-              // Browser session virtual file
-              if (isBrowserFile(file.name)) {
-                const params = new URLSearchParams(file.path.split('?')[1] || '');
-                const viewerUrl = params.get('viewerUrl') || '';
-                const title = params.get('title') || 'Browser Session';
-                return <BrowserViewer viewerUrl={viewerUrl} title={title} />;
-              }
-
-              if (isImageFile(file.name)) {
-                return <ImageViewer file={file} userInfo={userInfo} />;
-              } else if (isPdfFile(file.name)) {
-                return <PDFViewer file={file} userInfo={userInfo} />;
-              } else if (isDocumentFile(file.name)) {
-                return (
-                  <DocumentViewer 
-                    file={file} 
-                    userInfo={userInfo} 
-                    onSaveComplete={triggerSidebarRefresh}
-                  />
-                );
-              } else if (isSpreadsheetFile(file.name)) {
-                return (
-                  <SpreadsheetViewer 
-                    file={file} 
-                    userInfo={userInfo} 
-                    onSaveComplete={triggerSidebarRefresh}
-                  />
-                );
-              } else if (isVideoFile(file.name)) {
-                console.log('Rendering VideoViewer for file:', file.name);
-                console.log('userInfo in renderPanel:', userInfo);
-                return <VideoViewer file={file} userInfo={userInfo} />;
-              } else if (isNotebookFile(file.name)) {
-                const useLab = !!CONFIG.jupyterUrl
-                if (useLab) {
-                  return <NotebookLabViewer file={file} userInfo={userInfo} />
+              function renderTabContent() {
+                // Handle email tabs
+                if (tab.type === 'email') {
+                  // Check if this is a compose tab (email is null)
+                  if (tab.email === null) {
+                    return (
+                      <EmailComposer 
+                        onBack={() => {
+                          // Close the compose tab when back is clicked
+                          handleCloseTab(tab.id, panel.id);
+                        }}
+                        onSendComplete={() => {
+                          // Close the compose tab when send is complete
+                          handleCloseTab(tab.id, panel.id);
+                        }}
+                        replyTo={replyToEmail ? {
+                          to: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'from')?.value || '',
+                          subject: replyToEmail.payload?.headers?.find((h: any) => h.name.toLowerCase() === 'subject')?.value || '',
+                          body: extractReplyBody(replyToEmail),
+                          messageId: replyToEmail.id || ''
+                        } : undefined}
+                      />
+                    );
+                  } else {
+                    return (
+                      <EmailViewer 
+                        email={tab.email} 
+                        onBack={() => {
+                          // Close the email tab when back is clicked
+                          handleCloseTab(tab.id, panel.id);
+                        }}
+                        onReply={handleReplyToEmail}
+                      />
+                    );
+                  }
                 }
-                return (
-                  <NotebookViewer 
-                    file={file} 
-                    userInfo={userInfo} 
-                    onSaveComplete={triggerSidebarRefresh} 
-                  />
-                )
-              } else if (isCodeFile(file.name)) {
-                return <IDE file={file} userInfo={userInfo} onSaveComplete={triggerSidebarRefresh} />;
-              } else if (isTldrawFile(file.name)) {
-                // Use S3 URL if available, otherwise fall back to file path
-                const fileUrl = file.s3_url || file.path;
-                return (
-                  <TldrawViewer
-                    fileUrl={fileUrl}
-                    fileName={file.name}
-                    fileId={file.file_id}
-                    isEmbedded={false}
-                  />
-                );
-              } else if (isDrawioFile(file.name)) {
-                // Keep draw.io support for existing files
-                const fileUrl = file.s3_url || file.path;
-                return (
-                  <DrawioViewer
-                    fileUrl={fileUrl}
-                    fileName={file.name}
-                    fileId={file.file_id}
-                    isEmbedded={false}
-                  />
-                );
-              } else {
-                return (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center max-w-md">
-                      <Typography variant="h3" className="text-xl font-semibold text-white mb-2">File Type Not Supported</Typography>
-                      <Typography variant="p" className="text-gray-400">
-                        Preview for this file type is not available yet.
-                      </Typography>
-                    </div>
-                  </div>
-                );
+                
+                // Handle file tabs
+                if (tab.type === 'file') {
+                  const file = tab.file;
+                  console.log('Rendering file tab:', file.name, 'file type:', file.name.split('.').pop());
+                  
+                  // Check if this is a Google Drive file
+                  const isDriveFile = file.path?.startsWith('drive://');
+                  
+                  // For Google Drive files, route to appropriate viewer based on mimeType
+                  if (isDriveFile) {
+                    const mimeType = file.mimeType
+                    
+                    console.log('Rendering Drive file:', file.name, 'mimeType:', mimeType)
+                    
+                    // Check for Google Workspace files FIRST (Docs, Sheets, Slides)
+                    // Export them to native formats and open in appropriate editors
+                    if (mimeType?.includes('vnd.google-apps')) {
+                      console.log('Detected Google Workspace file')
+                      
+                      // Google Docs -> Export as DOCX and use DocumentViewer
+                      if (mimeType.includes('vnd.google-apps.document')) {
+                        console.log('Google Doc detected, exporting as DOCX')
+                        return (
+                          <DocumentViewer 
+                            file={file} 
+                            userInfo={userInfo} 
+                            onSaveComplete={triggerSidebarRefresh}
+                          />
+                        )
+                      }
+                      
+                      // Google Sheets -> Export as XLSX and use SpreadsheetViewer
+                      if (mimeType.includes('vnd.google-apps.spreadsheet')) {
+                        console.log('Google Sheet detected, exporting as XLSX')
+                        return (
+                          <SpreadsheetViewer 
+                            file={file} 
+                            userInfo={userInfo} 
+                            onSaveComplete={triggerSidebarRefresh}
+                          />
+                        )
+                      }
+                      
+                      // For other Workspace files (Slides, Forms, etc), use GoogleDriveViewer
+                      console.log('Other Google Workspace file, using GoogleDriveViewer')
+                      return <GoogleDriveViewer file={file} />
+                    }
+                    
+                    // For non-Workspace Drive files, route to appropriate native viewer
+                    console.log('Detected regular Drive file, routing to native viewer')
+                    
+                    if (isDriveImageFile(mimeType)) {
+                      return <ImageViewer file={file} userInfo={userInfo} />
+                    } else if (isDrivePdfFile(mimeType)) {
+                      return <PDFViewer file={file} userInfo={userInfo} />
+                    } else if (isDriveVideoFile(mimeType)) {
+                      return <VideoViewer file={file} userInfo={userInfo} />
+                    } else if (isDriveCodeFile(mimeType, file.name)) {
+                      return <IDE file={file} userInfo={userInfo} onSaveComplete={triggerSidebarRefresh} />
+                    } else if (isDriveDocumentFile(mimeType)) {
+                      // Regular documents (Word, text) - can be downloaded and edited
+                      return (
+                        <DocumentViewer 
+                          file={file} 
+                          userInfo={userInfo} 
+                          onSaveComplete={triggerSidebarRefresh}
+                        />
+                      )
+                    } else if (isDriveSpreadsheetFile(mimeType)) {
+                      // Regular spreadsheets (Excel, CSV) - can be downloaded and edited
+                      return (
+                        <SpreadsheetViewer 
+                          file={file} 
+                          userInfo={userInfo} 
+                          onSaveComplete={triggerSidebarRefresh}
+                        />
+                      )
+                    } else {
+                      // Fallback to GoogleDriveViewer for unsupported types
+                      console.log('Unknown Drive file type, using GoogleDriveViewer fallback')
+                      return <GoogleDriveViewer file={file} />
+                    }
+                  }
+                  
+                  // Browser session virtual file
+                  if (isBrowserFile(file.name)) {
+                    const params = new URLSearchParams(file.path.split('?')[1] || '');
+                    const viewerUrl = params.get('viewerUrl') || '';
+                    const title = params.get('title') || 'Browser Session';
+                    return <BrowserViewer viewerUrl={viewerUrl} title={title} />;
+                  }
+
+                  if (isImageFile(file.name)) {
+                    return <ImageViewer file={file} userInfo={userInfo} />;
+                  } else if (isPdfFile(file.name)) {
+                    return <PDFViewer file={file} userInfo={userInfo} />;
+                  } else if (isDocumentFile(file.name)) {
+                    return (
+                      <DocumentViewer 
+                        file={file} 
+                        userInfo={userInfo} 
+                        onSaveComplete={triggerSidebarRefresh}
+                      />
+                    );
+                  } else if (isSpreadsheetFile(file.name)) {
+                    return (
+                      <SpreadsheetViewer 
+                        file={file} 
+                        userInfo={userInfo} 
+                        onSaveComplete={triggerSidebarRefresh}
+                      />
+                    );
+                  } else if (isVideoFile(file.name)) {
+                    console.log('Rendering VideoViewer for file:', file.name);
+                    console.log('userInfo in renderPanel:', userInfo);
+                    return <VideoViewer file={file} userInfo={userInfo} />;
+                  } else if (isNotebookFile(file.name)) {
+                    const useLab = !!CONFIG.jupyterUrl
+                    if (useLab) {
+                      return <NotebookLabViewer file={file} userInfo={userInfo} />
+                    }
+                    return (
+                      <NotebookViewer 
+                        file={file} 
+                        userInfo={userInfo} 
+                        onSaveComplete={triggerSidebarRefresh} 
+                      />
+                    )
+                  } else if (isCodeFile(file.name)) {
+                    return <IDE file={file} userInfo={userInfo} onSaveComplete={triggerSidebarRefresh} />;
+                  } else if (isTldrawFile(file.name)) {
+                    // Use S3 URL if available, otherwise fall back to file path
+                    const fileUrl = file.s3_url || file.path;
+                    return (
+                      <TldrawViewer
+                        fileUrl={fileUrl}
+                        fileName={file.name}
+                        fileId={file.file_id}
+                        isEmbedded={false}
+                      />
+                    );
+                  } else if (isDrawioFile(file.name)) {
+                    // Keep draw.io support for existing files
+                    const fileUrl = file.s3_url || file.path;
+                    return (
+                      <DrawioViewer
+                        fileUrl={fileUrl}
+                        fileName={file.name}
+                        fileId={file.file_id}
+                        isEmbedded={false}
+                      />
+                    );
+                  } else {
+                    return (
+                      <div className="h-full flex items-center justify-center">
+                        <div className="text-center max-w-md">
+                          <Typography variant="h3" className="text-xl font-semibold text-white mb-2">File Type Not Supported</Typography>
+                          <Typography variant="p" className="text-gray-400">
+                            Preview for this file type is not available yet.
+                          </Typography>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+                if ((tab as any).type === 'calendar') {
+                  return (
+                    <CalendarViewer
+                      initialView="month"
+                      onEventClick={(ev) => {
+                        // Optionally open event details in a new panel/tab using Email-like pattern
+                      }}
+                    />
+                  );
+                }
+                
+                return null;
               }
-            }
-            if ((activeTab as any).type === 'calendar') {
+              
               return (
-                <CalendarViewer
-                  initialView="month"
-                  onEventClick={(ev) => {
-                    // Optionally open event details in a new panel/tab using Email-like pattern
-                  }}
-                />
+                <div
+                  key={tab.id}
+                  className="absolute inset-0"
+                  style={{ display: isTabActive ? 'block' : 'none' }}
+                >
+                  {renderTabContent()}
+                </div>
               );
-            }
-            
-            return null;
-          })()
+            })}
+          </>
         ) : (
           <div className="h-full flex items-center justify-center">
             <div className="text-center max-w-md">

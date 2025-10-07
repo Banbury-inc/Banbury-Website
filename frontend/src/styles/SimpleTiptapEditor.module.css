@@ -39,16 +39,16 @@
   width: 32px;
   height: 32px;
   border: none;
-  border-radius: 4px;
-  background: transparent;
-  color: #9ca3af;
+  /* border-radius: 4px; */
+  /* background: transparent; */
+  /* color: #9ca3af; */
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .toolbar-button:hover:not(:disabled) {
-  background: #374151;
-  color: #f3f4f6;
+  /* background: #374151; */
+  /* color: #f3f4f6; */
 }
 
 .toolbar-button:disabled {

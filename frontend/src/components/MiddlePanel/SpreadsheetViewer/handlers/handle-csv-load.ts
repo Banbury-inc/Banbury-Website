@@ -1,3 +1,13 @@
+export interface SheetData {
+  name: string
+  data: any[][]
+  cellFormats: { [k: string]: { className?: string } }
+  cellStyles: { [k: string]: React.CSSProperties }
+  cellMeta: any
+  conditionalRules?: any[]
+  columnWidths?: { [k: string]: number }
+}
+
 export interface CSVLoadHandlerParams {
   src: string
   srcBlob?: Blob
@@ -12,6 +22,7 @@ export interface CSVLoadHandlerParams {
   pendingCellMetaRef: React.MutableRefObject<any>
   parseCSVWithMeta: (text: string) => { parsed: any[][] }
   setConditionalRulesFromLoad?: (rules: any[]) => void
+  onSheetsLoaded?: (sheets: SheetData[], activeSheetIndex: number) => void
 }
 
 export function createCSVLoadHandler({
@@ -27,7 +38,8 @@ export function createCSVLoadHandler({
   setCellStyles,
   pendingCellMetaRef,
   parseCSVWithMeta,
-  setConditionalRulesFromLoad
+  setConditionalRulesFromLoad,
+  onSheetsLoaded
 }: CSVLoadHandlerParams) {
   return async function loadCSVContent() {
     try {
@@ -70,21 +82,39 @@ export function createCSVLoadHandler({
         }
         
         await wb.xlsx.load(ab)
-        const ws = wb.worksheets[0]
-        const maxRow = ws.actualRowCount || ws.rowCount || 0
-        const maxCol = ws.actualColumnCount || (ws.columns ? ws.columns.length : 0) || 0
-        const nextData: any[][] = []
-        const nextMeta: {[k:string]: { type: 'dropdown' | 'checkbox'; source?: string[] }} = {}
-        const nextFormats: {[k:string]: {className?: string}} = {}
-        const nextStyles: {[k:string]: React.CSSProperties} = {}
-        const argbToCss = (argb?: string) => {
-          if (!argb) return undefined
-          const hex = argb.replace(/^FF/i, '')
-          if (hex.length === 6) return `#${hex}`
-          if (hex.length === 8) return `#${hex.slice(2)}`
-          return undefined
-        }
-        for (let r = 1; r <= maxRow; r++) {
+        
+        // Parse all sheets
+        const allSheets: SheetData[] = []
+        
+        for (let sheetIndex = 0; sheetIndex < wb.worksheets.length; sheetIndex++) {
+          const ws = wb.worksheets[sheetIndex]
+          
+          // Skip hidden metadata sheet
+          if (ws.name === '_banbury_meta') continue
+          
+          const maxRow = ws.actualRowCount || ws.rowCount || 0
+          const maxCol = ws.actualColumnCount || (ws.columns ? ws.columns.length : 0) || 0
+          const nextData: any[][] = []
+          const nextMeta: {[k:string]: { type: 'dropdown' | 'checkbox'; source?: string[] }} = {}
+          const nextFormats: {[k:string]: {className?: string}} = {}
+          const nextStyles: {[k:string]: React.CSSProperties} = {}
+          const colWidths: {[k:string]: number} = {}
+          const argbToCss = (argb?: string) => {
+            if (!argb) return undefined
+            const hex = argb.replace(/^FF/i, '')
+            if (hex.length === 6) return `#${hex}`
+            if (hex.length === 8) return `#${hex.slice(2)}`
+            return undefined
+          }
+          
+          // Extract column widths
+          ws.columns?.forEach((col: any, index: number) => {
+            if (col.width) {
+              colWidths[index.toString()] = col.width * 7 // Convert Excel units to approximate pixels
+            }
+          })
+          
+          for (let r = 1; r <= maxRow; r++) {
           const rowArr: any[] = []
           for (let c = 1; c <= maxCol; c++) {
             const cell = ws.getCell(r, c) as any
@@ -169,13 +199,40 @@ export function createCSVLoadHandler({
             if (classes.length) nextFormats[key] = { className: classes.join(' ') }
             if (Object.keys(styles).length) nextStyles[key] = styles
           }
-          nextData.push(rowArr)
+            nextData.push(rowArr)
+          }
+          
+          // Store this sheet's data
+          allSheets.push({
+            name: ws.name,
+            data: nextData,
+            cellFormats: nextFormats,
+            cellStyles: nextStyles,
+            cellMeta: nextMeta,
+            columnWidths: colWidths
+          })
         }
-        setData(nextData)
-        setCellFormats(nextFormats)
-        setCellStyles(nextStyles)
-        if (Object.keys(nextMeta).length) {
-          pendingCellMetaRef.current = nextMeta
+        
+        // Load the first sheet (or all sheets if callback is provided)
+        if (onSheetsLoaded && allSheets.length > 0) {
+          onSheetsLoaded(allSheets, 0)
+          // Also load the first sheet into the editor
+          const firstSheet = allSheets[0]
+          setData(firstSheet.data)
+          setCellFormats(firstSheet.cellFormats)
+          setCellStyles(firstSheet.cellStyles)
+          if (Object.keys(firstSheet.cellMeta).length) {
+            pendingCellMetaRef.current = firstSheet.cellMeta
+          }
+        } else if (allSheets.length > 0) {
+          // Fallback to old behavior if no callback
+          const firstSheet = allSheets[0]
+          setData(firstSheet.data)
+          setCellFormats(firstSheet.cellFormats)
+          setCellStyles(firstSheet.cellStyles)
+          if (Object.keys(firstSheet.cellMeta).length) {
+            pendingCellMetaRef.current = firstSheet.cellMeta
+          }
         }
         // Load conditional formatting metadata from hidden sheet, if present
         try {

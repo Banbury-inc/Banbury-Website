@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useToast } from '../../ui/use-toast';
 import CSVEditor from './CSVEditor';
 import { ApiService } from '../../../services/apiService';
+import { DriveService } from '../../../services/driveService';
 import { FileSystemItem } from '../../../utils/fileTreeUtils';
 import { handleSpreadsheetSave } from './handlers/handle-spreadsheet-save';
 
@@ -32,6 +33,8 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
     columnWidths: {[key: string]: number};
     conditionalFormatting: any[];
   } | null>(null);
+  const [allSheets, setAllSheets] = useState<any[]>([]);
+  const [activeSheetIndex, setActiveSheetIndex] = useState<number>(0);
   const { toast } = useToast();
 
   const lastFetchKeyRef = useRef<string | null>(null);
@@ -60,19 +63,33 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
       setError(null);
 
       try {
-        // Download the spreadsheet file content
-        console.log('SpreadsheetViewer: Downloading file:', currentFile.file_id, currentFile.name);
-        const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
-        console.log('SpreadsheetViewer: Download result:', result);
-        if (result.success && result.url) {
-          currentUrl = result.url;
-          console.log('SpreadsheetViewer: Blob URL created:', currentUrl, 'Blob size:', result.blob?.size, 'type:', result.blob?.type);
-          // Avoid setting a new blob URL if it's unchanged to prevent re-renders
-          setDocumentUrl(prev => (prev === result.url ? prev : result.url));
-          setDocumentBlob(result.blob);
+        // Check if this is a Google Drive file
+        const isDriveFile = currentFile.path?.startsWith('drive://');
+        const isGoogleSheet = currentFile.mimeType?.includes('vnd.google-apps.spreadsheet');
+        
+        if (isDriveFile && isGoogleSheet) {
+          console.log('SpreadsheetViewer: Exporting Google Sheet as XLSX:', currentFile.file_id);
+          // Export Google Sheet as XLSX
+          const blob = await DriveService.exportSheetAsXlsx(currentFile.file_id);
+          currentUrl = URL.createObjectURL(blob);
+          console.log('SpreadsheetViewer: Created blob URL for exported XLSX:', currentUrl, 'Blob size:', blob?.size, 'type:', blob?.type);
+          setDocumentUrl(currentUrl);
+          setDocumentBlob(blob);
         } else {
-          console.error('SpreadsheetViewer: Download failed, no URL in result');
-          setError('Failed to load spreadsheet content');
+          // Download regular file from S3
+          console.log('SpreadsheetViewer: Downloading file:', currentFile.file_id, currentFile.name);
+          const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+          console.log('SpreadsheetViewer: Download result:', result);
+          if (result.success && result.url) {
+            currentUrl = result.url;
+            console.log('SpreadsheetViewer: Blob URL created:', currentUrl, 'Blob size:', result.blob?.size, 'type:', result.blob?.type);
+            // Avoid setting a new blob URL if it's unchanged to prevent re-renders
+            setDocumentUrl(prev => (prev === result.url ? prev : result.url));
+            setDocumentBlob(result.blob);
+          } else {
+            console.error('SpreadsheetViewer: Download failed, no URL in result');
+            setError('Failed to load spreadsheet content');
+          }
         }
       } catch (err) {
         console.error('SpreadsheetViewer: Download error:', err);
@@ -97,24 +114,47 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
     if (!currentFile.file_id) return;
     
     try {
+      const isDriveFile = currentFile.path?.startsWith('drive://');
+      const isGoogleSheet = currentFile.mimeType?.includes('vnd.google-apps.spreadsheet');
+      
+      // Determine download filename
+      let downloadName = currentFile.name;
+      if (isDriveFile && isGoogleSheet && !downloadName.toLowerCase().endsWith('.xlsx')) {
+        downloadName += '.xlsx';
+      }
+      
       if (documentUrl) {
         const a = document.createElement('a');
         a.href = documentUrl;
-        a.download = currentFile.name;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         return;
       }
-      const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
-      if (result.success && result.url) {
+      
+      // Fallback to fetching if no URL is available
+      if (isDriveFile && isGoogleSheet) {
+        const blob = await DriveService.exportSheetAsXlsx(currentFile.file_id);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
-        a.href = result.url;
-        a.download = currentFile.name;
+        a.href = url;
+        a.download = downloadName;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
-        setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
+        setTimeout(() => window.URL.revokeObjectURL(url), 1000);
+      } else {
+        const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+        if (result.success && result.url) {
+          const a = document.createElement('a');
+          a.href = result.url;
+          a.download = downloadName;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => window.URL.revokeObjectURL(result.url), 1000);
+        }
       }
     } catch (err) {
       // Handle download error silently
@@ -136,7 +176,9 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
         cellStyles: latestFormatting?.cellStyles,
         cellTypeMeta: latestFormatting?.cellTypeMeta,
         columnWidths: latestFormatting?.columnWidths,
-        conditionalFormatting: latestFormatting?.conditionalFormatting
+        conditionalFormatting: latestFormatting?.conditionalFormatting,
+        allSheets: allSheets.length > 0 ? allSheets : undefined,
+        activeSheetIndex
       });
     } catch (err) {
       // Error handling is done in the handler function
@@ -171,10 +213,10 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
   }
 
   return (
-    <div className="h-screen flex flex-col bg-background relative z-10 isolate">
-      <div className="flex-1 overflow-hidden relative z-10">
+    <div className="h-full flex flex-col bg-background relative z-10 isolate">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-10">
         {documentUrl ? (
-          <div className="h-full relative z-10">
+          <div className="h-full flex flex-col relative z-10">
             <CSVEditor
               src={documentUrl}
               fileName={currentFile.name}
@@ -185,6 +227,10 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
               onFormattingChange={(formatting) => setLatestFormatting(formatting)}
               onSaveDocument={handleSave}
               onDownloadDocument={handleDownload}
+              onSheetsLoaded={(sheets, activeIndex) => {
+                setAllSheets(sheets);
+                setActiveSheetIndex(activeIndex);
+              }}
               saving={saving}
               canSave={!!latestData && latestData.length > 0}
             />

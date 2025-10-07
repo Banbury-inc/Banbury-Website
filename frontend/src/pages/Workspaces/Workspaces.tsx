@@ -237,8 +237,36 @@ const Workspaces = (): JSX.Element => {
   };
 
   const handleFileSelect = useCallback((file: FileSystemItem) => {
-    console.log('handleFileSelect called with file:', file.name, 'isViewableFile:', isViewableFile(file.name));
-    if (!isViewableFile(file.name)) {
+    // Check if it's a Drive file
+    const isDriveFile = file.path?.startsWith('drive://')
+    
+    // For Drive files, check mimeType; for local files, check extension
+    let viewable = false
+    if (isDriveFile) {
+      // Google Workspace files are always viewable (Docs, Sheets, Slides)
+      if (file.mimeType?.includes('vnd.google-apps')) {
+        viewable = true
+      } else {
+        // Check other Drive file types (images, PDFs, videos, documents, spreadsheets, etc)
+        viewable = !!(file.mimeType && (
+          file.mimeType.includes('image/') ||
+          file.mimeType.includes('pdf') ||
+          file.mimeType.includes('video/') ||
+          file.mimeType.includes('text/') ||
+          file.mimeType.includes('msword') ||
+          file.mimeType.includes('wordprocessingml') ||
+          file.mimeType.includes('excel') ||
+          file.mimeType.includes('spreadsheetml') ||
+          file.mimeType.includes('csv')
+        ))
+      }
+      console.log('handleFileSelect - Drive file:', file.name, 'mimeType:', file.mimeType, 'viewable:', viewable)
+    } else {
+      viewable = isViewableFile(file.name)
+      console.log('handleFileSelect - Local file:', file.name, 'viewable:', viewable)
+    }
+    
+    if (!viewable) {
       console.log('File not viewable, setting selectedFile:', file.name);
       setSelectedFile(file);
       return;
