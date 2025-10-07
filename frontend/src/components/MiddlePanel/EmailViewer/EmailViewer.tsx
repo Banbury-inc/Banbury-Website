@@ -1,4 +1,4 @@
-import { ArrowLeft, Reply, Forward, Trash2, Archive, Star, Clock, User, Mail, Paperclip, Download, Send, X } from "lucide-react"
+import { ArrowLeft, Reply, Forward, Trash2, Archive, Star, Clock, User, Mail, Paperclip, Download, Send, X, Save } from "lucide-react"
 import { useEffect, useMemo, useState, useCallback } from "react"
 
 import { Button } from "../../ui/button"
@@ -6,6 +6,7 @@ import { Input } from "../../ui/input"
 import { EmailService } from "../../../services/emailService"
 import { extractEmailContent, hasAttachments, formatFileSize, cleanHtmlContent } from "../../../utils/emailUtils"
 import { useToast } from "../../ui/use-toast"
+import { Typography } from "@/components/ui/typography"
 
 interface EmailViewerProps {
   email: any
@@ -86,6 +87,7 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
     body: ''
   })
   const [sendingReply, setSendingReply] = useState<boolean>(false)
+  const [replyAttachments, setReplyAttachments] = useState<File[]>([])
 
   const isStarred = useMemo(() => labels.includes('STARRED'), [labels])
   const { toast } = useToast()
@@ -162,7 +164,27 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
   const handleCancelReply = () => {
     setShowReplyComposer(false)
     setReplyForm(prev => ({ ...prev, body: '' }))
+    setReplyAttachments([])
   }
+
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    let binary = ''
+    const bytes = new Uint8Array(buffer)
+    const len = bytes.byteLength
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i])
+    }
+    return btoa(binary)
+  }
+
+  const handleReplyAttachmentChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(event.target.files || [])
+    setReplyAttachments(prev => [...prev, ...files])
+  }, [])
+
+  const removeReplyAttachment = useCallback((index: number) => {
+    setReplyAttachments(prev => prev.filter((_, i) => i !== index))
+  }, [])
 
   const handleSendReply = useCallback(async () => {
     if (!replyForm.to || !replyForm.subject || !replyForm.body.trim()) {
@@ -176,12 +198,18 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
 
     setSendingReply(true)
     try {
+      const attachmentsPayload = await Promise.all(replyAttachments.map(async (file) => ({
+        filename: file.name,
+        mimeType: file.type || 'application/octet-stream',
+        content: await file.arrayBuffer().then((buf) => arrayBufferToBase64(buf))
+      })))
+
       await EmailService.sendReply({
         original_message_id: email.id,
         to: replyForm.to,
         subject: replyForm.subject,
         body: replyForm.body,
-        attachments: []
+        attachments: attachmentsPayload
       })
 
       toast({
@@ -192,6 +220,7 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
 
       setShowReplyComposer(false)
       setReplyForm(prev => ({ ...prev, body: '' }))
+      setReplyAttachments([])
       
       // Refresh the thread to show the new reply
       if (onRefresh) onRefresh()
@@ -207,7 +236,39 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
     } finally {
       setSendingReply(false)
     }
-  }, [replyForm, email.id, toast, onRefresh])
+  }, [replyForm, email.id, toast, onRefresh, replyAttachments])
+
+  const handleSaveReplyDraft = useCallback(async () => {
+    if (!replyForm.body.trim()) {
+      toast({
+        title: "No content to save",
+        description: "Please add some content before saving as draft.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      await EmailService.sendMessage({
+        to: replyForm.to,
+        subject: replyForm.subject,
+        body: replyForm.body,
+        isDraft: true
+      })
+
+      toast({
+        title: "Draft saved",
+        description: "Your draft has been saved.",
+        variant: "success",
+      })
+    } catch (error) {
+      toast({
+        title: "Failed to save draft",
+        description: "There was an error saving your draft. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }, [replyForm, toast])
 
   const handleForward = () => {
     if (onForward) {
@@ -422,46 +483,45 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
         </div>
       ) : (
         <>
-      <div className="flex items-center justify-between px-6 py-3 bg-zinc-800 border-b border-zinc-700">
+      <div className="flex items-center justify-between px-3 py-3 bg-zinc-800 border-b border-zinc-700">
         <div className="flex items-center gap-3 min-w-0 flex-1">
           {onBack && (
             <Button
-              variant="ghost"
-              size="sm"
+              variant="primary"
+              size="xsm"
               onClick={onBack}
-              className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-3 w-3" />
             </Button>
           )}
           <div className="min-w-0 flex-1">
-            <h1 className="text-white text-lg font-semibold truncate">
+            <Typography variant="h3" className="truncate">
               {getHeader('Subject') || '(No Subject)'}
-            </h1>
+            </Typography>
           </div>
         </div>
         
         {/* Compact Actions */}
         <div className="flex items-center gap-1">
-          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleReply} disabled={actionLoading}>
+          <Button variant="primary" size="xsm" onClick={handleReply} disabled={actionLoading}>
             <Reply className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleForward} disabled={actionLoading}>
+          <Button variant="primary" size="xsm" onClick={handleForward} disabled={actionLoading}>
             <Forward className="h-3 w-3" />
           </Button>
-          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleArchive} disabled={actionLoading}>
+          <Button variant="primary" size="xsm" onClick={handleArchive} disabled={actionLoading}>
             <Archive className="h-3 w-3" />
           </Button>
           <Button 
-            variant="ghost" 
-            size="sm" 
-            className={isStarred ? "text-yellow-500 hover:bg-yellow-50 p-1 h-8 w-8 rounded-md transition-colors duration-200" : "text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200"}
+            variant="primary" 
+            size="xsm" 
+            className={`${isStarred ? 'text-yellow-400 hover:text-yellow-500' : ''}`}
             onClick={handleToggleStar}
             disabled={actionLoading}
           >
             <Star className="h-3 w-3" fill={isStarred ? 'currentColor' : 'none'} />
           </Button>
-          <Button variant="ghost" size="sm" className="text-zinc-400 hover:bg-zinc-700 hover:text-zinc-200 p-1 h-8 w-8 rounded-md transition-colors duration-200" onClick={handleDelete} disabled={actionLoading}>
+          <Button variant="primary" size="xsm" className="h-8 w-8" onClick={handleDelete} disabled={actionLoading}>
             <Trash2 className="h-3 w-3" />
           </Button>
         </div>
@@ -470,40 +530,6 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
       {/* Email Content */}
       <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-zinc-400 scrollbar-track-zinc-100 hover:scrollbar-thumb-zinc-500">
         <div className="w-full">
-          {/* Threaded conversation header */}
-          <div className="px-6 py-4 border-b border-zinc-800/30 bg-zinc-800">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-zinc-400" />
-                <span className="text-zinc-300 font-medium">
-                  {threadMessages.length > 1 ? `Conversation (${threadMessages.length} messages)` : 'Email'}
-                </span>
-                {threadMessages.length === 1 && email.threadId && (
-                  <span className="text-xs text-yellow-500 bg-yellow-500/10 px-2 py-1 rounded">
-                    Thread API unavailable
-                  </span>
-                )}
-              </div>
-              {threadMessages.length > 1 && (
-                <div className="text-xs text-zinc-500">
-                  Thread ID: {email.threadId}
-                </div>
-              )}
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 text-sm">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-zinc-400" />
-                <span className="text-zinc-400 w-12">From:</span>
-                <span className="text-zinc-400 font-medium truncate">{getHeader('From')}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-zinc-400" />
-                <span className="text-zinc-400 w-12">To:</span>
-                <span className="text-zinc-400 font-medium truncate">{getHeader('To')}</span>
-              </div>
-            </div>
-          </div>
-
           <div className="w-full">
             {threadLoading && (
               <div className="p-6 text-sm text-zinc-500 flex items-center gap-2">
@@ -542,17 +568,15 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
                                 <span className="text-xs text-gray-500">{formatDate(msg.internalDate)}</span>
                                 <div className="flex items-center gap-1">
                                   <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-yellow-500 p-1 h-6 w-6 rounded-md transition-colors duration-200"
+                                    variant="primaryonWhite"
+                                    size="xsm"
                                     title="Star email"
                                   >
                                     <Star className="h-3 w-3" />
                                   </Button>
                                   <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-gray-600 p-1 h-6 w-6 rounded-md transition-colors duration-200"
+                                    variant="primaryonWhite"
+                                    size="xsm"
                                     title="Reply"
                                     onClick={() => {
                                       setReplyForm({
@@ -566,9 +590,8 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
                                     <Reply className="h-3 w-3" />
                                   </Button>
                                   <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="text-gray-400 hover:text-gray-600 p-1 h-6 w-6 rounded-md transition-colors duration-200"
+                                    variant="primaryonWhite"
+                                    size="xsm"
                                     title="More options"
                                   >
                                     <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
@@ -642,30 +665,69 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
 
           {/* Inline Reply Composer */}
           {showReplyComposer && (
-            <div className="bg-white border-t border-gray-200 shadow-lg w-full" data-reply-composer>
+            <div className="bg-white border-t border-zinc-200 shadow-lg w-full" data-reply-composer>
               {/* Header */}
-              <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200">
                 <div className="flex items-center gap-3">
                   {/* Profile Picture */}
                   <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white text-sm font-medium">
                     M
                   </div>
                   <div className="flex items-center gap-2">
-                    <Reply className="h-4 w-4 text-gray-500" />
-                    <span className="text-sm text-gray-600">to</span>
-                    <span className="text-sm font-medium text-gray-900">{extractSenderName(getHeader('From'))}</span>
+                    <Reply className="h-4 w-4 text-zinc-500" />
+                    <span className="text-sm text-zinc-600">to</span>
+                    <span className="text-sm font-medium text-zinc-900">{extractSenderName(getHeader('From'))}</span>
                   </div>
                 </div>
                 <Button
-                  variant="ghost"
-                  size="sm"
+                  variant="primaryonWhite"
+                  size="xsm"
                   onClick={handleCancelReply}
-                  className="text-gray-400 hover:text-gray-600 p-1 h-8 w-8 rounded-md transition-colors duration-200"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
 
+              {/* Attachments */}
+              {replyAttachments.length > 0 && (
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Paperclip className="h-4 w-4 text-gray-700" />
+                    <span className="text-sm font-semibold text-gray-900">Attachments</span>
+                    <span className="text-xs text-gray-600 bg-gray-200 px-2 py-0.5 rounded-full">
+                      {replyAttachments.length}
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    {replyAttachments.map((file, index) => (
+                      <div 
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-white hover:bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-all group"
+                      >
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          <div className="flex-shrink-0 w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <Paperclip className="h-4 w-4 text-blue-600" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                            <p className="text-xs text-gray-600 mt-0.5">
+                              {(file.size / 1024).toFixed(1)} KB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeReplyAttachment(index)}
+                          className="text-gray-400 hover:text-red-600 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Message Body */}
               <div className="px-4 py-4">
@@ -678,51 +740,47 @@ export function EmailViewer({ email, onBack, onReply, onForward, onArchive, onDe
                 />
               </div>
 
-              {/* Footer with Actions */}
-              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
-                <div className="flex items-center gap-2">
-                  {/* Formatting Options */}
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 p-2 h-8 w-8">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                    </svg>
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 p-2 h-8 w-8">
-                    <Paperclip className="h-4 w-4" />
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 p-2 h-8 w-8">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" />
-                    </svg>
-                  </Button>
-                  <Button variant="ghost" size="sm" className="text-gray-500 hover:text-gray-700 p-2 h-8 w-8">
-                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM7 9a1 1 0 100-2 1 1 0 000 2zm7-1a1 1 0 11-2 0 1 1 0 012 0zm-.464 5.535a1 1 0 10-1.415-1.414 3 3 0 01-4.242 0 1 1 0 00-1.415 1.414 5 5 0 007.072 0z" clipRule="evenodd" />
-                    </svg>
-                  </Button>
-                </div>
-
-                <div className="flex items-center gap-2">
+              {/* Footer with Actions - matching EmailComposer style */}
+              <div className="px-2 py-2 border-t border-zinc-200">
+                <div className="flex items-center flex-wrap gap-3">
                   <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleCancelReply}
-                    className="text-gray-500 hover:text-gray-700 p-2 h-8 w-8"
-                    disabled={sendingReply}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
+                    variant="primary"
+                    size="xsm"
                     onClick={handleSendReply}
                     disabled={sendingReply || !replyForm.body.trim()}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full transition-colors duration-200 disabled:bg-gray-300 disabled:text-gray-500 flex items-center gap-2"
+                    className="bg-blue-600 hover:bg-blue-700 text-white flex-shrink-0 w-auto px-2"
                   >
-                    <Send className="h-4 w-4" />
+                    <Send className="h-4 w-10" />
                     {sendingReply ? 'Sending...' : 'Send'}
-                    <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
                   </Button>
+                  <Button
+                    variant="primaryonWhite"
+                    size="xsm"
+                    onClick={handleSaveReplyDraft}
+                    disabled={sendingReply}
+                  >
+                    <Save className="h-4 w-10" />
+                  </Button>
+                  <Button
+                    variant="primaryonWhite"
+                    size="xsm"
+                    onClick={() => document.getElementById('reply-attachment-input')?.click()}
+                    disabled={sendingReply}
+                  >
+                    <Paperclip className="h-4 w-10" />
+                  </Button>
+                  <input
+                    id="reply-attachment-input"
+                    type="file"
+                    multiple
+                    onChange={handleReplyAttachmentChange}
+                    className="hidden"
+                  />
+                  {replyAttachments.length > 0 && (
+                    <span className="text-xs text-zinc-400 bg-zinc-700/50 px-3 py-1.5 rounded-md flex-shrink-0">
+                      {replyAttachments.length} file{replyAttachments.length !== 1 ? 's' : ''} attached
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

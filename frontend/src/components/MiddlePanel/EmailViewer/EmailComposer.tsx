@@ -379,7 +379,7 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
           </div>
 
           {/* Attachment Button and Action Buttons */}
-          <div className="px-2 py-2 bg-zinc-800/50 border-t border-zinc-700">
+          <div className="px-2 py-2 bg-white border-t border-zinc-200">
             <div className="flex items-center flex-wrap gap-3">
               <Button
                 variant="primary"
@@ -394,24 +394,20 @@ export function EmailComposer({ onBack, onSendComplete, replyTo }: EmailComposer
                 {sending ? 'Sending...' : 'Send'}
               </Button>
               <Button
-                variant="primary"
+                variant="primaryonWhite"
                 size="xsm"
                 onClick={handleSaveDraft}
                 disabled={sending}
-                className="text-zinc-300 hover:text-white hover:bg-zinc-700 flex-shrink-0 w-auto px-2"
               >
                 <Save className="h-4 w-10" />
-                Draft
               </Button>
               <Button
-                variant="primary"
+                variant="primaryonWhite"
                 size="xsm"
                 onClick={() => document.getElementById('attachment-input')?.click()}
                 disabled={sending}
-                className="text-zinc-300 hover:text-white hover:bg-zinc-700 flex-shrink-0 w-auto px-2"
               >
                 <Paperclip className="h-4 w-10" />
-                Attach
               </Button>
               <input
                 id="attachment-input"

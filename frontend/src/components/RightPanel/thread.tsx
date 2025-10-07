@@ -1286,8 +1286,8 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
             <FileAttachmentDisplay 
               files={attachedFiles}
               emails={attachedEmails}
-              onFileClick={(file) => handleFileRemove(file.file_id!)}
-              onEmailClick={(emailId) => handleEmailRemove(emailId)}
+              onFileClick={(file) => onFileRemove(file.file_id!)}
+              onEmailClick={(emailId) => onEmailRemove(emailId)}
               onFileView={onFileView}
             />
           </div>
