@@ -76,7 +76,7 @@ const Home = (): JSX.Element => {
   };
 
   return (
-    <Box sx={{ overflow: 'visible', background: '#000000' }}>
+    <Box sx={{ overflow: 'hidden', overflowY: 'auto', background: '#000000', width: '100%', maxWidth: '100vw' }}>
       {/* Hero Section */}
       <Box
         sx={{
