@@ -29,6 +29,10 @@ import { createConditionalFormattingHandlers, computeConditionalFormats } from '
 import { createAddCFRuleHandler } from './handlers/handle-add-cf-rule'
 import type { ConditionalFormattingRule } from './handlers/handle-conditional-formatting';
 import type { SheetData } from './handlers/handle-csv-load';
+import { SpreadsheetChart } from './components/SpreadsheetChart';
+import { ChartEditor } from './components/ChartEditor';
+import { createChartHandlers, extractChartData } from './handlers/handle-charts';
+import type { ChartDefinition } from './types/chart-types';
 // Register all Handsontable modules
 registerAllModules();
 
@@ -91,6 +95,11 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
   const [conditionalClassOverlay, setConditionalClassOverlay] = useState<{[key: string]: string}>({});
   const [conditionalStyleOverlay, setConditionalStyleOverlay] = useState<{[key: string]: React.CSSProperties}>({});
   const [queryResultIndex, setQueryResultIndex] = useState<number>(0);
+  
+  // Chart state
+  const [charts, setCharts] = useState<ChartDefinition[]>([]);
+  const [isChartEditorOpen, setIsChartEditorOpen] = useState(false);
+  const [editingChart, setEditingChart] = useState<ChartDefinition | undefined>(undefined);
   
   // Multi-sheet support
   const [allSheets, setAllSheets] = useState<SheetData[]>([]);
@@ -189,6 +198,10 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
           // Load conditional formatting rules if present
           if (metaObj.conditionalFormatting && Array.isArray(metaObj.conditionalFormatting)) {
             try { setConditionalRules(metaObj.conditionalFormatting) } catch {}
+          }
+          // Load charts if present
+          if (metaObj.charts && Array.isArray(metaObj.charts)) {
+            try { setCharts(metaObj.charts) } catch {}
           }
         }
       } catch {
@@ -375,6 +388,12 @@ const CSVEditor: React.FC<CSVEditorProps> = ({
       setConditionalClasses: (m) => setConditionalClassOverlay(m),
       setConditionalStyles: (m) => setConditionalStyleOverlay(m)
     }), [getConditionalRules]
+  )
+
+  // Chart handlers
+  const { addChart, updateChart, deleteChart, moveChart, resizeChart } = useMemo(
+    () => createChartHandlers({ setCharts, setHasChanges }),
+    []
   )
 
   // Recompute conditional formats whenever data or rules change
@@ -625,6 +644,16 @@ const searchFieldKeyupCallback = useCallback(
     return () => window.removeEventListener('spreadsheet-conditional-formatting-loaded', handler as EventListener)
   }, [])
 
+  // Listen for charts loaded from XLSX metadata sheet
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const evt = e as CustomEvent<{ charts: ChartDefinition[] }>
+      if (Array.isArray(evt.detail?.charts)) setCharts(evt.detail.charts)
+    }
+    window.addEventListener('spreadsheet-charts-loaded', handler as EventListener)
+    return () => window.removeEventListener('spreadsheet-charts-loaded', handler as EventListener)
+  }, [])
+
   // Sheet management functions
   const saveCurrentSheetState = useCallback(() => {
     if (allSheets.length === 0) return;
@@ -637,10 +666,11 @@ const searchFieldKeyupCallback = useCallback(
       cellStyles,
       cellMeta: pendingCellMetaRef.current || {},
       conditionalRules,
-      columnWidths
+      columnWidths,
+      charts
     };
     setAllSheets(updatedSheets);
-  }, [allSheets, activeSheetIndex, data, cellFormats, cellStyles, conditionalRules, columnWidths]);
+  }, [allSheets, activeSheetIndex, data, cellFormats, cellStyles, conditionalRules, columnWidths, charts]);
 
   const handleSheetChange = useCallback((newIndex: number) => {
     if (newIndex < 0 || newIndex >= allSheets.length || newIndex === activeSheetIndex) return;
@@ -656,6 +686,7 @@ const searchFieldKeyupCallback = useCallback(
     pendingCellMetaRef.current = sheet.cellMeta || {};
     setConditionalRules(sheet.conditionalRules || []);
     setColumnWidths(sheet.columnWidths || {});
+    setCharts(sheet.charts || []);
     setActiveSheetIndex(newIndex);
     
     // Apply cell metadata to Handsontable
@@ -663,7 +694,7 @@ const searchFieldKeyupCallback = useCallback(
       if (hotTableRef.current) {
         const hot = hotTableRef.current.hotInstance;
         if (hot && sheet.cellMeta) {
-          Object.entries(sheet.cellMeta).forEach(([key, meta]) => {
+          Object.entries(sheet.cellMeta).forEach(([key, meta]: [string, any]) => {
             const [row, col] = key.split('-').map(Number);
             if (!isNaN(row) && !isNaN(col)) {
               hot.setCellMeta(row, col, 'type', meta.type);
@@ -700,6 +731,7 @@ const searchFieldKeyupCallback = useCallback(
     pendingCellMetaRef.current = {};
     setConditionalRules([]);
     setColumnWidths({});
+    setCharts([]);
   }, [allSheets, saveCurrentSheetState]);
 
   const handleDeleteSheet = useCallback((index: number) => {
@@ -719,6 +751,7 @@ const searchFieldKeyupCallback = useCallback(
       pendingCellMetaRef.current = sheet.cellMeta || {};
       setConditionalRules(sheet.conditionalRules || []);
       setColumnWidths(sheet.columnWidths || {});
+      setCharts(sheet.charts || []);
     } else if (index < activeSheetIndex) {
       // Adjust active index if we deleted a sheet before it
       setActiveSheetIndex(activeSheetIndex - 1);
@@ -751,7 +784,11 @@ const searchFieldKeyupCallback = useCallback(
       cellStyles: { ...sheetToDuplicate.cellStyles },
       cellMeta: { ...sheetToDuplicate.cellMeta },
       conditionalRules: sheetToDuplicate.conditionalRules ? [...sheetToDuplicate.conditionalRules] : [],
-      columnWidths: { ...sheetToDuplicate.columnWidths }
+      columnWidths: { ...sheetToDuplicate.columnWidths },
+      charts: sheetToDuplicate.charts ? sheetToDuplicate.charts.map(chart => ({ 
+        ...chart, 
+        id: `chart-${Date.now()}-${Math.random()}` 
+      })) : []
     };
     
     const updatedSheets = [...allSheets];
@@ -766,6 +803,7 @@ const searchFieldKeyupCallback = useCallback(
     pendingCellMetaRef.current = duplicatedSheet.cellMeta || {};
     setConditionalRules(duplicatedSheet.conditionalRules || []);
     setColumnWidths(duplicatedSheet.columnWidths || {});
+    setCharts(duplicatedSheet.charts || []);
   }, [allSheets, saveCurrentSheetState]);
 
   // Auto-save current sheet state when data changes
@@ -773,7 +811,7 @@ const searchFieldKeyupCallback = useCallback(
     if (allSheets.length > 0 && data.length > 0) {
       saveCurrentSheetState();
     }
-  }, [data, cellFormats, cellStyles, conditionalRules, columnWidths]);
+  }, [data, cellFormats, cellStyles, conditionalRules, columnWidths, charts]);
 
   useEffect(() => {
     try {
@@ -1217,6 +1255,10 @@ const searchFieldKeyupCallback = useCallback(
         handleMergeCells={handleMergeCells}
         handleToggleFilters={handleToggleFilters}
         onOpenConditionalPanel={openCFPanel}
+        onOpenChartEditor={() => {
+          setEditingChart(undefined)
+          setIsChartEditorOpen(true)
+        }}
         fontSize={fontSize}
         handleFontSizeChange={handleFontSizeChange}
         handleFontSizeIncrement={handleFontSizeIncrement}
@@ -1470,6 +1512,25 @@ const searchFieldKeyupCallback = useCallback(
         </div>
           )}
 
+          {/* Chart overlays */}
+          {charts.map((chart) => {
+            const chartData = extractChartData(data, chart)
+            return (
+              <SpreadsheetChart
+                key={chart.id}
+                chart={chart}
+                data={chartData}
+                onEdit={(chartToEdit) => {
+                  setEditingChart(chartToEdit)
+                  setIsChartEditorOpen(true)
+                }}
+                onDelete={deleteChart}
+                onMove={moveChart}
+                onResize={resizeChart}
+              />
+            )
+          })}
+
         </div>
       </div>
 
@@ -1640,6 +1701,28 @@ const searchFieldKeyupCallback = useCallback(
       )}
 
       
+      {/* Chart Editor Modal */}
+      {isChartEditorOpen && (
+        <ChartEditor
+          chart={editingChart}
+          onSave={(chart) => {
+            if (editingChart) {
+              updateChart(chart.id, chart)
+            } else {
+              addChart(chart)
+            }
+            setIsChartEditorOpen(false)
+            setEditingChart(undefined)
+          }}
+          onCancel={() => {
+            setIsChartEditorOpen(false)
+            setEditingChart(undefined)
+          }}
+          maxRows={data.length}
+          maxCols={data.reduce((max, row) => Math.max(max, row.length), 0)}
+        />
+      )}
+
       {/* Sheet tabs navigation - always visible */}
       <SheetTabs
         sheets={allSheets.length > 0 ? allSheets.map((sheet, index) => ({

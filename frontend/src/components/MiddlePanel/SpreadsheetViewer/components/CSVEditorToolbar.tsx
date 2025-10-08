@@ -29,6 +29,7 @@ import {
   Clear,
   FilterList,
   Rule,
+  BarChart,
 } from '@mui/icons-material';
 import { 
   Box, 
@@ -115,6 +116,8 @@ interface CSVEditorToolbarProps {
   handleToggleFilters: () => void;
   // Conditional formatting panel opener
   onOpenConditionalPanel: () => void;
+  // Chart editor opener
+  onOpenChartEditor: () => void;
   
   // Font size handlers
   fontSize: number;
@@ -144,6 +147,7 @@ interface CSVEditorToolbarProps {
 const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
   handleUndo,
   handleRedo,
+  onOpenChartEditor,
   handleCurrencyFormat,
   handleDateFormat,
   handlePercentageFormat,
@@ -259,6 +263,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
     { id: 'alignment', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleAlignmentClick(e) : handleAlignmentClick({} as any), icon: <><FormatAlignLeft sx={{ fontSize: 16 }} /><KeyboardArrowDown sx={{ fontSize: 12, ml: 0.5 }} /></>, title: 'Text Alignment' },
     { id: 'filters', handler: () => handleToggleFilters(), icon: <FilterList sx={{ fontSize: 16 }} />, title: 'Toggle Filters (Ctrl+K)' },
     { id: 'conditional', handler: () => onOpenConditionalPanel(), icon: <Rule sx={{ fontSize: 16 }} />, title: 'Conditional Formatting' },
+    { id: 'chart', handler: () => onOpenChartEditor(), icon: <BarChart sx={{ fontSize: 16 }} />, title: 'Insert Chart' },
   ];
 
   // Calculate which buttons should be visible based on available space

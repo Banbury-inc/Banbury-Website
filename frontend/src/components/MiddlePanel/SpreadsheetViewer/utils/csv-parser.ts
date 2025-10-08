@@ -92,7 +92,8 @@ function convertToCSVWithMeta(
   cellFormats?: {[key: string]: {className?: string}},
   cellStyles?: {[key: string]: React.CSSProperties},
   columnWidths?: {[key: string]: number},
-  conditionalFormatting?: any[]
+  conditionalFormatting?: any[],
+  charts?: any[]
 ): string {
   console.log('convert to CSV with meta');
   const hotInstance = hotTableRef.current?.hotInstance;
@@ -180,6 +181,9 @@ function convertToCSVWithMeta(
   }
   if (conditionalFormatting && Array.isArray(conditionalFormatting) && conditionalFormatting.length > 0) {
     metaObj.conditionalFormatting = conditionalFormatting;
+  }
+  if (charts && Array.isArray(charts) && charts.length > 0) {
+    metaObj.charts = charts;
   }
   
   // Only add metadata header if there's actual metadata

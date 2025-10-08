@@ -6,6 +6,7 @@ export interface SheetData {
   cellMeta: any
   conditionalRules?: any[]
   columnWidths?: { [k: string]: number }
+  charts?: any[]
 }
 
 export interface CSVLoadHandlerParams {
@@ -234,7 +235,7 @@ export function createCSVLoadHandler({
             pendingCellMetaRef.current = firstSheet.cellMeta
           }
         }
-        // Load conditional formatting metadata from hidden sheet, if present
+        // Load conditional formatting and charts metadata from hidden sheet, if present
         try {
           const metaSheet = wb.getWorksheet('_banbury_meta') as any
           const key = metaSheet?.getCell(1,1)?.value
@@ -243,6 +244,10 @@ export function createCSVLoadHandler({
             const parsed = JSON.parse(payload)
             if (Array.isArray(parsed?.conditionalFormatting)) {
               const event = new CustomEvent('spreadsheet-conditional-formatting-loaded', { detail: { rules: parsed.conditionalFormatting } })
+              window.dispatchEvent(event)
+            }
+            if (Array.isArray(parsed?.charts)) {
+              const event = new CustomEvent('spreadsheet-charts-loaded', { detail: { charts: parsed.charts } })
               window.dispatchEvent(event)
             }
           }

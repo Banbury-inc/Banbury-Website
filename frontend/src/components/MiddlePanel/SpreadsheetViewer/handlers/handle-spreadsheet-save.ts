@@ -19,6 +19,7 @@ interface SaveSpreadsheetParams {
   cellTypeMeta?: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }};
   columnWidths?: {[key: string]: number};
   conditionalFormatting?: any[];
+  charts?: any[];
   allSheets?: SheetData[];
   activeSheetIndex?: number;
 }
@@ -30,7 +31,8 @@ export async function convertToXLSX(
   cellStyles?: {[key: string]: React.CSSProperties},
   cellTypeMeta?: {[key: string]: { type: 'dropdown' | 'checkbox' | 'numeric' | 'date' | 'text'; source?: string[]; numericFormat?: { pattern?: string; culture?: string }; dateFormat?: string }},
   columnWidths?: {[key: string]: number},
-  conditionalFormatting?: any[]
+  conditionalFormatting?: any[],
+  charts?: any[]
 ): Promise<Blob> {
   const ExcelJSImport = await import('exceljs');
   const ExcelJS = (ExcelJSImport as any).default || ExcelJSImport;
@@ -188,12 +190,19 @@ export async function convertToXLSX(
   });
   
   // Generate XLSX buffer and return as blob
-  // Persist conditional formatting rules in a hidden metadata sheet for round-trip
-  if (conditionalFormatting && Array.isArray(conditionalFormatting)) {
+  // Persist conditional formatting rules and charts in a hidden metadata sheet for round-trip
+  if ((conditionalFormatting && Array.isArray(conditionalFormatting)) || (charts && Array.isArray(charts))) {
     try {
       const metaSheet = workbook.addWorksheet('_banbury_meta', { state: 'veryHidden' } as any)
       metaSheet.getCell(1,1).value = 'BANBURY_META_JSON'
-      metaSheet.getCell(2,1).value = JSON.stringify({ conditionalFormatting })
+      const metadata: any = {}
+      if (conditionalFormatting && Array.isArray(conditionalFormatting)) {
+        metadata.conditionalFormatting = conditionalFormatting
+      }
+      if (charts && Array.isArray(charts)) {
+        metadata.charts = charts
+      }
+      metaSheet.getCell(2,1).value = JSON.stringify(metadata)
     } catch {}
   }
   const buffer = await workbook.xlsx.writeBuffer();
