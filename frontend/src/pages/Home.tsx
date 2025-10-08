@@ -8,6 +8,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 import AppImage from '../assets/images/Workspaces.png';
+import EmailDemo from '../assets/images/email.png';
+import CalendarDemo from '../assets/images/calendar_demo.mp4';
+import SpreadsheetDemo from '../assets/images/spreadsheet_demo.mp4';
+import BrowserDemo from '../assets/images/browser-automation-demo.mp4';
+import TaskStudio from '../assets/images/Task_Studio.png';
+import Chatbox from '../assets/images/Chatbox2.png';
 import { Button } from '../components/ui/button';
 import { determineOS } from '../handlers/determineOS';
 import { handleDownload } from './handlers/home';
@@ -1481,6 +1487,729 @@ const Home = (): JSX.Element => {
               </Grid>
             ))}
           </Grid>
+        </Container>
+      </Box>
+
+      {/* Use Cases Section */}
+      <Box sx={{ 
+        py: { xs: 8, md: 12 }, 
+        background: '#000000',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+      }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 3, md: 4 } }}>
+          {/* Section Header */}
+          <Box sx={{ textAlign: 'center', mb: { xs: 8, md: 12 } }}>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              variants={fadeInUp}
+              transition={{ duration: 0.6, ease: 'easeOut' }}
+            >
+              <h2 className="text-3xl sm:text-4xl md:text-5xl font-semibold text-white mb-4 md:mb-6 tracking-tight font-inter">
+                See Banbury in Action
+              </h2>
+            </motion.div>
+            <motion.div
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.3 }}
+              variants={fadeInUp}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.1 }}
+            >
+              <p className="text-base sm:text-lg md:text-xl text-zinc-400 max-w-3xl mx-auto leading-relaxed font-normal font-inter px-4 md:px-0">
+                Discover powerful automation workflows that save hours every day
+              </p>
+            </motion.div>
+          </Box>
+
+          {/* Use Case 1 - Email Management (Image Left) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box sx={{ mb: { xs: 8, md: 12 } }}>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(59, 130, 246, 0.2)',
+                      boxShadow: '0 20px 60px rgba(59, 130, 246, 0.15)',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 30px 80px rgba(59, 130, 246, 0.25)',
+                      },
+                    }}
+                  >
+                    <Image
+                      src={EmailDemo}
+                      alt="Email automation demo"
+                      width={800}
+                      height={500}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pl: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Smart Email Management
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Automatically categorize, prioritize, and respond to emails based on content and context. Set up intelligent filters that route messages to the right team members and draft personalized responses instantly.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Auto-categorize emails by priority, sender, and content
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Generate intelligent draft responses using AI
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Route emails to the right team based on content
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
+
+          {/* Use Case 2 - Meeting Automation (Video Right) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box sx={{ mb: { xs: 8, md: 12 } }}>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center" direction={{ xs: 'column', md: 'row-reverse' }}>
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(168, 85, 247, 0.2)',
+                      boxShadow: '0 20px 60px rgba(168, 85, 247, 0.15)',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 30px 80px rgba(168, 85, 247, 0.25)',
+                      },
+                    }}
+                  >
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    >
+                      <source src={CalendarDemo} type="video/mp4" />
+                    </video>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pr: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Automated Meeting Scheduling
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Schedule meetings across time zones, send automatic reminders, generate meeting agendas, and distribute notes to all attendees without lifting a finger.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Smart scheduling across multiple time zones
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Automatic meeting reminders and follow-ups
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Generate and distribute meeting notes instantly
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
+
+          {/* Use Case 3 - Data Automation (Video Left) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box sx={{ mb: { xs: 8, md: 12 } }}>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(249, 115, 22, 0.2)',
+                      boxShadow: '0 20px 60px rgba(249, 115, 22, 0.15)',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 30px 80px rgba(249, 115, 22, 0.25)',
+                      },
+                    }}
+                  >
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    >
+                      <source src={SpreadsheetDemo} type="video/mp4" />
+                    </video>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pl: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Data Sync & Reporting
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Keep your data synchronized across all platforms in real-time. Generate comprehensive reports and distribute them to stakeholders automatically on your preferred schedule.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Real-time data synchronization across platforms
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Automated report generation with custom schedules
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Data validation and error detection
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
+
+          {/* Use Case 4 - Task Automation (Image Right) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box sx={{ mb: { xs: 8, md: 12 } }}>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center" direction={{ xs: 'column', md: 'row-reverse' }}>
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(34, 197, 94, 0.2)',
+                      boxShadow: '0 20px 60px rgba(34, 197, 94, 0.15)',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 30px 80px rgba(34, 197, 94, 0.25)',
+                      },
+                    }}
+                  >
+                    <Image
+                      src={TaskStudio}
+                      alt="Task automation studio"
+                      width={800}
+                      height={500}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pr: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Schedule Tasks When You're Away
+                      
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Schedule tasks when you're away and let Banbury handle the rest.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Create tasks with detailed information including titles, descriptions, scheduled dates and times.
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Set recurring tasks to ensure consistency and efficiency.
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          See the results of your tasks when you come back.
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
+
+          {/* Use Case 5 - AI Assistant (Image Left) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box sx={{ mb: { xs: 8, md: 12 } }}>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center">
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                      },
+                    }}
+                  >
+                    <Image
+                      src={Chatbox}
+                      alt="AI assistant demo"
+                      width={800}
+                      height={500}
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    />
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pl: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Intelligent AI Support
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Chat with your AI assistant to create workflows, get insights, and automate tasks using natural language. Just describe what you want, and let AI do the rest.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Natural language workflow creation
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Smart suggestions and optimizations
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          24/7 intelligent assistance and troubleshooting
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
+
+          {/* Use Case 6 - Browser Automation (Video Right) */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.2 }}
+            variants={fadeInUp}
+            transition={{ duration: 0.6, ease: 'easeOut' }}
+          >
+            <Box>
+              <Grid container spacing={{ xs: 4, md: 6 }} alignItems="center" direction={{ xs: 'column', md: 'row-reverse' }}>
+                <Grid item xs={12} md={6}>
+                  <Box
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      border: '1px solid rgba(14, 165, 233, 0.2)',
+                      boxShadow: '0 20px 60px rgba(14, 165, 233, 0.15)',
+                      transition: 'all 0.4s ease',
+                      '&:hover': {
+                        transform: 'scale(1.02)',
+                        boxShadow: '0 30px 80px rgba(14, 165, 233, 0.25)',
+                      },
+                    }}
+                  >
+                    <video
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      style={{
+                        width: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    >
+                      <source src={BrowserDemo} type="video/mp4" />
+                    </video>
+                  </Box>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Box sx={{ pr: { md: 4 } }}>
+                    <h3 className="text-2xl sm:text-3xl md:text-4xl font-semibold text-white mb-4 tracking-tight font-inter">
+                      Browser Automation
+                    </h3>
+                    <p className="text-base md:text-lg text-zinc-400 leading-relaxed mb-6 font-normal font-inter">
+                      Automate repetitive web tasks like data entry, form filling, and web scraping. Let Banbury navigate websites and extract information while you focus on important work.
+                    </p>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Automated form filling and data entry
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Intelligent web scraping and data extraction
+                        </p>
+                      </Box>
+                      <Box sx={{ display: 'flex', alignItems: 'start', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '24px',
+                            height: '24px',
+                            borderRadius: '50%',
+                            background: 'rgba(59, 130, 246, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            mt: 0.5,
+                          }}
+                        >
+                          <span style={{ color: '#3B82F6', fontSize: '14px' }}>✓</span>
+                        </Box>
+                        <p className="text-sm md:text-base text-zinc-300 font-inter">
+                          Schedule automated browser tasks
+                        </p>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Grid>
+              </Grid>
+            </Box>
+          </motion.div>
         </Container>
       </Box>
 
