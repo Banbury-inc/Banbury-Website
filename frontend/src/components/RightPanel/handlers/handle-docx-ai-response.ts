@@ -26,25 +26,15 @@ let originalContent: string | null = null;
 // Function to be called by TiptapAIContext to register the current editor
 export function setCurrentTiptapEditor(editor: any) {
   currentTiptapEditor = editor;
-  console.log('Current Tiptap editor updated:', !!editor);
 }
 
 export function handleDocxAIResponse(payload: DocxAIResponse) {
-  console.log('Handling DOCX AI response:', payload);
-  console.log('Payload details:', {
-    hasHtmlContent: !!payload.htmlContent,
-    htmlContentLength: payload.htmlContent?.length || 0,
-    operationsCount: payload.operations?.length || 0,
-    action: payload.action,
-    preview: payload.preview
-  });
   
   // Find the active Tiptap editor instance
   let editorInstance = currentTiptapEditor;
   
   // Fallback to the old method if no editor is registered via context
   if (!editorInstance) {
-    console.log('No editor from context, trying fallback methods...');
     editorInstance = findActiveTiptapEditor();
   }
   
@@ -54,7 +44,6 @@ export function handleDocxAIResponse(payload: DocxAIResponse) {
     return;
   }
   
-  console.log('Found Tiptap editor instance:', editorInstance);
   
   try {
     // Store original content if this is a preview
@@ -65,20 +54,16 @@ export function handleDocxAIResponse(payload: DocxAIResponse) {
     if (payload.htmlContent && payload.htmlContent.trim().length > 0) {
       if (payload.preview) {
         // Show diff preview
-        console.log('Creating diff preview');
         const currentContent = editorInstance.getHTML();
         const diffHtml = createStructuredHtmlDiff(currentContent, payload.htmlContent);
         editorInstance.chain().focus().setContent(diffHtml).run();
-        showPreviewFeedback('Preview mode active - Green highlights show additions, Red highlights show deletions');
       } else {
         // Apply changes directly
-        console.log('Applying HTML content to Tiptap editor');
         applyHtmlContentToTiptap(editorInstance, payload.htmlContent);
         originalContent = null; // Clear stored content
       }
     } else if (payload.operations && payload.operations.length > 0) {
       // Apply individual operations using Tiptap commands
-      console.log('Applying individual operations to Tiptap editor');
       applyTiptapOperations(editorInstance, payload.operations);
       originalContent = null;
     } else {
@@ -112,7 +97,6 @@ function findActiveTiptapEditor() {
     for (let i = editors.length - 1; i >= 0; i--) {
       const editor = editors[i];
       if (editor && typeof editor.chain === 'function' && !editor.isDestroyed) {
-        console.log('Found active registered editor');
         return editor;
       }
     }
@@ -133,7 +117,6 @@ function findActiveTiptapEditor() {
   
   // Strategy 3: Try to find editor through DOM elements
   const tiptapElements = document.querySelectorAll('.ProseMirror');
-  console.log(`Found ${tiptapElements.length} Tiptap elements in DOM`);
   
   for (let i = 0; i < tiptapElements.length; i++) {
     const element = tiptapElements[i] as HTMLElement;
@@ -147,7 +130,6 @@ function findActiveTiptapEditor() {
     // Try to get editor instance from the element
     const editorInstance = getEditorFromElement(element);
     if (editorInstance) {
-      console.log('Found editor instance from DOM element');
       return editorInstance;
     }
   }

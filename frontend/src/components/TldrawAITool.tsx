@@ -21,6 +21,7 @@ export function TldrawAITool({ args }: TldrawAIToolProps) {
   const [applied, setApplied] = useState(false);
   const [rejected, setRejected] = useState(false);
   const hasAppliedRef = useRef(false);
+  const changeIdRef = useRef<string>('');
 
   // Try to get the actual file name from attached files if not provided
   const canvasName = useMemo(() => {
@@ -55,11 +56,21 @@ export function TldrawAITool({ args }: TldrawAIToolProps) {
     
     window.dispatchEvent(event);
     setApplied(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   const handleReject = () => {
     if (applied || rejected) return; // Prevent double-rejection
     setRejected(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   // Automatically apply changes when component mounts
@@ -67,6 +78,7 @@ export function TldrawAITool({ args }: TldrawAIToolProps) {
     if (!hasAppliedRef.current) {
       // Generate unique ID for this change
       const changeId = `canvas-${Date.now()}-${Math.random()}`;
+      changeIdRef.current = changeId;
       
       // Register this change with the global tracker
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
@@ -88,12 +100,10 @@ export function TldrawAITool({ args }: TldrawAIToolProps) {
           handleAcceptAll();
           hasAppliedRef.current = true;
         }
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       const handleGlobalReject = () => {
         handleReject();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       window.addEventListener('ai-accept-all', handleGlobalAccept);
@@ -103,7 +113,10 @@ export function TldrawAITool({ args }: TldrawAIToolProps) {
         clearTimeout(timer);
         window.removeEventListener('ai-accept-all', handleGlobalAccept);
         window.removeEventListener('ai-reject-all', handleGlobalReject);
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+        // Only dispatch resolved if not already applied or rejected
+        if (!applied && !rejected && changeIdRef.current) {
+          window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+        }
       };
     }
   }, []);

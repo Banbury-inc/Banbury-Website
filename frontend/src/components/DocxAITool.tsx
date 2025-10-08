@@ -65,6 +65,7 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
   const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const hasPreviewedRef = useRef(false);
+  const changeIdRef = useRef<string>('');
 
   // Try to get the actual file name from attached files if not provided
   const documentName = useMemo(() => {
@@ -107,6 +108,11 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
     const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note, preview: false };
     window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
     setApplied(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   const handleReject = () => {
@@ -114,6 +120,11 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
     setRejected(true);
     // Dispatch reject event to clear preview if active
     window.dispatchEvent(new CustomEvent('docx-ai-response-reject'));
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   // Automatically show preview when component mounts
@@ -122,6 +133,7 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
     if (hasContent && !hasPreviewedRef.current) {
       // Generate unique ID for this change
       const changeId = `docx-${Date.now()}-${Math.random()}`;
+      changeIdRef.current = changeId;
       
       // Register this change with the global tracker
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
@@ -141,12 +153,10 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
       // Listen for global accept/reject
       const handleGlobalAccept = () => {
         handleAcceptAll();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       const handleGlobalReject = () => {
         handleReject();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       window.addEventListener('ai-accept-all', handleGlobalAccept);
@@ -156,7 +166,10 @@ export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
         clearTimeout(timer);
         window.removeEventListener('ai-accept-all', handleGlobalAccept);
         window.removeEventListener('ai-reject-all', handleGlobalReject);
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+        // Only dispatch resolved if not already applied or rejected
+        if (!applied && !rejected && changeIdRef.current) {
+          window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+        }
       };
     }
   }, []);

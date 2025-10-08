@@ -42,6 +42,7 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
   const [showPreview, setShowPreview] = useState(false);
   const [showViewer, setShowViewer] = useState(false);
   const hasPreviewedRef = useRef(false);
+  const changeIdRef = useRef<string>('');
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -80,12 +81,22 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
     };
     window.dispatchEvent(new CustomEvent('drawio-ai-response', { detail: payload }));
     setApplied(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   const handleReject = () => {
     if (applied || rejected) return;
     setRejected(true);
     window.dispatchEvent(new CustomEvent('drawio-ai-response-reject'));
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   // Automatically show preview when component mounts
@@ -97,6 +108,7 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
     
     if (hasContent && !hasPreviewedRef.current) {
       const changeId = `drawio-${Date.now()}-${Math.random()}`;
+      changeIdRef.current = changeId;
       
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
         detail: {
@@ -113,12 +125,10 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
       
       const handleGlobalAccept = () => {
         handleAcceptAll();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       const handleGlobalReject = () => {
         handleReject();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       window.addEventListener('ai-accept-all', handleGlobalAccept);
@@ -128,7 +138,10 @@ export const DrawioAITool: React.FC<DrawioAIToolProps> = (props) => {
         clearTimeout(timer);
         window.removeEventListener('ai-accept-all', handleGlobalAccept);
         window.removeEventListener('ai-reject-all', handleGlobalReject);
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+        // Only dispatch resolved if not already applied or rejected
+        if (!applied && !rejected && changeIdRef.current) {
+          window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+        }
       };
     }
   }, []);

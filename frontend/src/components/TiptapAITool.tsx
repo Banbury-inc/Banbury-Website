@@ -48,6 +48,7 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
   const [rejected, setRejected] = useState(false);
   const [preview, setPreview] = useState(false);
   const hasPreviewedRef = useRef(false);
+  const changeIdRef = useRef<string>('');
 
   const handlePreview = () => {
     if (content && actionType) {
@@ -60,18 +61,29 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
     if (content && actionType) {
       handleAIResponse(content, actionType, selection, false);
       setApplied(true);
+      
+      // Immediately notify that this change has been resolved
+      if (changeIdRef.current) {
+        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+      }
     }
   };
 
   const handleReject = () => {
     if (applied || rejected) return;
     setRejected(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   // Auto-preview the changes when component mounts
   useEffect(() => {
     if (content && actionType && !hasPreviewedRef.current) {
       const changeId = `tiptap-${Date.now()}-${Math.random()}`;
+      changeIdRef.current = changeId;
       
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
         detail: {
@@ -88,12 +100,10 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
       
       const handleGlobalAccept = () => {
         handleAcceptAll();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       const handleGlobalReject = () => {
         handleReject();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       window.addEventListener('ai-accept-all', handleGlobalAccept);
@@ -103,7 +113,10 @@ export const TiptapAITool: React.FC<TiptapAIToolProps> = (props) => {
         clearTimeout(timer);
         window.removeEventListener('ai-accept-all', handleGlobalAccept);
         window.removeEventListener('ai-reject-all', handleGlobalReject);
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+        // Only dispatch resolved if not already applied or rejected
+        if (!applied && !rejected && changeIdRef.current) {
+          window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+        }
       };
     }
   }, []);

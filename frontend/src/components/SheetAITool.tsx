@@ -42,6 +42,7 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
   const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const hasPreviewedRef = useRef(false);
+  const changeIdRef = useRef<string>('');
 
   // Try to get the actual file name from attached files if not provided
   const sheetName = useMemo(() => {
@@ -85,6 +86,11 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note, preview: false };
     window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
     setApplied(true);
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   const handleReject = () => {
@@ -92,6 +98,11 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     setRejected(true);
     // Dispatch reject event to clear preview if active
     window.dispatchEvent(new CustomEvent('sheet-ai-response-reject'));
+    
+    // Immediately notify that this change has been resolved
+    if (changeIdRef.current) {
+      window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+    }
   };
 
   // Automatically show preview when component mounts
@@ -100,6 +111,7 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     if (hasContent && !hasPreviewedRef.current) {
       // Generate unique ID for this change
       const changeId = `sheet-${Date.now()}-${Math.random()}`;
+      changeIdRef.current = changeId;
       
       // Register this change with the global tracker
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
@@ -120,12 +132,10 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
       // Listen for global accept/reject
       const handleGlobalAccept = () => {
         handleAcceptAll();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       const handleGlobalReject = () => {
         handleReject();
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
       };
       
       window.addEventListener('ai-accept-all', handleGlobalAccept);
@@ -135,7 +145,10 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
         clearTimeout(timer);
         window.removeEventListener('ai-accept-all', handleGlobalAccept);
         window.removeEventListener('ai-reject-all', handleGlobalReject);
-        window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeId } }));
+        // Only dispatch resolved if not already applied or rejected
+        if (!applied && !rejected && changeIdRef.current) {
+          window.dispatchEvent(new CustomEvent('ai-change-resolved', { detail: { id: changeIdRef.current } }));
+        }
       };
     }
   }, []);
