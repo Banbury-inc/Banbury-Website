@@ -15,6 +15,8 @@ import tippy, { Instance as TippyInstance } from 'tippy.js';
 import { ApiService } from '../services/apiService';
 import { extractEmailContent } from '../utils/emailUtils';
 import { buildFileTree, flattenFileTree, FileSystemItem } from '../utils/fileTreeUtils';
+import { handleClipboardPaste } from './handlers/handle-clipboard-paste';
+import { useToast } from './ui/use-toast';
 
 import type { Editor } from '@tiptap/core';
 import type { SuggestionOptions } from '@tiptap/suggestion';
@@ -23,6 +25,7 @@ type ChatTiptapComposerProps = {
   hiddenInputRef: React.RefObject<HTMLTextAreaElement | null>;
   userInfo: { username: string; email?: string } | null;
   onFileAttach: (file: FileSystemItem) => void;
+  onAttachmentPayload?: (fileId: string, payload: { fileData: string; mimeType: string }) => void;
   placeholder?: string;
   className?: string;
   onSend?: () => void;
@@ -78,12 +81,19 @@ const getDocumentEditorContent = (currentEditorDom?: Element | null): string => 
   return '';
 };
 
-export const ChatTiptapComposer: React.FC<ChatTiptapComposerProps> = ({ hiddenInputRef, userInfo, onFileAttach, placeholder = 'Send a message...', className, onSend }) => {
+export const ChatTiptapComposer: React.FC<ChatTiptapComposerProps> = ({ hiddenInputRef, userInfo, onFileAttach, onAttachmentPayload, placeholder = 'Send a message...', className, onSend }) => {
   const [files, setFiles] = React.useState<FileSystemItem[]>([]);
   const [loading, setLoading] = React.useState<boolean>(false);
   const filesRef = React.useRef<FileSystemItem[]>([]);
   const loadingRef = React.useRef<boolean>(false);
   const [editor, setEditor] = React.useState<Editor | null>(null);
+  const { toast } = useToast();
+  const toastRef = React.useRef(toast);
+
+  // Keep toast ref up to date
+  useEffect(() => {
+    toastRef.current = toast;
+  }, [toast]);
 
   const fetchFiles = React.useCallback(async () => {
     try {
@@ -427,6 +437,24 @@ export const ChatTiptapComposer: React.FC<ChatTiptapComposerProps> = ({ hiddenIn
         'aria-label': placeholder,
         role: 'textbox',
         style: 'color-scheme: dark;',
+      },
+      handlePaste: (_view, event) => {
+        // Handle image paste from clipboard
+        handleClipboardPaste({
+          event: event as ClipboardEvent,
+          userInfo,
+          onFileAttach,
+          onAttachmentPayload,
+          onError: (error) => {
+            toastRef.current({
+              title: 'Upload failed',
+              description: error,
+              variant: 'destructive'
+            });
+          }
+        });
+        // Return false to allow default text paste behavior for non-images
+        return false;
       },
       handleKeyDown: (_view, event) => {
         // Check if suggestion dropdown is active (mention popup is open)

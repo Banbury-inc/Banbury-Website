@@ -156,6 +156,10 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     setAttachedEmails(prev => prev.filter(email => email.id !== emailId));
   };
 
+  const handleAttachmentPayload = (fileId: string, payload: { fileData: string; mimeType: string }) => {
+    setAttachmentPayloads(prev => ({ ...prev, [fileId]: payload }));
+  };
+
   const handleDrawioFileView = createHandleDrawioFileView({
     setSelectedDrawioFile,
     setDrawioModalOpen,
@@ -965,6 +969,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         toolPreferences={toolPreferences}
         onUpdateToolPreferences={(prefs) => setToolPreferences(prefs)}
         attachmentPayloads={attachmentPayloads}
+        onAttachmentPayload={handleAttachmentPayload}
         onFileView={handleDrawioFileView}
         pendingChanges={pendingChanges}
         onAcceptAll={handleAcceptAll}
@@ -1118,6 +1123,7 @@ interface ComposerProps {
   toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean };
   onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }) => void;
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
+  onAttachmentPayload: (fileId: string, payload: { fileData: string; mimeType: string }) => void;
   onSend?: () => void;
   onFileView?: (file: FileSystemItem) => void;
   pendingChanges: Array<{ id: string; type: string; description: string }>;
@@ -1125,7 +1131,7 @@ interface ComposerProps {
   onRejectAll: () => void;
 }
 
-const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAttach, onFileRemove, onEmailAttach, onEmailRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads, onSend, onFileView, pendingChanges, onAcceptAll, onRejectAll }) => {
+const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAttach, onFileRemove, onEmailAttach, onEmailRemove, userInfo, isWebSearchEnabled, onToggleWebSearch, toolPreferences, onUpdateToolPreferences, attachmentPayloads, onAttachmentPayload, onSend, onFileView, pendingChanges, onAcceptAll, onRejectAll }) => {
   const composer = useComposerRuntime();
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const [isPendingChangesExpanded, setIsPendingChangesExpanded] = useState(false);
@@ -1442,6 +1448,7 @@ const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onFileAtta
               hiddenInputRef={inputRef}
               userInfo={userInfo}
               onFileAttach={onFileAttach}
+              onAttachmentPayload={onAttachmentPayload}
               placeholder="Send a message..."
               className="min-h-16"
               onSend={handleSend}
