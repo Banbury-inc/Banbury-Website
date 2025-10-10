@@ -17,7 +17,7 @@ import {
 } from 'lucide-react'
 
 import { Button } from '../components/ui/button'
-import { ScopeManager } from '../components/ScopeManager'
+import { ScopeManager } from '../components/modals/settings-tabs/ScopeManager'
 import { XApiConnection } from '../components/modals/settings-tabs/XApiConnection'
 import { ApiService } from '../services/apiService'
 import { NavSidebar } from '../components/nav-sidebar'
