@@ -1,13 +1,13 @@
 import React from 'react';
-import { ToolCallCard } from './ToolCallCard';
-import { SheetAITool } from '../SheetAITool';
-import { DocxAITool } from '../DocxAITool';
+import { ToolCallCard } from './composer/components/ToolCallCard';
+import { SheetAITool } from './composer/components/SheetAITool';
+import { DocxAITool } from './composer/components/DocxAITool';
 import { WebSearchTool } from './composer/components/web-search-result';
 import { TiptapAITool } from './composer/components/TiptapAITool';
-import { TldrawAITool } from '../TldrawAITool';
 import { DocumentAITool } from './composer/components/DocumentAITool';
-import { BrowserTool } from '../MiddlePanel/BrowserViewer/BrowserTool';
-import { ToolFallback } from './tool-fallback';
+import { BrowserTool } from './composer/components/BrowserTool';
+import { ToolFallback } from './composer/components/tool-fallback';
+import { TldrawAITool } from './composer/components/TldrawAITool';
 
 interface ToolUIProps {
   toolName: string;
