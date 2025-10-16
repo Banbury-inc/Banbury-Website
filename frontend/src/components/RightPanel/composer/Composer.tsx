@@ -1,3 +1,4 @@
+import React, { useState, useEffect, useRef } from "react";
 import * as AssistantUI from "@assistant-ui/react";
 import { motion } from "framer-motion";
 import {
@@ -14,10 +15,9 @@ import {
   Table,
   PaintbrushIcon,
 } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
 
 import { ChatTiptapComposer } from "../../ChatTiptapComposer";
-import { FileAttachment } from "../../file-attachment";
+import { FileAttachment } from "./components/file-attachment";
 import { FileAttachmentDisplay } from "../../file-attachment-display";
 import { Button } from "../../ui/button";
 import {
@@ -175,7 +175,6 @@ export const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onF
       
       // Get and merge email content
       const emailsRaw = localStorage.getItem('pendingEmailAttachments');
-      console.log('[Composer.tsx] DEBUG - BEFORE SEND - emailsRaw:', emailsRaw);
       const emails = emailsRaw ? JSON.parse(emailsRaw) : [];
       const emailSections: string[] = [];
       if (Array.isArray(emails)) {
@@ -271,7 +270,7 @@ export const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onF
       <div className="relative flex w-full flex-col">
         {/* Display attachments (files + emails) above the composer */}
         {(attachedFiles.length > 0 || attachedEmails.length > 0) && (
-          <div className="bg-zinc-200 dark:bg-zinc-800 border-b border-zinc-300 dark:border-zinc-700 rounded-t-2xl px-2 py-0.5">
+          <div className="bg-accent border-b border-border rounded-t-2xl px-2 py-0.5">
             <FileAttachmentDisplay 
               files={attachedFiles}
               emails={attachedEmails}
@@ -523,7 +522,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
   };
 
   return (
-    <div className="bg-zinc-200 dark:bg-zinc-800 border-0 relative flex items-center justify-between rounded-b-2xl p-2">
+    <div className="bg-accent border-0 relative flex items-center justify-between rounded-b-2xl p-2">
       <div className="flex pl-4 items-center gap-2">
         <FileAttachment
           onFileAttach={onFileAttach}

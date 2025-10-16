@@ -1,39 +1,93 @@
 import { FileText, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { Button } from '../../../ui/button';
+import { Card, CardContent } from '../../../ui/card';
+import { Typography } from '../../../ui/typography';
 
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Typography } from './ui/typography';
-
-type DocumentOperation =
-  | { type: 'setContent'; html: string }
-  | { type: 'replaceText'; target: string; replacement: string; all?: boolean; caseSensitive?: boolean }
-  | { type: 'replaceBetween'; from: number; to: number; html: string }
-  | { type: 'insertAfterText'; target: string; html: string; occurrence?: number; caseSensitive?: boolean }
-  | { type: 'insertBeforeText'; target: string; html: string; occurrence?: number; caseSensitive?: boolean }
-  | { type: 'deleteText'; target: string; all?: boolean; caseSensitive?: boolean };
-
-interface DocumentAIToolProps {
-  args?: {
-    action: string;
-    note?: string;
-    htmlContent?: string;
-    operations?: DocumentOperation[];
-  };
-  action?: string;
-  note?: string;
-  htmlContent?: string;
-  operations?: DocumentOperation[];
+interface DocxOperationInsertText { type: 'insertText'; position: number; text: string }
+interface DocxOperationReplaceText { type: 'replaceText'; startPosition: number; endPosition: number; text: string }
+interface DocxOperationInsertParagraph { type: 'insertParagraph'; position: number; text: string; style?: string }
+interface DocxOperationReplaceParagraph { type: 'replaceParagraph'; paragraphIndex: number; text: string; style?: string }
+interface DocxOperationInsertHeading { type: 'insertHeading'; position: number; text: string; level: number }
+interface DocxOperationReplaceHeading { type: 'replaceHeading'; headingIndex: number; text: string; level?: number }
+interface DocxOperationInsertList { type: 'insertList'; position: number; items: string[]; listType: 'bulleted' | 'numbered' }
+interface DocxOperationInsertTable { type: 'insertTable'; position: number; rows: string[][]; hasHeaders?: boolean }
+interface DocxOperationFormatText { 
+  type: 'formatText'; 
+  startPosition: number; 
+  endPosition: number; 
+  formatting: { 
+    bold?: boolean; 
+    italic?: boolean; 
+    underline?: boolean; 
+    fontSize?: number; 
+    color?: string 
+  }
+}
+interface DocxOperationInsertImage { type: 'insertImage'; position: number; imageUrl: string; alt?: string; width?: number; height?: number }
+interface DocxOperationSetPageSettings { 
+  type: 'setPageSettings'; 
+  margins?: { top: number; bottom: number; left: number; right: number }; 
+  orientation?: 'portrait' | 'landscape' 
 }
 
-export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
-  const { action, note, htmlContent, operations } = props.args || props;
+type DocxOperation =
+  | DocxOperationInsertText
+  | DocxOperationReplaceText
+  | DocxOperationInsertParagraph
+  | DocxOperationReplaceParagraph
+  | DocxOperationInsertHeading
+  | DocxOperationReplaceHeading
+  | DocxOperationInsertList
+  | DocxOperationInsertTable
+  | DocxOperationFormatText
+  | DocxOperationInsertImage
+  | DocxOperationSetPageSettings;
+
+interface DocxAIToolProps {
+  args?: {
+    action: string;
+    documentName?: string;
+    operations?: DocxOperation[];
+    htmlContent?: string;
+    note?: string;
+  };
+  action?: string;
+  documentName?: string;
+  operations?: DocxOperation[];
+  htmlContent?: string;
+  note?: string;
+}
+
+export const DocxAITool: React.FC<DocxAIToolProps> = (props) => {
+  const { action, documentName: providedDocumentName, operations, htmlContent, note } = props.args || props;
   const [applied, setApplied] = useState(false);
   const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const hasPreviewedRef = useRef(false);
   const changeIdRef = useRef<string>('');
+
+  // Try to get the actual file name from attached files if not provided
+  const documentName = useMemo(() => {
+    if (providedDocumentName) return providedDocumentName;
+    
+    try {
+      const attachedFiles = JSON.parse(localStorage.getItem('pendingAttachments') || '[]');
+      const docxFile = attachedFiles.find((file: any) => 
+        file.fileName && (
+          file.fileName.toLowerCase().endsWith('.docx') ||
+          file.fileName.toLowerCase().endsWith('.doc')
+        )
+      );
+      if (docxFile) {
+        return docxFile.fileName;
+      }
+    } catch (error) {
+      console.warn('Could not get attached document file:', error);
+    }
+    
+    return 'Document';
+  }, [providedDocumentName]);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -44,29 +98,15 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
-  const hasPayload = Boolean((htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0));
-
   const handlePreview = () => {
-    const detail = {
-      action: action || 'Document edits',
-      note,
-      htmlContent,
-      operations: operations || [],
-      preview: true
-    };
-    window.dispatchEvent(new CustomEvent('document-ai-response', { detail }));
+    const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note, preview: true };
+    window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
   };
 
   const handleAcceptAll = () => {
-    if (applied || rejected) return;
-    const detail = {
-      action: action || 'Document edits',
-      note,
-      htmlContent,
-      operations: operations || [],
-      preview: false
-    };
-    window.dispatchEvent(new CustomEvent('document-ai-response', { detail }));
+    if (applied || rejected) return; // Prevent double-application
+    const payload = { action: action || 'Document edits', documentName, operations: operations || [], htmlContent, note, preview: false };
+    window.dispatchEvent(new CustomEvent('docx-ai-response', { detail: payload }));
     setApplied(true);
     
     // Immediately notify that this change has been resolved
@@ -76,9 +116,10 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
   };
 
   const handleReject = () => {
-    if (applied || rejected) return;
+    if (applied || rejected) return; // Prevent double-rejection
     setRejected(true);
-    window.dispatchEvent(new CustomEvent('document-ai-response-reject'));
+    // Dispatch reject event to clear preview if active
+    window.dispatchEvent(new CustomEvent('docx-ai-response-reject'));
     
     // Immediately notify that this change has been resolved
     if (changeIdRef.current) {
@@ -86,24 +127,30 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
     }
   };
 
+  // Automatically show preview when component mounts
   useEffect(() => {
-    if (hasPayload && !hasPreviewedRef.current) {
-      const changeId = `document-${Date.now()}-${Math.random()}`;
+    const hasContent = (htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0);
+    if (hasContent && !hasPreviewedRef.current) {
+      // Generate unique ID for this change
+      const changeId = `docx-${Date.now()}-${Math.random()}`;
       changeIdRef.current = changeId;
       
+      // Register this change with the global tracker
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
         detail: {
           id: changeId,
           type: 'document',
-          description: 'Document'
+          description: documentName || 'Document'
         }
       }));
       
+      // Delay to ensure editor is ready
       const timer = setTimeout(() => {
         handlePreview();
         hasPreviewedRef.current = true;
       }, 100);
       
+      // Listen for global accept/reject
       const handleGlobalAccept = () => {
         handleAcceptAll();
       };
@@ -127,7 +174,9 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
     }
   }, []);
 
-  if (!hasPayload) {
+  const hasContent = (htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0);
+
+  if (!hasContent) {
     return (
       <Card className="w-full max-w-2xl">
         <CardContent className="p-4">
@@ -151,7 +200,7 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
                 variant="muted"
                 className="text-zinc-900 dark:text-white truncate"
               >
-                Document
+                {documentName}
               </Typography>
             </div>
             
@@ -175,7 +224,7 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
                 variant="muted"
                 className="text-zinc-900 dark:text-white truncate"
               >
-                Document
+                {documentName}
               </Typography>
             </div>
             
@@ -187,10 +236,11 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
       </div>
     );
   }
-
+  
   return (
     <div className="w-full max-w-2xl bg-zinc-100 dark:bg-zinc-800 border border-zinc-300 dark:border-zinc-700 rounded-lg overflow-hidden">
       <div className="p-2 space-y-2">
+        {/* Header: Filename + Buttons */}
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <FileText className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
@@ -198,7 +248,7 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
               variant="muted"
               className="text-zinc-900 dark:text-white truncate"
             >
-              Document
+              {documentName}
             </Typography>
           </div>
           
@@ -222,11 +272,10 @@ export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
             </Button>
           </div>
         </div>
+
       </div>
     </div>
   );
 };
 
-export default DocumentAITool;
-
-
+export default DocxAITool;

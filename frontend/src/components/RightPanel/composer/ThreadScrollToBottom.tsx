@@ -1,3 +1,4 @@
+import React from "react";
 import * as AssistantUI from "@assistant-ui/react";
 import { ArrowDownIcon } from "lucide-react";
 import { TooltipIconButton } from "../tooltip-icon-button";

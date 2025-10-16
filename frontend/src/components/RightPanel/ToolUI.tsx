@@ -2,10 +2,10 @@ import React from 'react';
 import { ToolCallCard } from './ToolCallCard';
 import { SheetAITool } from '../SheetAITool';
 import { DocxAITool } from '../DocxAITool';
-import { WebSearchTool } from './web-search-result';
-import { TiptapAITool } from '../TiptapAITool';
+import { WebSearchTool } from './composer/components/web-search-result';
+import { TiptapAITool } from './composer/components/TiptapAITool';
 import { TldrawAITool } from '../TldrawAITool';
-import { DocumentAITool } from '../DocumentAITool';
+import { DocumentAITool } from './composer/components/DocumentAITool';
 import { BrowserTool } from '../MiddlePanel/BrowserViewer/BrowserTool';
 import { ToolFallback } from './tool-fallback';
 

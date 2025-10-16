@@ -15,19 +15,19 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-import { DocumentAITool } from "../../DocumentAITool";
-import { DocxAITool } from "../../DocxAITool";
+import { DocumentAITool } from "./components/DocumentAITool";
+import { DocxAITool } from "./components/DocxAITool";
 import { TldrawAITool } from "../../TldrawAITool";
 import { DrawioAITool } from "../../MiddlePanel/CanvasViewer/DrawioAITool";
 import DrawioViewerModal from "../../MiddlePanel/CanvasViewer/DrawioViewerModal";
 import { FileAttachmentDisplay } from "../../file-attachment-display";
 import { MarkdownText } from "../markdown-text";
-import { SheetAITool } from "../../SheetAITool";
-import { TiptapAITool } from "../../TiptapAITool";
+import { SheetAITool } from "./components/SheetAITool";
+import { TiptapAITool } from "./components/TiptapAITool";
 import { ToolFallback } from "../tool-fallback";
 import { TooltipIconButton } from "../tooltip-icon-button";
 import { Button } from "../../ui/button";
-import { WebSearchTool } from "../web-search-result";
+import { WebSearchTool } from "./components/web-search-result";
 import { handleDocxAIResponse } from "../handlers/handle-docx-ai-response";
 import { handleTldrawAIResponse } from "../handlers/handle-tldraw-ai-response";
 import { ToolUI } from "../ToolUI";

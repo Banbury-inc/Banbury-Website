@@ -975,7 +975,7 @@ export function FilesTab({
                   }
                 }}
               >
-                <SelectTrigger size="sm" className="bg-foreground text-primary-foreground hover:bg-foreground hover:text-primary-foreground">
+                <SelectTrigger size="sm" className="bg-foreground hover:bg-foreground hover:text-primary-foreground">
                   <Plus className="h-4 w-4 text-primary-foreground" />
                 </SelectTrigger>
                 <SelectContent>

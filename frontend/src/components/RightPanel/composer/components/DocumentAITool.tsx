@@ -1,71 +1,39 @@
-import { Table, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
+import { FileText, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
 import React, { useMemo, useState, useEffect, useRef } from 'react';
 
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Typography } from './ui/typography';
+import { Badge } from '../../../ui/badge';
+import { Button } from '../../../ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../ui/card';
+import { Typography } from '../../../ui/typography';
 
-interface SheetOperationSetCell { type: 'setCell'; row: number; col: number; value: string | number }
-interface SheetOperationSetRange { type: 'setRange'; range: { startRow: number; startCol: number; endRow: number; endCol: number }; values: (string | number)[][] }
-interface SheetOperationInsertRows { type: 'insertRows'; index: number; count?: number }
-interface SheetOperationDeleteRows { type: 'deleteRows'; index: number; count?: number }
-interface SheetOperationInsertCols { type: 'insertCols'; index: number; count?: number }
-interface SheetOperationDeleteCols { type: 'deleteCols'; index: number; count?: number }
+type DocumentOperation =
+  | { type: 'setContent'; html: string }
+  | { type: 'replaceText'; target: string; replacement: string; all?: boolean; caseSensitive?: boolean }
+  | { type: 'replaceBetween'; from: number; to: number; html: string }
+  | { type: 'insertAfterText'; target: string; html: string; occurrence?: number; caseSensitive?: boolean }
+  | { type: 'insertBeforeText'; target: string; html: string; occurrence?: number; caseSensitive?: boolean }
+  | { type: 'deleteText'; target: string; all?: boolean; caseSensitive?: boolean };
 
-type SheetOperation =
-  | SheetOperationSetCell
-  | SheetOperationSetRange
-  | SheetOperationInsertRows
-  | SheetOperationDeleteRows
-  | SheetOperationInsertCols
-  | SheetOperationDeleteCols;
-
-interface SheetAIToolProps {
+interface DocumentAIToolProps {
   args?: {
     action: string;
-    sheetName?: string;
-    operations?: SheetOperation[];
-    csvContent?: string;
     note?: string;
+    htmlContent?: string;
+    operations?: DocumentOperation[];
   };
   action?: string;
-  sheetName?: string;
-  operations?: SheetOperation[];
-  csvContent?: string;
   note?: string;
+  htmlContent?: string;
+  operations?: DocumentOperation[];
 }
 
-export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
-  const { action, sheetName: providedSheetName, operations, csvContent, note } = props.args || props;
+export const DocumentAITool: React.FC<DocumentAIToolProps> = (props) => {
+  const { action, note, htmlContent, operations } = props.args || props;
   const [applied, setApplied] = useState(false);
   const [rejected, setRejected] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const hasPreviewedRef = useRef(false);
   const changeIdRef = useRef<string>('');
-
-  // Try to get the actual file name from attached files if not provided
-  const sheetName = useMemo(() => {
-    if (providedSheetName) return providedSheetName;
-    
-    try {
-      const attachedFiles = JSON.parse(localStorage.getItem('pendingAttachments') || '[]');
-      const sheetFile = attachedFiles.find((file: any) => 
-        file.fileName && (
-          file.fileName.toLowerCase().endsWith('.xlsx') ||
-          file.fileName.toLowerCase().endsWith('.xls') ||
-          file.fileName.toLowerCase().endsWith('.csv')
-        )
-      );
-      if (sheetFile) {
-        return sheetFile.fileName;
-      }
-    } catch (error) {
-      console.warn('Could not get attached spreadsheet file:', error);
-    }
-    
-    return 'Spreadsheet';
-  }, [providedSheetName]);
 
   const opSummary = useMemo(() => {
     const ops = operations || [];
@@ -76,15 +44,29 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     return counts;
   }, [operations]);
 
+  const hasPayload = Boolean((htmlContent && htmlContent.trim().length > 0) || (operations && operations.length > 0));
+
   const handlePreview = () => {
-    const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note, preview: true };
-    window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
+    const detail = {
+      action: action || 'Document edits',
+      note,
+      htmlContent,
+      operations: operations || [],
+      preview: true
+    };
+    window.dispatchEvent(new CustomEvent('document-ai-response', { detail }));
   };
 
   const handleAcceptAll = () => {
-    if (applied || rejected) return; // Prevent double-application
-    const payload = { action: action || 'Spreadsheet edits', sheetName, operations: operations || [], csvContent, note, preview: false };
-    window.dispatchEvent(new CustomEvent('sheet-ai-response', { detail: payload }));
+    if (applied || rejected) return;
+    const detail = {
+      action: action || 'Document edits',
+      note,
+      htmlContent,
+      operations: operations || [],
+      preview: false
+    };
+    window.dispatchEvent(new CustomEvent('document-ai-response', { detail }));
     setApplied(true);
     
     // Immediately notify that this change has been resolved
@@ -94,10 +76,9 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
   };
 
   const handleReject = () => {
-    if (applied || rejected) return; // Prevent double-rejection
+    if (applied || rejected) return;
     setRejected(true);
-    // Dispatch reject event to clear preview if active
-    window.dispatchEvent(new CustomEvent('sheet-ai-response-reject'));
+    window.dispatchEvent(new CustomEvent('document-ai-response-reject'));
     
     // Immediately notify that this change has been resolved
     if (changeIdRef.current) {
@@ -105,31 +86,24 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     }
   };
 
-  // Automatically show preview when component mounts
   useEffect(() => {
-    const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
-    if (hasContent && !hasPreviewedRef.current) {
-      // Generate unique ID for this change
-      const changeId = `sheet-${Date.now()}-${Math.random()}`;
+    if (hasPayload && !hasPreviewedRef.current) {
+      const changeId = `document-${Date.now()}-${Math.random()}`;
       changeIdRef.current = changeId;
       
-      // Register this change with the global tracker
       window.dispatchEvent(new CustomEvent('ai-change-registered', {
         detail: {
           id: changeId,
-          type: 'spreadsheet',
-          description: sheetName || 'Spreadsheet'
+          type: 'document',
+          description: 'Document'
         }
       }));
       
-      // Delay to ensure editor is ready
       const timer = setTimeout(() => {
         handlePreview();
-        setShowPreview(true);
         hasPreviewedRef.current = true;
       }, 100);
       
-      // Listen for global accept/reject
       const handleGlobalAccept = () => {
         handleAcceptAll();
       };
@@ -153,15 +127,13 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
     }
   }, []);
 
-  const hasContent = (csvContent && csvContent.trim().length > 0) || (operations && operations.length > 0);
-
-  if (!hasContent) {
+  if (!hasPayload) {
     return (
       <Card className="w-full max-w-2xl">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 text-muted-foreground">
             <AlertCircle className="h-4 w-4" />
-            <span>No spreadsheet changes to apply</span>
+            <span>No document changes to apply</span>
           </div>
         </CardContent>
       </Card>
@@ -174,12 +146,12 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
         <div className="p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Table className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
+              <FileText className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
               <Typography
                 variant="muted"
                 className="text-zinc-900 dark:text-white truncate"
               >
-                {sheetName}
+                Document
               </Typography>
             </div>
             
@@ -198,12 +170,12 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
         <div className="p-2">
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Table className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
+              <FileText className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
               <Typography
                 variant="muted"
                 className="text-zinc-900 dark:text-white truncate"
               >
-                {sheetName}
+                Document
               </Typography>
             </div>
             
@@ -221,12 +193,12 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
       <div className="p-2 space-y-2">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Table className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
+            <FileText className="h-4 w-4 text-zinc-900 dark:text-white stroke-[2.5] flex-shrink-0" />
             <Typography
               variant="muted"
               className="text-zinc-900 dark:text-white truncate"
             >
-              {sheetName}
+              Document
             </Typography>
           </div>
           
@@ -255,6 +227,6 @@ export const SheetAITool: React.FC<SheetAIToolProps> = (props) => {
   );
 };
 
-export default SheetAITool;
+export default DocumentAITool;
 
 

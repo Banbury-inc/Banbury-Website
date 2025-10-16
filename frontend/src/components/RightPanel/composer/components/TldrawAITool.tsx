@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Button } from './ui/button';
-import { Card } from './ui/card';
-import { CheckIcon, PaintbrushIcon, AlertCircle, Check, X } from 'lucide-react';
-import { Typography } from './ui/typography';
+import { Button } from '../../../ui/button';
+import { PaintbrushIcon, Check, X } from 'lucide-react';
+import { Typography } from '../../../ui/typography';
 
 interface TldrawAIToolProps {
   args: {

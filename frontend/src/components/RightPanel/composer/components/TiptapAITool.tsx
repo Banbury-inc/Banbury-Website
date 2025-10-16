@@ -1,11 +1,9 @@
-import { Wand2, FileText, CheckCircle, AlertCircle, Check, X } from 'lucide-react';
+import { FileText, AlertCircle, Check, X } from 'lucide-react';
 import React, { useEffect, useState, useRef } from 'react';
-
-import { Badge } from './ui/badge';
-import { Button } from './ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
-import { Typography } from './ui/typography';
-import { handleAIResponse } from '../contexts/TiptapAIContext';
+import { Button } from '../../../ui/button';
+import { Card, CardContent } from '../../../ui/card';
+import { Typography } from '../../../ui/typography';
+import { handleAIResponse } from '../../../../contexts/TiptapAIContext';
 
 interface TiptapAIToolProps {
   // When used via assistant-ui, args come as a nested object
