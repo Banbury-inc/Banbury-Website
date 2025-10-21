@@ -8,6 +8,7 @@ import { z } from "zod";
 
 import { CONFIG } from "../../config/config";
 import { getServerContextValue } from "../serverContext";
+import { githubTools } from "./tools/githubTools";
 
 import type { BaseMessage } from "@langchain/core/messages";
 
@@ -2307,6 +2308,7 @@ const tools = [
   calendarCreateEventTool,
   calendarUpdateEventTool,
   calendarDeleteEventTool,
+  ...githubTools,
   xApiGetUserInfoTool,
   xApiGetUserTweetsTool,
   xApiSearchTweetsTool,

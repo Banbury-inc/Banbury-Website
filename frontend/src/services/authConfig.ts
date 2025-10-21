@@ -23,6 +23,26 @@ export const AUTH_CONFIG = {
     return redirectUriMap[origin] || `${origin}/authentication/auth/callback`;
   },
 
+  // Get the GitHub OAuth redirect URI
+  getGitHubRedirectUri(): string {
+    const origin = window.location.origin;
+    
+    // Map of known domains to their correct GitHub redirect URIs
+    const redirectUriMap: Record<string, string> = {
+      'http://localhost:3000': 'http://localhost:3000/integrations/github/callback',
+      'http://localhost:3001': 'http://localhost:3001/integrations/github/callback',
+      'http://localhost:3002': 'http://localhost:3002/integrations/github/callback',
+      'http://localhost:8080': 'http://localhost:8080/integrations/github/callback',
+      'https://banbury.io': 'https://banbury.io/integrations/github/callback',
+      'https://www.banbury.io': 'https://www.banbury.io/integrations/github/callback',
+      'https://dev.banbury.io': 'https://dev.banbury.io/integrations/github/callback',
+      'https://www.dev.banbury.io': 'https://www.dev.banbury.io/integrations/github/callback',
+    };
+
+    return redirectUriMap[origin] || `${origin}/integrations/github/callback`;
+  },n/auth/callback`;
+  },
+
   // Check if current domain is allowed for OAuth
   isAllowedDomain(): boolean {
     const origin = window.location.origin;

@@ -19,6 +19,7 @@ import {
 import { Button } from '../components/ui/button'
 import { ScopeManager } from '../components/modals/settings-tabs/ScopeManager'
 import { XApiConnection } from '../components/modals/settings-tabs/XApiConnection'
+import { GitHubConnection } from '../components/modals/settings-tabs/GitHubConnection'
 import { ApiService } from '../services/apiService'
 import { NavSidebar } from '../components/nav-sidebar'
 import { loadStripe } from '@stripe/stripe-js'
@@ -234,6 +235,11 @@ const Settings = (): JSX.Element => {
   ]
 
   useEffect(() => {
+    // Set active tab from query parameter
+    if (router.query.tab) {
+      setActiveTab(router.query.tab as string)
+    }
+
     // Check if user just activated a scope
     if (router.query.scopeActivated === 'true') {
       setScopeActivated(true)
@@ -251,8 +257,18 @@ const Settings = (): JSX.Element => {
       router.replace('/settings', undefined, { shallow: true })
     }
 
+    // Check if GitHub connection was successful
+    if (router.query.githubConnected === 'true') {
+      toast({
+        title: "GitHub Account Connected",
+        description: "Successfully connected to your GitHub account!",
+      })
+      // Remove the query parameter
+      router.replace('/settings', undefined, { shallow: true })
+    }
+
     loadUserInfo()
-  }, [router.query.scopeActivated, router.query.x_connected])
+  }, [router.query.scopeActivated, router.query.x_connected, router.query.githubConnected, router.query.tab])
 
   const loadUserInfo = async () => {
     try {
@@ -817,6 +833,15 @@ const Settings = (): JSX.Element => {
                   X (Twitter) Integration
                 </h2>
                 <XApiConnection />
+              </div>
+
+              {/* GitHub Integration */}
+              <div className="p-6 bg-zinc-900 rounded-lg">
+                <h2 className="text-lg font-semibold mb-4 flex items-center text-white">
+                  <Link className="h-5 w-5 mr-2" />
+                  GitHub Integration
+                </h2>
+                <GitHubConnection />
               </div>
 
             </div>
