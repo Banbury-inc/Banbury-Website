@@ -12,7 +12,7 @@ npm run start
 
 ```bash
 npm run storybook
-npm run storybook:screenshots
+npm run storybook:screenshots:ci
 npm run lint
 ```
 

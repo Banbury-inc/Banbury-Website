@@ -16,16 +16,11 @@ export default function WhatIsBanburyTab() {
                   It is an entry-level, autonomous AI colleague capable of editing documents and spreadsheets, handling complex tasks,
                    and collaborating seamlessly with people across various platforms.
                 </Typography>
-                <Paper
-                  sx={{
-                    p: 2,
-                    background: 'primary.main',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '16px',
-                    backdropFilter: 'blur(10px)',
-                  }}
-                >
-              <Box>
+              <Box sx={{
+                borderRadius: '12px',
+                overflow: 'hidden',
+                border: '1px solid rgba(255,255,255,0.08)',
+              }}>
                 <Image 
                   src="/Workspaces.png" 
                   alt="Chat Input Field - Step 1" 
@@ -46,7 +41,6 @@ export default function WhatIsBanburyTab() {
                   }}
                 />
               </Box>
-              </Paper>
               <Typography variant="p" className="mt-2 mb-4">
                 Banbury transforms workflows, offering a powerful tool to enhance productivity, streamline operations, and drive innovation.
               </Typography>

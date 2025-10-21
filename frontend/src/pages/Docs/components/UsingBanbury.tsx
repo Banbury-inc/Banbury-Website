@@ -14,84 +14,6 @@ export default function UsingBanburyTab() {
         With step-by-step instructions and practical tips, learn how to leverage Banbury to simplify tasks and enhance productivity.
       </Typography>
 
-      {/* UI Components Overview */}
-      <Box sx={{ mb: 6 }}>
-        <Typography variant="h3" id="interface-overview" className="mb-3">
-          Interface Overview
-        </Typography>
-
-        {/* Left Panel */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" id="left-panel" className="mb-2">
-            Left Panel
-          </Typography>
-          <Typography variant="muted" className="mb-2">
-            The left panel provides quick access to your workspace navigation and tools.
-          </Typography>
-          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
-            <Image 
-              src="/Components-LeftPanel--Default.png" 
-              alt="Left Panel Interface" 
-              width={300}
-              height={600}
-              style={{ 
-                width: 'auto',
-                maxWidth: '300px',
-                height: 'auto', 
-                display: 'block'
-              }} 
-            />
-          </Box>
-        </Box>
-
-        {/* Composer with Attached Files */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" id="composer-attached-files" className="mb-2">
-            Composer with Attached Files
-          </Typography>
-          <Typography variant="muted" className="mb-2">
-            Attach files and documents to provide context for your conversations with Banbury.
-          </Typography>
-          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
-            <Image 
-              src="/Components-Composer--With-Attached-Files.png" 
-              alt="Composer with Attached Files" 
-              width={600}
-              height={200}
-              style={{ 
-                width: 'auto',
-                maxWidth: '600px',
-                height: 'auto', 
-                display: 'block'
-              }} 
-            />
-          </Box>
-        </Box>
-
-        {/* Composer with Pending Changes */}
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h4" id="composer-pending-changes" className="mb-2">
-            Composer with Pending Changes
-          </Typography>
-          <Typography variant="muted" className="mb-2">
-            Review and approve changes before Banbury applies them to your documents.
-          </Typography>
-          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
-            <Image 
-              src="/Components-Composer--With-Pending-Changes.png" 
-              alt="Composer with Pending Changes" 
-              width={600}
-              height={200}
-              style={{ 
-                width: 'auto',
-                maxWidth: '600px',
-                height: 'auto', 
-                display: 'block'
-              }} 
-            />
-          </Box>
-        </Box>
-      </Box>
 
       <Typography variant="h3" id="using-chat" className="mb-4">
         Using Chat
@@ -134,7 +56,7 @@ export default function UsingBanburyTab() {
             {/* Connecting Line */}
             <Box sx={{
               width: '2px',
-              height: '315px',
+              height: '280px',
               backgroundColor: 'rgba(255, 255, 255, 0.3)',
               mb: 2
             }} />
@@ -154,6 +76,57 @@ export default function UsingBanburyTab() {
             }}>
               <Typography variant="small" className="font-semibold">
                 2
+              </Typography>
+            </Box>
+
+            {/* Connecting Line */}
+            <Box sx={{
+              width: '2px',
+              height: '280px',
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+              mb: 2
+            }} />
+            
+            {/* Step 3 Circle */}
+            <Box sx={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: '2px solid rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              mb: 2,
+              zIndex: 2
+            }}>
+              <Typography variant="small" className="font-semibold">
+                3
+              </Typography>
+            </Box>
+
+            {/* Connecting Line */}
+            <Box sx={{
+              width: '2px',
+              height: '280px',
+              backgroundColor: 'rgba(255, 255, 255, 0.3)',
+              mb: 2
+            }} />
+            
+            {/* Step 4 Circle */}
+            <Box sx={{
+              width: '30px',
+              height: '30px',
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255, 255, 255, 0.1)',
+              border: '2px solid rgba(255, 255, 255, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 2
+            }}>
+              <Typography variant="small" className="font-semibold">
+                4
               </Typography>
             </Box>
           </Box>
@@ -355,6 +328,98 @@ export default function UsingBanburyTab() {
                 }}>
                   <Typography variant="small">
                     [Chat Interface Image - Step 2]
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Step 3 Content */}
+            <Box sx={{ mb: 4 }}>
+              <Typography variant="h4" id="attach-files" className="mb-2">
+                Attach Files
+              </Typography>
+              
+              <Typography variant="muted" className="mb-3">
+                You can attach files to your prompts by clicking the attachment icon in the composer or simply opening a file in the left panel.
+              </Typography>
+              
+              <Box sx={{ mb: 3 }}>
+                <Image 
+                  src="/composer-with-attached-file.png" 
+                  alt="Composer with attached file" 
+                  width={400}
+                  height={200}
+                  style={{ 
+                    width: '100%', 
+                    height: 'auto', 
+                    borderRadius: '10px',
+                    maxWidth: '400px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }} 
+                  onLoad={() => console.log('Composer with attached file image loaded successfully')}
+                  onError={(e) => {
+                    console.error('Failed to load composer-with-attached-file image:', e);
+                    console.log('Trying to load from:', e.currentTarget.src);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                {/* Fallback text if image fails */}
+                <Box sx={{ 
+                  display: 'none',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 2,
+                  mt: 2
+                }}>
+                  <Typography variant="small">
+                    [Composer with Attached File Image - Step 3]
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Step 4 Content */}
+            <Box>
+              <Typography variant="h4" id="toggle-tools" className="mb-2">
+                Toggle Tools
+              </Typography>
+              
+              <Typography variant="muted" className="mb-3">
+                Enable or disable specific tools in the composer to customize Banbury's capabilities for your task.
+              </Typography>
+              
+              <Box sx={{ mb: 3 }}>
+                <Image 
+                  src="/composer-tool-toggling.png" 
+                  alt="Composer tool toggling interface" 
+                  width={400}
+                  height={200}
+                  style={{ 
+                    width: '100%', 
+                    height: 'auto', 
+                    borderRadius: '10px',
+                    maxWidth: '400px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+                  }} 
+                  onLoad={() => console.log('Composer tool toggling image loaded successfully')}
+                  onError={(e) => {
+                    console.error('Failed to load composer-tool-toggling image:', e);
+                    console.log('Trying to load from:', e.currentTarget.src);
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+                {/* Fallback text if image fails */}
+                <Box sx={{ 
+                  display: 'none',
+                  backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '8px',
+                  p: 2,
+                  mt: 2
+                }}>
+                  <Typography variant="small">
+                    [Composer Tool Toggling Image - Step 4]
                   </Typography>
                 </Box>
               </Box>
