@@ -1,30 +1,17 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { Box, Paper } from '@mui/material';
 import { IntegrationInstructions, Repeat, AccountTree } from '@mui/icons-material';
 import Image from 'next/image';
+import DocPageLayout from './DocPageLayout';
+import { Typography } from '../../../components/ui/typography';
 
 export default function WhatIsBanburyTab() {
   return (
+    <DocPageLayout>
               <Box>
-                <Typography
-                  sx={{
-                    fontSize: { xs: '1.75rem', md: '2rem' },
-                    fontWeight: 600,
-                    mb: 3,
-                    color: '#ffffff',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="h2" className="mb-3">
                   What Is Banbury?
                 </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mb: 4,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="p" className="mb-4">
                   Banbury is an Enterprise AI Analyst that works as a remote artificial employee within organizations.
                   It is an entry-level, autonomous AI colleague capable of editing documents and spreadsheets, handling complex tasks,
                    and collaborating seamlessly with people across various platforms.
@@ -60,29 +47,11 @@ export default function WhatIsBanburyTab() {
                 />
               </Box>
               </Paper>
-              <Typography
-                sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mt: 2,
-                    mb: 4,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="p" className="mt-2 mb-4">
                 Banbury transforms workflows, offering a powerful tool to enhance productivity, streamline operations, and drive innovation.
               </Typography>
 
-                <Typography
-                  sx={{
-                    fontSize: { xs: '1.75rem', md: '1.75rem' },
-                    fontWeight: 600,
-                    mt: 2,
-                    mb: 3,
-                    color: '#ffffff',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="h2" className="mt-2 mb-3">
                   Why choose Banbury?
                 </Typography>
                 <Paper
@@ -103,27 +72,11 @@ export default function WhatIsBanburyTab() {
                       fontSize: '1.5rem' 
                     }} 
                   />
-                  <Typography
-                    sx={{
-                      fontSize: '1.25rem',
-                      fontWeight: 600,
-                      color: '#a1a1aa',
-                      lineHeight: 1.7,
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
+                  <Typography variant="h3">
                       Data Integration
                   </Typography>
                 </Box>
-                <Typography
-                  sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mb: 2,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="p" className="mb-2">
                   Banbury is a great way to get started with AI in your organization.
                   Athena seamlessly integrates with popular enterprise data sources such as Snowflake/Salesforce,
                    Outlook/Gmail, etc. allowing for a unified data experience across platforms and enhancing productivity.
@@ -148,27 +101,11 @@ export default function WhatIsBanburyTab() {
                       fontSize: '1.5rem' 
                     }} 
                   />
-                  <Typography
-                    sx={{
-                      fontSize: '1.25rem',
-                      fontWeight: 600,
-                      color: '#a1a1aa',
-                      lineHeight: 1.7,
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
+                  <Typography variant="h3">
                       Repeatability
                   </Typography>
                 </Box>
-                <Typography
-                  sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mb: 2,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="p" className="mb-2">
                    Banbury excels in automating manual processes and repeating workflows across multiple scenarios, saving time and reducing errors. This capability allows enterprises to scale operations efficiently by standardizing routine tasks.
                 </Typography>
                 </Paper>
@@ -190,55 +127,24 @@ export default function WhatIsBanburyTab() {
                       fontSize: '1.5rem' 
                     }} 
                   />
-                  <Typography
-                    sx={{
-                      fontSize: '1.25rem',
-                      fontWeight: 600,
-                      color: '#a1a1aa',
-                      lineHeight: 1.7,
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
+                  <Typography variant="h3">
                       Tailored Workflows
                   </Typography>
                 </Box>
-                <Typography
-                  sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mb: 2,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="p" className="mb-2">
                    Banbury offers bespoke workflows tailored to your industry needs, providing customizable solutions that align with your enterprise's unique processes and objectives.
                 </Typography>
                 </Paper>
-                <Typography
-                  sx={{
-                    fontSize: { xs: '1.75rem', md: '1.75rem' },
-                    fontWeight: 600,
-                    mb: 3,
-                    color: '#ffffff',
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="h2" className="mb-3">
                   Who is Banbury made for?
                 </Typography>
-                <Typography
-                  sx={{
-                    fontSize: '1rem',
-                    color: '#a1a1aa',
-                    mb: 2,
-                    lineHeight: 1.7,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="p" className="mb-2">
                   Banbury is made for organizations looking to harness the power of advanced AI to enhance productivity,
                    drive innovation, and gain a competitive edge in today's fast-paced environment. Whether you're
                     a student in college, a Fortune 500 executive, or anywhere in between, Banbury is your next hire to help
                      you achieve your goals more efficiently and effectively.
                 </Typography>
               </Box>
+    </DocPageLayout>
   );
-};
+}

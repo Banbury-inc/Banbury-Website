@@ -361,8 +361,23 @@ const preview: Preview = {
           root.classList.remove("dark")
         }
         
-        // Apply body styles to match app
-        body.className = "bg-background text-foreground"
+        // Remove body styles for transparent background
+        body.className = "text-foreground"
+        body.style.backgroundColor = "transparent"
+        
+        // Add a style tag to override any CSS background rules
+        let styleTag = document.getElementById("storybook-bg-override")
+        if (!styleTag) {
+          styleTag = document.createElement("style")
+          styleTag.id = "storybook-bg-override"
+          styleTag.innerHTML = `
+            body, html, #storybook-root {
+              background-color: transparent !important;
+              background: transparent !important;
+            }
+          `
+          document.head.appendChild(styleTag)
+        }
       }, [theme])
 
       return React.createElement(
@@ -374,7 +389,7 @@ const preview: Preview = {
           storageKey: "storybook-theme-mode",
           forcedTheme: theme
         },
-        React.createElement("div", { className: "bg-background text-foreground p-4" }, React.createElement(Story))
+        React.createElement("div", { className: "text-foreground" }, React.createElement(Story))
       )
     }
   ]

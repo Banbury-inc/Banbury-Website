@@ -7,6 +7,16 @@ npm install
 npm run start
 ```
 
+# Other Commands
+
+
+```bash
+npm run storybook
+npm run storybook:screenshots
+npm run lint
+```
+
+
 # Integrations
 
 - Gmail

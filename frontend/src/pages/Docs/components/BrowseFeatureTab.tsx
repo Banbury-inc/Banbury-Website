@@ -1,93 +1,39 @@
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
+import DocPageLayout from './DocPageLayout';
+import { Typography } from '../../../components/ui/typography';
 const browserAutomationDemo = require('../../../assets/images/browser-automation-demo.mp4');
 
 export default function BrowseFeatureTab() {
   return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: { xs: '1.75rem', md: '2rem' },
-          fontWeight: 600,
-          mb: 3,
-          color: '#ffffff',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+    <DocPageLayout>
+      <Box>
+      <Typography variant="h2" className="mb-3">
         Browse
       </Typography>
       
       {/* Visibility */}
       <Box sx={{ mb: 4 }}>
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            mb: 2,
-            color: '#ffffff',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h4" className="mb-2">
           • <strong>Visibility:</strong>
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 2,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            pl: 2,
-          }}
-        >
+        <Typography variant="muted" className="mb-2 pl-2">
           • Banbury can browse the web to gather and read information.
         </Typography>
       </Box>
 
       {/* Actions */}
       <Box>
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            mb: 2,
-            color: '#ffffff',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h4" className="mb-2">
           • <strong>Actions - Banbury can:</strong>
         </Typography>
         <Box sx={{ pl: 2 }}>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Create a new browser session.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Read the output of a website.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Fill out forms on a website.
           </Typography>
         </Box>
@@ -127,6 +73,7 @@ export default function BrowseFeatureTab() {
           />
         </Box>
       </Box>
-    </Box>
+      </Box>
+    </DocPageLayout>
   );
 }

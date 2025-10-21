@@ -1,32 +1,18 @@
-import { Box, Typography, Paper, List, ListItem, ListItemText, Chip } from '@mui/material';
+import { Box, Paper, List, ListItem, ListItemText, Chip } from '@mui/material';
 import Image from 'next/image';
 import TaskStudioImg from '../../../assets/images/Task_Studio.png';
+import DocPageLayout from './DocPageLayout';
+import { Typography } from '../../../components/ui/typography';
 
 const TaskStudioTab = (): JSX.Element => {
   return (
-    <Box>
-      <Typography
-        variant="h3"
-        sx={{
-          fontSize: '2rem',
-          fontWeight: 700,
-          color: '#ffffff',
-          mb: 3,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+    <DocPageLayout>
+      <Box>
+      <Typography variant="h2" className="mb-3">
         Task Studio
       </Typography>
 
-      <Typography
-        sx={{
-          fontSize: '1.1rem',
-          color: '#a1a1aa',
-          mb: 4,
-          lineHeight: 1.6,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+      <Typography variant="p" className="mb-4">
         Task Studio is Banbury's comprehensive task management interface that allows you to create, schedule, monitor, and manage tasks within your workspace. It provides powerful features for both individual and recurring task management.
       </Typography>
 
@@ -54,41 +40,16 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           Getting Started
         </Typography>
 
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            color: '#a1a1aa',
-            mb: 3,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="p" className="mb-3">
           To access Task Studio, you need to be logged into your Banbury account. Once authenticated, you can navigate to Task Studio through the sidebar navigation.
         </Typography>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Access Requirements:
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -122,40 +83,15 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           Core Features
         </Typography>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Task Creation &amp; Scheduling
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             Create tasks with detailed information including titles, descriptions, scheduled dates and times, priority levels, and estimated duration. The task scheduler supports both one-time and recurring tasks.
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -203,26 +139,10 @@ const TaskStudioTab = (): JSX.Element => {
         </Box>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Recurring Tasks
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             Set up recurring tasks with flexible patterns and end dates. Perfect for routine activities and regular workflows.
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -262,26 +182,10 @@ const TaskStudioTab = (): JSX.Element => {
         </Box>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Task Management &amp; Monitoring
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             Monitor and manage your tasks through a comprehensive table interface with filtering, status management, and batch operations.
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -339,90 +243,33 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           Interface Overview
         </Typography>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Navigation Sidebar
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             The left sidebar provides quick access to all major sections including Dashboard, Workspaces, Task Studio, Knowledge, and Settings. The Task Studio icon (workflow symbol) is prominently displayed for easy navigation.
           </Typography>
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Main Task Table
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             The central area displays all your tasks in a comprehensive table format with columns for selection, title, status, priority, scheduled time, duration, results, and actions. Filter buttons allow you to view tasks by status.
           </Typography>
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Task Creation Panel
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '1rem',
-              color: '#a1a1aa',
-              mb: 2,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="p" className="mb-2">
             Click the "Create Task" button to open the slide-out task creation panel on the right side. This panel contains all the forms and options needed to create new tasks, including recurring task settings.
           </Typography>
         </Box>
@@ -438,29 +285,12 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           How to Use Task Studio
         </Typography>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Creating a New Task
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -524,15 +354,7 @@ const TaskStudioTab = (): JSX.Element => {
         </Box>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Managing Existing Tasks
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -588,15 +410,7 @@ const TaskStudioTab = (): JSX.Element => {
         </Box>
 
         <Box sx={{ mb: 4 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Setting Up Recurring Tasks
           </Typography>
           <List sx={{ pl: 2 }}>
@@ -646,29 +460,12 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           Understanding Status and Priority Badges
         </Typography>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Task Status Indicators
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
@@ -680,15 +477,7 @@ const TaskStudioTab = (): JSX.Element => {
         </Box>
 
         <Box sx={{ mb: 3 }}>
-          <Typography
-            sx={{
-              fontSize: '1.1rem',
-              fontWeight: 600,
-              color: '#ffffff',
-              mb: 2,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="h4" className="mb-2">
             Priority Levels
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mb: 2 }}>
@@ -710,16 +499,7 @@ const TaskStudioTab = (): JSX.Element => {
           mb: 4,
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            fontSize: '1.5rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 3,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-3">
           Best Practices
         </Typography>
 
@@ -782,7 +562,8 @@ const TaskStudioTab = (): JSX.Element => {
           </ListItem>
         </List>
       </Paper>
-    </Box>
+      </Box>
+    </DocPageLayout>
   );
 };
 

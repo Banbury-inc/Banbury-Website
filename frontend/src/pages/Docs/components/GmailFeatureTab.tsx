@@ -1,162 +1,58 @@
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import Image from 'next/image';
+import DocPageLayout from './DocPageLayout';
+import { Typography } from '../../../components/ui/typography';
 import gmailImage from '../../../assets/images/gmail.png';
 
 export default function GmailFeatureTab() {
   return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: { xs: '1.75rem', md: '2rem' },
-          fontWeight: 600,
-          mb: 3,
-          color: '#ffffff',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+    <DocPageLayout>
+      <Box>
+      <Typography variant="h2" className="mb-3">
         Gmail
       </Typography>
       
       {/* Visibility */}
       <Box sx={{ mb: 4 }}>
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            mb: 2,
-            color: '#ffffff',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h4" className="mb-2">
           • <strong>Visibility:</strong>
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 2,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            pl: 2,
-          }}
-        >
+        <Typography variant="muted" className="mb-2 pl-2">
           • Banbury can view and understand the contents of your Gmail messages, including email threads, attachments, and metadata.
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 2,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            pl: 2,
-          }}
-        >
+        <Typography variant="muted" className="mb-2 pl-2">
           • Access to email content, sender information, timestamps, and conversation threads.
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 0,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            pl: 2,
-          }}
-        >
+        <Typography variant="muted" className="pl-2">
           • Read and analyze email attachments and embedded content.
         </Typography>
       </Box>
 
       {/* Actions */}
       <Box>
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            mb: 2,
-            color: '#ffffff',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h4" className="mb-2">
           • <strong>Actions - Banbury can:</strong>
         </Typography>
         <Box sx={{ pl: 2 }}>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Compose and send new emails.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Reply to and forward existing emails.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Organize emails by creating and managing labels.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Search and filter emails based on content, sender, or date.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Schedule emails to be sent at specific times.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 1,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted" className="mb-1">
             • Manage email drafts and templates.
           </Typography>
-          <Typography
-            sx={{
-              fontSize: '0.9rem',
-              color: '#a1a1aa',
-              mb: 0,
-              lineHeight: 1.6,
-              fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            }}
-          >
+          <Typography variant="muted">
             • Set up automated email responses and filters.
           </Typography>
         </Box>
@@ -188,40 +84,17 @@ export default function GmailFeatureTab() {
         display: 'flex',
         flexDirection: 'column',
       }}>
-        <Typography
-          sx={{
-            fontSize: '1rem',
-            fontWeight: 600,
-            mb: 2,
-            color: '#ffffff',
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h4" className="mb-2">
           Gmail Integration
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 2,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="muted" className="mb-2">
           Banbury's Gmail integration allows for seamless email management and automation. Whether you need to analyze email patterns, respond to customer inquiries, or organize your inbox, Banbury can handle it all with intelligent automation.
         </Typography>
-        <Typography
-          sx={{
-            fontSize: '0.9rem',
-            color: '#a1a1aa',
-            mb: 0,
-            lineHeight: 1.6,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="muted">
           Connect your Gmail account to get started with intelligent email management powered by AI.
         </Typography>
       </Box>
-    </Box>
+      </Box>
+    </DocPageLayout>
   );
 }

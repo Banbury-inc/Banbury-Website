@@ -1,42 +1,99 @@
-import { Box, Typography, Paper } from '@mui/material';
+import { Box } from '@mui/material';
 import Image from 'next/image';
-import { useEffect } from 'react';
+import DocPageLayout from './DocPageLayout';
+import { Typography } from '../../../components/ui/typography';
 
 export default function UsingBanburyTab() {
   return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: { xs: '1.75rem', md: '2rem' },
-          fontWeight: 600,
-          mb: 3,
-          color: '#ffffff',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+    <DocPageLayout>
+      <Typography variant="h2" className="mb-3">
         Using Banbury
       </Typography>
-      <Typography
-        sx={{
-          fontSize: '1rem',
-          color: '#a1a1aa',
-          mb: 4,
-          lineHeight: 1.7,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+      <Typography variant="p" className="mb-4">
         This guide will walk you through Banbury—covering everything from basic functionalities to unlocking its full potential. 
         With step-by-step instructions and practical tips, learn how to leverage Banbury to simplify tasks and enhance productivity.
       </Typography>
-      <Typography
-        sx={{
-          fontSize: '1.25rem',
-          color: '#ffffff',
-          mb: 4,
-          lineHeight: 1.7,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+
+      {/* UI Components Overview */}
+      <Box sx={{ mb: 6 }}>
+        <Typography variant="h3" id="interface-overview" className="mb-3">
+          Interface Overview
+        </Typography>
+
+        {/* Left Panel */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" id="left-panel" className="mb-2">
+            Left Panel
+          </Typography>
+          <Typography variant="muted" className="mb-2">
+            The left panel provides quick access to your workspace navigation and tools.
+          </Typography>
+          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
+            <Image 
+              src="/Components-LeftPanel--Default.png" 
+              alt="Left Panel Interface" 
+              width={300}
+              height={600}
+              style={{ 
+                width: 'auto',
+                maxWidth: '300px',
+                height: 'auto', 
+                display: 'block'
+              }} 
+            />
+          </Box>
+        </Box>
+
+        {/* Composer with Attached Files */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" id="composer-attached-files" className="mb-2">
+            Composer with Attached Files
+          </Typography>
+          <Typography variant="muted" className="mb-2">
+            Attach files and documents to provide context for your conversations with Banbury.
+          </Typography>
+          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
+            <Image 
+              src="/Components-Composer--With-Attached-Files.png" 
+              alt="Composer with Attached Files" 
+              width={600}
+              height={200}
+              style={{ 
+                width: 'auto',
+                maxWidth: '600px',
+                height: 'auto', 
+                display: 'block'
+              }} 
+            />
+          </Box>
+        </Box>
+
+        {/* Composer with Pending Changes */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" id="composer-pending-changes" className="mb-2">
+            Composer with Pending Changes
+          </Typography>
+          <Typography variant="muted" className="mb-2">
+            Review and approve changes before Banbury applies them to your documents.
+          </Typography>
+          <Box sx={{ mb: 3, display: 'inline-block', width: 'auto' }}>
+            <Image 
+              src="/Components-Composer--With-Pending-Changes.png" 
+              alt="Composer with Pending Changes" 
+              width={600}
+              height={200}
+              style={{ 
+                width: 'auto',
+                maxWidth: '600px',
+                height: 'auto', 
+                display: 'block'
+              }} 
+            />
+          </Box>
+        </Box>
+      </Box>
+
+      <Typography variant="h3" id="using-chat" className="mb-4">
         Using Chat
       </Typography>
 
@@ -69,14 +126,7 @@ export default function UsingBanburyTab() {
               mb: 2,
               zIndex: 2
             }}>
-              <Typography
-                sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="small" className="font-semibold">
                 1
               </Typography>
             </Box>
@@ -102,14 +152,7 @@ export default function UsingBanburyTab() {
               mb: 2,
               zIndex: 2
             }}>
-              <Typography
-                sx={{
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="small" className="font-semibold">
                 2
               </Typography>
             </Box>
@@ -119,41 +162,17 @@ export default function UsingBanburyTab() {
           <Box sx={{ flex: 1 }}>
             {/* Step 1 Content */}
             <Box sx={{ mb: 4 }}>
-              <Typography
-                sx={{
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  mb: 2,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="h4" id="web-research" className="mb-2">
                 Web Research
               </Typography>
               
-              <Typography
-                sx={{
-                  fontSize: '0.9rem',
-                  color: '#a1a1aa',
-                  mb: 3,
-                  lineHeight: 1.5,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="muted" className="mb-3">
                 In the Chat window, type the following prompt and press Enter.
               </Typography>
               
               {/* Prompt Section */}
               <Box sx={{ mb: 3 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    color: '#a1a1aa',
-                    mb: 1,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="small" className="mb-1 font-medium">
                   Prompt
                 </Typography>
                 <Box sx={{
@@ -165,13 +184,7 @@ export default function UsingBanburyTab() {
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      color: '#ffffff',
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
+                  <Typography variant="small">
                     Search the web for latest NFL news.
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
@@ -241,7 +254,7 @@ export default function UsingBanburyTab() {
                   p: 2,
                   mt: 2
                 }}>
-                  <Typography sx={{ color: '#ffffff', fontSize: '0.8rem' }}>
+                  <Typography variant="small">
                     [Chat Interface Image - Step 1]
                   </Typography>
                 </Box>
@@ -250,41 +263,17 @@ export default function UsingBanburyTab() {
 
             {/* Step 2 Content */}
             <Box>
-              <Typography
-                sx={{
-                  fontSize: '1.1rem',
-                  fontWeight: 600,
-                  color: '#ffffff',
-                  mb: 2,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="h4" id="draft-report" className="mb-2">
                 Draft a report
               </Typography>
               
-              <Typography
-                sx={{
-                  fontSize: '0.9rem',
-                  color: '#a1a1aa',
-                  mb: 3,
-                  lineHeight: 1.5,
-                  fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                }}
-              >
+              <Typography variant="muted" className="mb-3">
                 Type the following prompt and press Enter.
               </Typography>
               
               {/* Prompt Section */}
               <Box sx={{ mb: 3 }}>
-                <Typography
-                  sx={{
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    color: '#a1a1aa',
-                    mb: 1,
-                    fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                  }}
-                >
+                <Typography variant="small" className="mb-1 font-medium">
                   Prompt
                 </Typography>
                 <Box sx={{
@@ -296,13 +285,7 @@ export default function UsingBanburyTab() {
                   alignItems: 'center',
                   justifyContent: 'space-between'
                 }}>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8rem',
-                      color: '#ffffff',
-                      fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-                    }}
-                  >
+                  <Typography variant="small">
                     Create a new document with a summary of your results.
                   </Typography>
                   <Box sx={{ display: 'flex', gap: 1 }}>
@@ -370,7 +353,7 @@ export default function UsingBanburyTab() {
                   p: 2,
                   mt: 2
                 }}>
-                  <Typography sx={{ color: '#ffffff', fontSize: '0.8rem' }}>
+                  <Typography variant="small">
                     [Chat Interface Image - Step 2]
                   </Typography>
                 </Box>
@@ -379,6 +362,6 @@ export default function UsingBanburyTab() {
           </Box>
         </Box>
       </Box>
-    </Box>
+    </DocPageLayout>
   );
 };

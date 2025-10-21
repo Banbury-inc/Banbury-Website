@@ -1,32 +1,19 @@
-import { Box, Typography, Paper } from '@mui/material'
+import { Box, Paper } from '@mui/material'
 import Image from 'next/image'
 import KnowledgeGraphImg from '../../../assets/images/Memories.png'
+import DocPageLayout from './DocPageLayout'
+import { Typography } from '../../../components/ui/typography'
 
 export default function KnowledgeGraphTab(): JSX.Element {
   return (
-    <Box>
-      <Typography
-        sx={{
-          fontSize: { xs: '1.75rem', md: '2rem' },
-          fontWeight: 600,
-          mb: 3,
-          color: '#ffffff',
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
+    <DocPageLayout>
+      <Box>
+      <Typography variant="h2" className="mb-3">
         Knowledge Graph
       </Typography>
 
-      <Typography
-        sx={{
-          fontSize: '1rem',
-          color: '#a1a1aa',
-          mb: 4,
-          lineHeight: 1.7,
-          fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-        }}
-      >
-        Banbury maintains a continuously updating knowledge graph that models entities, relationships, and events across your organization’s data. It enables precise retrieval, reasoning, and traceability for business questions and automations.
+      <Typography variant="p" className="mb-4">
+        Banbury maintains a continuously updating knowledge graph that models entities, relationships, and events across your organization's data. It enables precise retrieval, reasoning, and traceability for business questions and automations.
       </Typography>
 
       <Box sx={{ mb: 4 }}>
@@ -53,28 +40,20 @@ export default function KnowledgeGraphTab(): JSX.Element {
           borderRadius: '12px',
         }}
       >
-        <Typography
-          sx={{
-            fontSize: '1.25rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 2,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-2">
           Core capabilities
         </Typography>
         <Box sx={{ pl: 2 }}>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             • Entity and relationship extraction from docs, spreadsheets, emails, and the web
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             • Versioned facts with timestamps and sources for auditability
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             • Graph-aware retrieval for precise answers and grounded summaries
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 0, lineHeight: 1.6 }}>
+          <Typography variant="muted">
             • Reasoning over multi-hop relationships to surface non-obvious insights
           </Typography>
         </Box>
@@ -89,25 +68,17 @@ export default function KnowledgeGraphTab(): JSX.Element {
           borderRadius: '12px',
         }}
       >
-        <Typography
-          sx={{
-            fontSize: '1.25rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 2,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-2">
           Typical workflows
         </Typography>
         <Box sx={{ pl: 2 }}>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             1. Connect data sources → Banbury ingests and extracts entities/relations
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             2. Ask questions → Responses cite nodes, edges, and supporting documents
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 0, lineHeight: 1.6 }}>
+          <Typography variant="muted">
             3. Act on insights → Trigger tasks and automations grounded in graph facts
           </Typography>
         </Box>
@@ -121,31 +92,22 @@ export default function KnowledgeGraphTab(): JSX.Element {
           borderRadius: '12px',
         }}
       >
-        <Typography
-          sx={{
-            fontSize: '1.25rem',
-            fontWeight: 600,
-            color: '#ffffff',
-            mb: 2,
-            fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-          }}
-        >
+        <Typography variant="h3" className="mb-2">
           Example prompts
         </Typography>
         <Box sx={{ pl: 2 }}>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             • Show relationships between Acme Corp, its subsidiaries, and Q2 contracts
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 1, lineHeight: 1.6 }}>
+          <Typography variant="muted" className="mb-1">
             • What customers are at risk given outages in Region A in the last 14 days?
           </Typography>
-          <Typography sx={{ fontSize: '0.95rem', color: '#a1a1aa', mb: 0, lineHeight: 1.6 }}>
+          <Typography variant="muted">
             • Summarize the evidence linking vendor delays to revenue slippage this month
           </Typography>
         </Box>
       </Paper>
-    </Box>
+      </Box>
+    </DocPageLayout>
   )
 }
-
-

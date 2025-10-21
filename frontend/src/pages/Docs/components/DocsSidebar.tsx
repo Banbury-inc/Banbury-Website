@@ -19,7 +19,6 @@ interface DocsSidebarProps {
 }
 
 const DocsSidebar = ({ activeSection }: DocsSidebarProps): JSX.Element => {
-  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
   const router = useRouter();
 
   const sections: SidebarSection[] = [
@@ -74,6 +73,10 @@ const DocsSidebar = ({ activeSection }: DocsSidebarProps): JSX.Element => {
       ]
     },
   ];
+
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(
+    new Set(sections.map(section => section.id))
+  );
 
   const toggleSection = (sectionId: string) => {
     const newExpanded = new Set(expandedSections);
