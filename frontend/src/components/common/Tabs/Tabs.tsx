@@ -59,24 +59,23 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
       ${isActive ? 'tab--active' : ''}
       ${isNew ? 'animate-tab-enter opacity-0' : ''}
       ${isClosing ? 'animate-tab-exit' : ''}
-      flex-1
-      px-3 
-      py-1.5 
-      text-xs
-      font-normal
+      px-4 
+      py-2
+      text-sm
+      font-medium
       transition-colors 
       duration-150
       relative
       flex
       items-center
       justify-between
-      gap-2
-      min-w-[120px]
-      max-w-[200px]
-      border-r border-zinc-300 dark:border-zinc-700
+      gap-3
+      min-w-[140px]
+      max-w-[240px]
+      border-r border-zinc-200/50 dark:border-zinc-800/50
       ${isActive 
-        ? 'text-zinc-900 dark:text-white bg-white dark:bg-[#1e1e1e]' 
-        : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-[#2d2d2d] hover:bg-zinc-200 dark:hover:bg-[#252525]'}
+        ? 'text-zinc-900 dark:text-white bg-accent' 
+        : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-[#2d2d2d] hover:bg-accent/50 dark:hover:bg-accent/50 hover:text-zinc-900 dark:hover:text-white'}
       focus:outline-none
       group
     `}
@@ -89,9 +88,9 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
           onClose();
         }}
         id={`tab-close-button-${label}`}
-        className="rounded-sm hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors p-0.5 opacity-60 hover:opacity-100"
+        className="rounded hover:bg-zinc-300 dark:hover:bg-zinc-700 transition-all duration-150 p-0.5 opacity-0 group-hover:opacity-100"
       >
-        <CloseIcon size={12} />
+        <CloseIcon size={14} />
       </button>
     )}
   </div>
@@ -103,8 +102,8 @@ const DropIndicator = ({ left }: { edge: Edge; gap: string; left: number }) => (
       position: 'fixed',
       backgroundColor: 'white',
       width: '2px',
-      height: '28px',
-      top: '25px',
+      height: '32px',
+      top: '28px',
       left: `${left}px`,
       transform: 'translateY(-50%)',
       transition: 'left 150ms ease',
@@ -359,7 +358,7 @@ export const Tabs: React.FC<TabsProps> = ({
   }, [tabs, onReorder]);
 
   return (
-    <div ref={containerRef} className="flex items-stretch bg-zinc-50 dark:bg-[#252525] border-b border-zinc-200 dark:border-zinc-700">
+    <div ref={containerRef} className="flex items-stretch bg-zinc-100 dark:bg-[#252526] border-b border-zinc-200 dark:border-zinc-900/50">
       <style>
         {`
           .tab {
@@ -391,9 +390,9 @@ export const Tabs: React.FC<TabsProps> = ({
         <button
           onClick={() => onTabAdd?.()}
           data-testid="new-tab-button"
-          className="px-3 py-1.5 text-xs transition-colors duration-150 text-zinc-600 dark:text-zinc-400 hover:text-zinc-800 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-[#2d2d2d] bg-zinc-100 dark:bg-[#252525]"
+          className="px-4 py-2 text-sm transition-colors duration-150 text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-[#2d2d2d] bg-transparent"
         >
-          <AddIcon size={12} />
+          <AddIcon size={14} />
         </button>
       )}
       {closestEdge && indicatorPosition !== null && !suppressReorderIndicator && (

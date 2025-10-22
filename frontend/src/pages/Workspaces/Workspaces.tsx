@@ -1068,12 +1068,10 @@ const Workspaces = (): JSX.Element => {
           .select-none {
             user-select: none;
           }
-          /* Nice border styling for tabs (Olympus Tabs use .tab class) */
+          /* VSCode-style tabs (Olympus Tabs use .tab class) */
           .tab {
             border: none;
-            border-top-left-radius: 10px;
-            border-top-right-radius: 10px;
-            transition: border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+            transition: background-color 150ms ease, color 150ms ease;
           }
           .tab:hover {
             border: none;
@@ -1081,9 +1079,6 @@ const Workspaces = (): JSX.Element => {
           }
           .tab--active {
             border: none;
-          }
-          .tab:active {
-            transform: translateY(1px);
           }
           /* Panel collapse/expand transitions */
           .panel-transition {
