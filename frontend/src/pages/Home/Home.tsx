@@ -192,13 +192,6 @@ const Home = (): JSX.Element => {
                     variant="default"
                     size="lg"
                     onClick={() => window.location.href = '/dashboard'}
-                    className="rounded-full px-6 md:px-8"
-                    style={{
-                      borderRadius: 9999,
-                      background: 'rgba(255,255,255,0.1)',
-                      color: '#ffffff',
-                      border: '1px solid rgba(255,255,255,0.18)'
-                    }}
                   >
                     Get Started for Free
                   </Button>
@@ -224,15 +217,12 @@ const Home = (): JSX.Element => {
             {/* Image - Beneath Hero Text */}
             <Grid item xs={12} sm={12} lg={12} xl={12} sx={{
               position: 'relative',
-              height: { xs: '420px', sm: '520px', lg: '700px', xl: '800px' },
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               padding: { xs: 0, lg: 0, xl: 0 },
               overflow: 'visible',
               order: { xs: 2, sm: 2, lg: 2, xl: 2 },
-              mt: { xs: -2, sm: -4, lg: -5, xl: -6 },
-              mb: { xs: -8, sm: -10, lg: -16, xl: -20 },
             }}>
               {/* Gradient backdrop for depth */}
               <Box

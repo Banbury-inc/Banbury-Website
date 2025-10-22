@@ -489,7 +489,7 @@ export default function DemoApp() {
                   key={tab.id}
                   onClick={() => handleTabChange(tab.id)}
                   className={`
-                    flex items-center gap-2 px-4 py-2 text-sm border-r border-zinc-200 dark:border-zinc-700 
+                    flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 text-xs sm:text-sm border-r border-zinc-200 dark:border-zinc-700 
                     hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors group relative min-w-fit
                     ${panel.activeTabId === tab.id 
                       ? 'bg-white dark:bg-zinc-950 text-zinc-900 dark:text-white' 
@@ -498,10 +498,10 @@ export default function DemoApp() {
                   `}
                 >
                   {getTabIcon(tab)}
-                  <span className="truncate max-w-[150px]">{getTabTitle(tab)}</span>
+                  <span className="truncate max-w-[100px] sm:max-w-[120px] md:max-w-[150px]">{getTabTitle(tab)}</span>
                   <button
                     onClick={(e) => handleCloseTab(tab.id, e)}
-                    className="ml-2 opacity-0 group-hover:opacity-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5 transition-opacity"
+                    className="ml-1 sm:ml-2 opacity-0 group-hover:opacity-100 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded p-0.5 transition-opacity"
                     title="Close tab"
                   >
                     <X className="h-3 w-3" />
@@ -514,24 +514,24 @@ export default function DemoApp() {
           {/* Content Area */}
           <div className="flex-1 overflow-hidden">
             {!activeTab ? (
-              <div className="h-full flex items-center justify-center p-8">
-                <div className="text-center text-zinc-500">No active tab</div>
+              <div className="h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
+                <div className="text-center text-sm sm:text-base text-zinc-500">No active tab</div>
               </div>
             ) : activeTab.type === 'file' ? (
               <div className="h-full flex flex-col bg-white overflow-auto">
             {/* Document Editor */}
             <div className="flex-1 overflow-auto">
               {/* Document Page */}
-              <div className="max-w-4xl mx-auto my-8 bg-white shadow-lg min-h-[600px] p-16">
+              <div className="max-w-4xl mx-auto my-4 sm:my-6 md:my-8 bg-white shadow-lg min-h-[400px] sm:min-h-[500px] md:min-h-[600px] p-4 sm:p-8 md:p-12 lg:p-16">
                 {/* Document Content */}
-                <div className="space-y-6 font-sans text-zinc-900">
+                <div className="space-y-4 sm:space-y-5 md:space-y-6 font-sans text-zinc-900">
                   {/* Title */}
-                  <h1 className="text-4xl font-bold text-zinc-900 mb-8">
+                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-zinc-900 mb-4 sm:mb-6 md:mb-8">
                     Q3 Product Strategy Proposal
                   </h1>
                   
                   {/* Metadata */}
-                  <div className="text-sm text-zinc-500 border-b pb-4 mb-6">
+                  <div className="text-xs sm:text-sm text-zinc-500 border-b pb-3 sm:pb-4 mb-4 sm:mb-6">
                     <p>Author: Sarah Chen</p>
                     <p>Date: October 22, 2025</p>
                     <p>Department: Product Management</p>
@@ -539,10 +539,10 @@ export default function DemoApp() {
 
                   {/* Executive Summary */}
                   <div>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2 sm:mb-3">
                       Executive Summary
                     </h2>
-                    <p className="text-base leading-relaxed text-zinc-700">
+                    <p className="text-sm sm:text-base leading-relaxed text-zinc-700">
                       This document outlines our strategic approach for Q3 2025, focusing on three key initiatives: 
                       expanding our AI-powered features, improving user onboarding experience, and strengthening our 
                       enterprise offerings. Our analysis indicates a significant market opportunity in the SMB segment, 
@@ -552,13 +552,13 @@ export default function DemoApp() {
 
                   {/* Market Analysis */}
                   <div>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2 sm:mb-3">
                       Market Analysis
                     </h2>
-                    <p className="text-base leading-relaxed text-zinc-700 mb-4">
+                    <p className="text-sm sm:text-base leading-relaxed text-zinc-700 mb-3 sm:mb-4">
                       Recent market research reveals several compelling trends that inform our strategic direction:
                     </p>
-                    <ul className="list-disc pl-6 space-y-2 text-zinc-700">
+                    <ul className="list-disc pl-5 sm:pl-6 space-y-2 text-zinc-700 text-sm sm:text-base">
                       <li className="leading-relaxed">
                         AI adoption in productivity tools has increased by 230% in the past year
                       </li>
@@ -574,16 +574,16 @@ export default function DemoApp() {
 
                   {/* Key Initiatives */}
                   <div>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2 sm:mb-3">
                       Key Initiatives
                     </h2>
                     
-                    <div className="space-y-4">
+                    <div className="space-y-3 sm:space-y-4">
                       <div>
-                        <h3 className="text-xl font-semibold text-zinc-800 mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-zinc-800 mb-1.5 sm:mb-2">
                           1. AI-Powered Content Generation
                         </h3>
-                        <p className="text-base leading-relaxed text-zinc-700 bg-blue-50 border-l-4 border-blue-500 p-4">
+                        <p className="text-sm sm:text-base leading-relaxed text-zinc-700 bg-blue-50 border-l-4 border-blue-500 p-3 sm:p-4">
                           <span className="font-medium">Timeline:</span> Launch in 6 weeks
                           <br />
                           <span className="font-medium">Investment:</span> $2.5M
@@ -593,20 +593,20 @@ export default function DemoApp() {
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-semibold text-zinc-800 mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-zinc-800 mb-1.5 sm:mb-2">
                           2. Enhanced User Onboarding
                         </h3>
-                        <p className="text-base leading-relaxed text-zinc-700">
+                        <p className="text-sm sm:text-base leading-relaxed text-zinc-700">
                           We will implement an interactive tutorial system that reduces time-to-value by 60%. 
                           Early testing shows a 35% improvement in user activation rates.
                         </p>
                       </div>
 
                       <div>
-                        <h3 className="text-xl font-semibold text-zinc-800 mb-2">
+                        <h3 className="text-lg sm:text-xl font-semibold text-zinc-800 mb-1.5 sm:mb-2">
                           3. Enterprise Security Suite
                         </h3>
-                        <p className="text-base leading-relaxed text-zinc-700">
+                        <p className="text-sm sm:text-base leading-relaxed text-zinc-700">
                           SOC 2 Type II compliance, advanced SSO integration, and comprehensive audit logging 
                           will position us competitively in the enterprise market.
                         </p>
@@ -616,20 +616,20 @@ export default function DemoApp() {
 
                   {/* Success Metrics */}
                   <div>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2 sm:mb-3">
                       Success Metrics
                     </h2>
-                    <div className="bg-zinc-50 p-4 rounded border">
-                      <ul className="space-y-2 text-zinc-700">
-                        <li className="flex justify-between">
+                    <div className="bg-zinc-50 p-3 sm:p-4 rounded border">
+                      <ul className="space-y-2 text-zinc-700 text-sm sm:text-base">
+                        <li className="flex justify-between gap-2">
                           <span>Monthly Active Users Growth:</span>
                           <span className="font-semibold">+25%</span>
                         </li>
-                        <li className="flex justify-between">
+                        <li className="flex justify-between gap-2">
                           <span>Customer Satisfaction Score:</span>
                           <span className="font-semibold">8.5/10</span>
                         </li>
-                        <li className="flex justify-between">
+                        <li className="flex justify-between gap-2">
                           <span>Revenue Target:</span>
                           <span className="font-semibold">$12.5M</span>
                         </li>
@@ -639,10 +639,10 @@ export default function DemoApp() {
 
                   {/* Conclusion */}
                   <div>
-                    <h2 className="text-2xl font-semibold text-zinc-900 mb-3">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-zinc-900 mb-2 sm:mb-3">
                       Conclusion
                     </h2>
-                    <p className="text-base leading-relaxed text-zinc-700">
+                    <p className="text-sm sm:text-base leading-relaxed text-zinc-700">
                       By executing on these initiatives, we position ourselves to capture significant market share 
                       while delivering exceptional value to our customers. The proposed investments align with our 
                       long-term vision and provide clear pathways to profitability.
@@ -653,17 +653,17 @@ export default function DemoApp() {
             </div>
           </div>
             ) : activeTab.type === 'email' ? (
-              <div className="h-full flex items-center justify-center p-8">
+              <div className="h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                 <div className="text-center">
-                  <h2 className="text-2xl font-semibold mb-4">{(activeTab as any).subject}</h2>
-                  <p className="text-zinc-600 dark:text-zinc-400">Email content would be displayed here</p>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4">{(activeTab as any).subject}</h2>
+                  <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">Email content would be displayed here</p>
                 </div>
               </div>
             ) : activeTab.type === 'calendar' ? (
-              <div className="h-full flex items-center justify-center p-8">
+              <div className="h-full flex items-center justify-center p-4 sm:p-6 md:p-8">
                 <div className="text-center">
-                  <h2 className="text-2xl font-semibold mb-4">{(activeTab as any).title}</h2>
-                  <p className="text-zinc-600 dark:text-zinc-400">Calendar event details would be displayed here</p>
+                  <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-3 sm:mb-4">{(activeTab as any).title}</h2>
+                  <p className="text-sm sm:text-base text-zinc-600 dark:text-zinc-400">Calendar event details would be displayed here</p>
                 </div>
               </div>
             ) : null}
@@ -678,7 +678,7 @@ export default function DemoApp() {
     <DemoRuntimeProvider>
       <TooltipProvider>
         <div 
-          className="w-full flex items-center justify-center py-12 relative"
+          className="w-full flex items-center justify-center py-10 sm:py-12 md:py-14 lg:py-16 px-4 sm:px-4 relative"
           style={{
             backgroundImage: 'url(/wheat-field-wallpaper-mural-plain.jpg)',
             backgroundSize: 'cover',
@@ -695,10 +695,10 @@ export default function DemoApp() {
             }}
           />
           
-          <div className="h-[600px] w-full max-w-7xl flex overflow-hidden rounded-xl border-2 border-white/10 shadow-2xl bg-zinc-900/50 backdrop-blur-sm relative z-10">
+          <div className="h-[500px] sm:h-[600px] lg:h-[600px] w-full max-w-7xl flex overflow-hidden rounded-lg sm:rounded-xl border border-white/10 sm:border-2 shadow-xl sm:shadow-2xl bg-zinc-900/50 backdrop-blur-sm relative z-10">
         {/* Left Panel */}
         {!isFileSidebarCollapsed && (
-          <div className="w-80 h-full flex-shrink-0">
+          <div className="w-60 sm:w-64 md:w-72 lg:w-80 h-full flex-shrink-0 hidden md:block">
             <LeftPanel 
               currentView="workspaces"
               userInfo={mockUserInfo}
@@ -733,7 +733,7 @@ export default function DemoApp() {
 
         {/* Right Panel */}
         {!isAssistantPanelCollapsed && (
-          <div className="w-80 h-full flex-shrink-0">
+          <div className="w-60 sm:w-64 md:w-72 lg:w-80 h-full flex-shrink-0 hidden lg:block">
             <RightPanel 
               userInfo={mockUserInfo}
               selectedFile={selectedFile}
