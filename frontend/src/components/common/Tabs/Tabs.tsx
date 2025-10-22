@@ -61,24 +61,24 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
       ${isClosing ? 'animate-tab-exit' : ''}
       flex-1
       px-3 
-      py-2 
-      text-sm 
-      font-medium 
-      rounded-t-lg 
-      transition-all 
-      duration-200
+      py-1.5 
+      text-xs
+      font-normal
+      transition-colors 
+      duration-150
       relative
       flex
       items-center
       justify-between
       gap-2
-      min-w-[140px]
-      border-0
+      min-w-[120px]
+      max-w-[200px]
+      border-r border-zinc-300 dark:border-zinc-700
       ${isActive 
-        ? 'text-zinc-900 dark:text-white bg-zinc-200 dark:bg-zinc-800 border-0' 
-        : 'text-zinc-600 dark:text-gray-400 hover:text-zinc-800 dark:hover:text-gray-300 hover:bg-zinc-100 dark:hover:bg-zinc-800/50 border-0'}
+        ? 'text-zinc-900 dark:text-white bg-white dark:bg-[#1e1e1e]' 
+        : 'text-zinc-600 dark:text-zinc-400 bg-zinc-100 dark:bg-[#2d2d2d] hover:bg-zinc-200 dark:hover:bg-[#252525]'}
       focus:outline-none
-      z-[9999]
+      group
     `}
   >
     <span className="truncate select-none">{label}</span>
@@ -89,9 +89,9 @@ export const TabComponent = ({ label, isActive, onClick, onClose, style, isNew, 
           onClose();
         }}
         id={`tab-close-button-${label}`}
-        className="rounded-sm hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+        className="rounded-sm hover:bg-zinc-300 dark:hover:bg-zinc-600 transition-colors p-0.5 opacity-60 hover:opacity-100"
       >
-        <CloseIcon size={14} />
+        <CloseIcon size={12} />
       </button>
     )}
   </div>
@@ -359,7 +359,7 @@ export const Tabs: React.FC<TabsProps> = ({
   }, [tabs, onReorder]);
 
   return (
-    <div ref={containerRef} className="flex items-center group bg-white dark:bg-black px-2 pt-2 border-0 gap-1">
+    <div ref={containerRef} className="flex items-stretch bg-zinc-50 dark:bg-[#252525] border-b border-zinc-200 dark:border-zinc-700">
       <style>
         {`
           .tab {

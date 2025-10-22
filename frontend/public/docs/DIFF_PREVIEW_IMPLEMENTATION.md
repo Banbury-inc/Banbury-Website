@@ -20,11 +20,14 @@ This is a completely custom implementation of diff/track changes functionality f
 Custom diff algorithm using the open-source `diff` package:
 
 - **`createHtmlDiff()`**: Basic word-level diff
-- **`createStructuredHtmlDiff()`**: Advanced diff that preserves document structure
-  - Extracts paragraphs from HTML
-  - Performs paragraph-by-paragraph comparison
-  - Shows word-level changes within modified paragraphs
-  - Handles added/removed paragraphs
+- **`createStructuredHtmlDiff()`**: Advanced diff that preserves document structure AND formatting
+  - Extracts elements with their HTML structure preserved (h1, h2, p, etc.)
+  - Performs element-by-element comparison
+  - **Preserves block-level formatting** (headers show as headers with diff highlights)
+  - **Preserves inline formatting** (bold, italic, underline, code, etc.)
+  - Shows word-level changes within modified elements
+  - Handles added/removed elements
+  - Intelligently decides when to show side-by-side vs. inline changes
 
 ### 3. Custom CSS Styling (`/src/styles/DiffPreview.css`)
 Visual styling for diff highlighting:
@@ -32,6 +35,11 @@ Visual styling for diff highlighting:
 - Red background with strikethrough for deletions
 - Dark mode support
 - Works with both custom spans and standard HTML tags
+- **Formatting preservation rules**:
+  - Headers (h1-h6) maintain their size and weight even with diff highlights
+  - Bold, italic, underline, and code formatting show through diff marks
+  - List structure preserved within diff marks
+  - Ensures all formatting is visible while showing changes
 
 ### 4. Preview Mode State Management (`/src/contexts/TiptapAIContext.tsx`)
 Added preview mode functionality:
@@ -86,10 +94,12 @@ Handles preview and apply modes:
 ✅ **100% Open Source**: No paid Tiptap features required
 ✅ **Custom Extensions**: Built with Tiptap's free extension API
 ✅ **Word-Level Diffing**: Uses open-source `diff` package
-✅ **Structure Preservation**: Maintains paragraphs and formatting
-✅ **Visual Feedback**: Clear color-coded highlights
+✅ **Structure Preservation**: Maintains paragraphs and all formatting
+✅ **Format-Aware Diffs**: Headers, bold, italic, etc. display correctly in diff view
+✅ **Visual Feedback**: Clear color-coded highlights that work with formatting
 ✅ **Undo Support**: Original content can always be restored
 ✅ **Dark Mode**: Proper styling for both light and dark themes
+✅ **Smart Diffing**: Detects formatting changes and handles them intelligently
 
 ## Dependencies
 - `diff` (^5.x.x): Open-source text diffing library

@@ -53,3 +53,116 @@
   font-style: normal;
 }
 
+/* Preserve formatting within diff marks */
+/* Headers should maintain their size and weight */
+.ProseMirror h1 .diff-insertion,
+.ProseMirror h1 .diff-deletion,
+.ProseMirror h1 span[data-diff="insertion"],
+.ProseMirror h1 span[data-diff="deletion"] {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.ProseMirror h2 .diff-insertion,
+.ProseMirror h2 .diff-deletion,
+.ProseMirror h2 span[data-diff="insertion"],
+.ProseMirror h2 span[data-diff="deletion"] {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.ProseMirror h3 .diff-insertion,
+.ProseMirror h3 .diff-deletion,
+.ProseMirror h3 span[data-diff="insertion"],
+.ProseMirror h3 span[data-diff="deletion"] {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+.ProseMirror h4 .diff-insertion,
+.ProseMirror h4 .diff-deletion,
+.ProseMirror h4 span[data-diff="insertion"],
+.ProseMirror h4 span[data-diff="deletion"],
+.ProseMirror h5 .diff-insertion,
+.ProseMirror h5 .diff-deletion,
+.ProseMirror h5 span[data-diff="insertion"],
+.ProseMirror h5 span[data-diff="deletion"],
+.ProseMirror h6 .diff-insertion,
+.ProseMirror h6 .diff-deletion,
+.ProseMirror h6 span[data-diff="insertion"],
+.ProseMirror h6 span[data-diff="deletion"] {
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+/* Bold, italic, and other inline formatting should show through */
+.diff-insertion strong,
+.diff-deletion strong,
+.diff-insertion b,
+.diff-deletion b,
+span[data-diff="insertion"] strong,
+span[data-diff="deletion"] strong,
+span[data-diff="insertion"] b,
+span[data-diff="deletion"] b {
+  font-weight: bold;
+}
+
+.diff-insertion em,
+.diff-deletion em,
+.diff-insertion i,
+.diff-deletion i,
+span[data-diff="insertion"] em,
+span[data-diff="deletion"] em,
+span[data-diff="insertion"] i,
+span[data-diff="deletion"] i {
+  font-style: italic;
+}
+
+.diff-insertion u,
+.diff-deletion u,
+span[data-diff="insertion"] u,
+span[data-diff="deletion"] u {
+  text-decoration: underline;
+}
+
+/* For deletions with underline, show both underline and strikethrough */
+.diff-deletion u,
+span[data-diff="deletion"] u {
+  text-decoration: underline line-through;
+}
+
+.diff-insertion code,
+.diff-deletion code,
+span[data-diff="insertion"] code,
+span[data-diff="deletion"] code {
+  font-family: monospace;
+  padding: 2px 4px;
+  border-radius: 3px;
+}
+
+/* Lists within diff marks */
+.diff-insertion ul,
+.diff-deletion ul,
+.diff-insertion ol,
+.diff-deletion ol,
+span[data-diff="insertion"] ul,
+span[data-diff="deletion"] ul,
+span[data-diff="insertion"] ol,
+span[data-diff="deletion"] ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+/* Ensure block elements in diff marks display correctly */
+.ProseMirror .diff-insertion p,
+.ProseMirror .diff-deletion p,
+.ProseMirror span[data-diff="insertion"] p,
+.ProseMirror span[data-diff="deletion"] p {
+  margin: 0;
+  display: inline;
+}
+
