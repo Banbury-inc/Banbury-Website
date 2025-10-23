@@ -1,6 +1,6 @@
 import React, { useEffect } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
-import { Thread } from "@/components/RightPanel/composer/thread"
+import { Thread } from "@/components/RightPanel/composer/thread/thread"
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react"
 import { fn } from "@storybook/test"
 import { TooltipProvider } from "@/components/ui/tooltip"

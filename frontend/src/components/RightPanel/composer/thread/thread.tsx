@@ -11,35 +11,35 @@ import {
 } from "lucide-react";
 import { useState, useEffect } from "react";
 
-import { DocumentAITool } from "./components/DocumentAITool";
-import { DocxAITool } from "./components/DocxAITool";
-import { TldrawAITool } from "./components/TldrawAITool";
-import { DrawioAITool } from "../../MiddlePanel/CanvasViewer/DrawioAITool";
-import DrawioViewerModal from "../../MiddlePanel/CanvasViewer/DrawioViewerModal";
-import { MarkdownText } from "../markdown-text";
-import { SheetAITool } from "./components/SheetAITool";
-import { TiptapAITool } from "./components/TiptapAITool";
-import { ToolFallback } from "./components/tool-fallback";
-import { TooltipIconButton } from "../tooltip-icon-button";
-import { Button } from "../../ui/button";
-import { WebSearchTool } from "./components/web-search-result";
-import { handleDocxAIResponse } from "../handlers/handle-docx-ai-response";
-import { handleTldrawAIResponse } from "../handlers/handle-tldraw-ai-response";
-import { ToolUI } from "../ToolUI";
-import { BrowserTool } from "./components/BrowserTool";
-import { ApiService } from "../../../services/apiService";
-import { ConversationService } from "../../../services/conversationService";
-import { useToast } from "../../ui/use-toast";
-import styles from "../../../styles/scrollbar.module.css";
-import { cn } from "../../../utils";
-import { FileSystemItem } from "../../../utils/fileTreeUtils";
-import { createHandleDrawioFileView } from "../handlers/handle-drawio-file-view";
-import { Composer } from "./Composer";
-import { UserMessage } from "./thread/components/UserMessage";
-import { BranchPicker } from "./thread/components/BranchPicker";
+import { DocumentAITool } from "../components/DocumentAITool";
+import { DocxAITool } from "../components/DocxAITool";
+import { TldrawAITool } from "../components/TldrawAITool";
+import { DrawioAITool } from "../../../MiddlePanel/CanvasViewer/DrawioAITool";
+import DrawioViewerModal from "../../../MiddlePanel/CanvasViewer/DrawioViewerModal";
+import { MarkdownText } from "../../markdown-text";
+import { SheetAITool } from "../components/SheetAITool";
+import { TiptapAITool } from "../components/TiptapAITool";
+import { ToolFallback } from "../components/tool-fallback";
+import { TooltipIconButton } from "../../tooltip-icon-button";
+import { Button } from "../../../ui/button";
+import { WebSearchTool } from "../components/web-search-result";
+import { handleDocxAIResponse } from "../../handlers/handle-docx-ai-response";
+import { handleTldrawAIResponse } from "../../handlers/handle-tldraw-ai-response";
+import { ToolUI } from "../../ToolUI";
+import { BrowserTool } from "../components/BrowserTool";
+import { ApiService } from "../../../../services/apiService";
+import { ConversationService } from "../../../../services/conversationService";
+import { useToast } from "../../../ui/use-toast";
+import styles from "../../../../styles/scrollbar.module.css";
+import { cn } from "../../../../utils";
+import { FileSystemItem } from "../../../../utils/fileTreeUtils";
+import { createHandleDrawioFileView } from "../../handlers/handle-drawio-file-view";
+import { Composer } from "../Composer";
+import { UserMessage } from "./components/UserMessage";
+import { BranchPicker } from "./components/BranchPicker";
 
 import type { FC } from "react";
-import { Typography } from "../../ui/typography";
+import { Typography } from "../../../ui/typography";
 
 
 // Destructure Assistant UI primitives from namespace import to avoid named import type issues

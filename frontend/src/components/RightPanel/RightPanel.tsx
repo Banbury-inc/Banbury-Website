@@ -5,7 +5,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
-import { Thread } from './composer/thread'
+import { Thread } from './composer/thread/thread'
 
 interface Conversation {
   _id: string
