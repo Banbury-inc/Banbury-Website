@@ -16,12 +16,15 @@ export async function* processStreamEvents({
     const { done, value } = await reader.read();
     if (done) break;
     
-    buffer += decoder.decode(value, { stream: true });
+    const decoded = decoder.decode(value, { stream: true });
+    buffer += decoded;
     const chunks = buffer.split("\n\n");
     buffer = chunks.pop() || "";
     
     for (const chunk of chunks) {
-      if (!chunk.startsWith("data: ")) continue;
+      if (!chunk.startsWith("data: ")) {
+        continue;
+      }
       const json = chunk.slice(6).trim();
       if (!json) continue;
       
@@ -31,7 +34,9 @@ export async function* processStreamEvents({
         // Only yield updates for significant content changes, not status updates
         let shouldYield = false;
         
-        if (evt.type === "tool-call-start" && evt.part) {
+        if (evt.type === "message-start") {
+          // Handle message start - no action needed, just acknowledge
+        } else if (evt.type === "tool-call-start" && evt.part) {
           // Handle tool-call-start event
           contentParts.push(evt.part);
           shouldYield = true;
@@ -113,7 +118,12 @@ export async function* processStreamEvents({
           } catch {}
           shouldYield = true;
         } else if (evt.type === "tool-result" && evt.part) {
-          shouldYield = handleToolResult({ evt, contentParts });
+          try {
+            shouldYield = handleToolResult({ evt, contentParts });
+          } catch (toolError) {
+            // Continue processing even if tool result handling fails
+            shouldYield = true;
+          }
         } else if (evt.type === "completion-summary") {
           // Handle completion summary
           yield { 
@@ -135,8 +145,12 @@ export async function* processStreamEvents({
           contentParts.push({ type: "text", text: `❌ Error: ${errorMessage}` });
           yield { content: contentParts, status: { type: "incomplete", reason: "error" } };
           return; // Stop processing further events
-        } else if (evt.type === "message-end") {
-          yield { content: contentParts, status: evt.status };
+        } else if (evt.type === "error-details") {
+          // Handle error details (stack traces, etc.)
+          console.error('[processStreamEvents] Error details:', evt.stack);
+          // Don't yield here, just log the details
+        } else if (evt.type === "message-end" || evt.type === "done") {
+          yield { content: contentParts, status: evt.status || { type: "complete" } };
           return; // Don't process further after message end
         }
         

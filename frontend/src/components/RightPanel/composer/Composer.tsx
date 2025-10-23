@@ -435,8 +435,9 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
             size="icon"
             title="Stop generating"
             aria-label="Stop generating"
+            className="cursor-pointer bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-100" 
           >
-            <Square height={16} width={16} />
+            <Square height={14} width={14} />
           </Button>
         </ComposerPrimitive.Cancel>
       </ThreadPrimitive.If>
