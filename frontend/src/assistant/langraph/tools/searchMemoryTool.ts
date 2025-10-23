@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools"
 import { z } from "zod"
 import { CONFIG } from "../../../config/config"
-import { getServerContextValue } from "../../serverContext"
+import { getServerContextValue } from "../serverContext"
 
 export const searchMemoryTool = tool(
   async (input: { query: string; scope?: string; reranker?: string; maxResults?: number; sessionId?: string }) => {

@@ -1,6 +1,6 @@
 import { tool } from "@langchain/core/tools"
 import { z } from "zod"
-import { getServerContextValue } from "../../serverContext"
+import { getServerContextValue } from "../serverContext"
 
 // Global toggle helper: "Browser" tool (controls both Browserbase and Stagehand)
 function isBrowserToolEnabled(): boolean {

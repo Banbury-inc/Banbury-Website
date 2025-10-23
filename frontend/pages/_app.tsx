@@ -3,7 +3,7 @@ import dynamic from 'next/dynamic';
 import { HelmetProvider } from 'react-helmet-async';
 import { ThemeProvider } from '@/components/ThemeProvider';
 import { useEffect } from 'react';
-import { ClaudeRuntimeProvider } from '@/assistant/ClaudeRuntimeProvider';
+import { ClaudeRuntimeProvider } from '@/assistant/ClaudeRuntimeProvider/ClaudeRuntimeProvider';
 import { Toaster } from '@/components/ui/toaster';
 import '@/index.css';
 import '@/styles/DiffPreview.css';

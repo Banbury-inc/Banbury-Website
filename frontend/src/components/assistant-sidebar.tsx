@@ -4,7 +4,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "./ui/resizable";
-import { ClaudeRuntimeProvider } from "../assistant/ClaudeRuntimeProvider";
+import { ClaudeRuntimeProvider } from "../assistant/ClaudeRuntimeProvider/ClaudeRuntimeProvider";
 
 import type { FC, PropsWithChildren } from "react";
 

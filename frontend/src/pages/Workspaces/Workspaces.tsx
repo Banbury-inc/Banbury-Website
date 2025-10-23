@@ -1,7 +1,7 @@
 
 import { Allotment } from 'allotment';
 import { useState, useEffect, useCallback } from 'react';
-import { ClaudeRuntimeProvider } from '../../assistant/ClaudeRuntimeProvider';
+import { ClaudeRuntimeProvider } from '../../assistant/ClaudeRuntimeProvider/ClaudeRuntimeProvider';
 import { LeftPanel } from "../../components/LeftPanel/LeftPanel";
 import { MiddlePanel } from "../../components/MiddlePanel/MiddlePanel";
 import { RightPanel } from "../../components/RightPanel/RightPanel";

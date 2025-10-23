@@ -1,7 +1,7 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { HumanMessage, SystemMessage, AIMessage, BaseMessage, ToolMessage } from "@langchain/core/messages";
-import { reactAgent } from "../../../src/lib/langraph/agent";
-import { runWithServerContext } from "../../../src/lib/serverContext";
+import { reactAgent } from "../../../src/assistant/langraph/agent";
+import { runWithServerContext } from "../../../src/assistant/langraph/serverContext";
 
 // Types following athena-intelligence patterns
 type AssistantUiMessagePart =

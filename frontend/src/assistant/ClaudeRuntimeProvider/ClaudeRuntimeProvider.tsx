@@ -1,9 +1,7 @@
 import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react";
 import { useEffect } from "react";
-
-import { ApiService } from "../services/apiService";
-import { getLangGraphConfig } from "../lib/langraph/config";
-
+import { ApiService } from "../../services/apiService";
+import { getLangGraphConfig } from "./handlers/config";
 import type { FC, PropsWithChildren } from "react";
 
 export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
@@ -138,7 +136,6 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         console.log('[ClaudeRuntimeProvider] DEBUG - Read pendingDocumentContext:', documentContext.slice(0, 200));
         if (documentContext) {
           localStorage.removeItem('pendingDocumentContext'); // Clean up after reading
-          console.log('[ClaudeRuntimeProvider] DEBUG - Cleaned up pendingDocumentContext');
         } else {
           console.log('[ClaudeRuntimeProvider] DEBUG - No pendingDocumentContext found');
         }
@@ -186,8 +183,6 @@ export const ClaudeRuntimeProvider: FC<PropsWithChildren> = ({ children }) => {
         dateTimeContext,
         recursionLimit: langGraphConfig.recursionLimit, // Add recursion limit
       };
-      console.log('[ClaudeRuntimeProvider] DEBUG - Request body documentContext:', requestBody.documentContext?.slice(0, 200));
-      console.log('[ClaudeRuntimeProvider] DEBUG - Full request body:', JSON.stringify(requestBody, null, 2).slice(0, 1000));
       
       const res = await fetch(apiEndpoint, {
         method: "POST",

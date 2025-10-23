@@ -43,12 +43,6 @@ export async function handleClipboardPaste({
           return null
         }
 
-        console.log('Processing pasted image:', {
-          name: file.name,
-          type: file.type,
-          size: file.size
-        })
-
         // Convert to base64 for AI vision
         const arrayBuffer = await file.arrayBuffer()
         const base64Data = btoa(String.fromCharCode(...Array.from(new Uint8Array(arrayBuffer))))

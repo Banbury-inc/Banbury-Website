@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools"
 import { z } from "zod"
 import { CONFIG } from "../../../config/config"
-import { getServerContextValue } from "../../serverContext"
+import { getServerContextValue } from "../serverContext"
 
 // File search tool
 export const searchFilesTool = tool(

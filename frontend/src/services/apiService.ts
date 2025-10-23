@@ -11,12 +11,9 @@ axios.defaults.headers.common['Accept'] = 'application/json';
 // Add request interceptor for debugging
 axios.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
-    console.log('Request headers:', config.headers);
     return config;
   },
   (error) => {
-    console.log('API Request Error:', error);
     return Promise.reject(error);
   }
 );
@@ -24,11 +21,9 @@ axios.interceptors.request.use(
 // Add response interceptor for debugging
 axios.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.status} ${response.config.url}`);
     return response;
   },
   (error) => {
-    console.log(`API Response Error: ${error.response?.status} ${error.config?.url}`, error.message);
     return Promise.reject(error);
   }
 );
@@ -73,10 +68,8 @@ export class ApiService {
     // Check if we're in a browser environment
     if (typeof window !== 'undefined' && window.localStorage) {
       const token = localStorage.getItem('authToken');
-      console.log('Loading auth token:', token ? 'Token found' : 'No token found');
       if (token) {
         axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        console.log('Auth token set in axios headers');
       }
     } else {
       console.log('No auth token available - not in browser environment');

@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
-
-import { generateThreadId } from '../lib/langraph/utils';
+import { generateThreadId } from '../assistant/langraph/utils';
 
 // Types following athena-intelligence patterns
 export interface ToolCall {

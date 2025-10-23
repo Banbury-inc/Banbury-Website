@@ -1,7 +1,7 @@
 import { tool } from "@langchain/core/tools"
 import { z } from "zod"
 import { CONFIG } from "../../../config/config"
-import { getServerContextValue } from "../../serverContext"
+import { getServerContextValue } from "../serverContext"
 
 // Helper function to get file extension from MIME type
 function getExtensionFromMimeType(mimeType: string): string {
