@@ -17,6 +17,7 @@ export function normalizeToolPreferences({
     tiptap_ai: toolPreferences.tiptap_ai !== false,
     read_file: toolPreferences.read_file !== false,
     gmail: toolPreferences.gmail !== false,
+    gmailSend: toolPreferences.gmailSend !== false,
     browser: browserEnabled,
     browserbase: browserEnabled,
     x_api: toolPreferences.x_api === true,

@@ -22,6 +22,7 @@ export interface ToolPreferences {
   web_search?: boolean
   read_file?: boolean
   gmail?: boolean
+  gmailSend?: boolean
   browser?: boolean
   browserbase?: boolean
   langgraph_mode?: boolean

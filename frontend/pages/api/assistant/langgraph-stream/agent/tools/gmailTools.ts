@@ -377,9 +377,13 @@ export const gmailGetMessageTool = tool(
 
 export const gmailSendMessageTool = tool(
   async (input: { to: string; subject: string; body: string; cc?: string; bcc?: string; isDraft?: boolean }) => {
-    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean }
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean; gmailSend?: boolean }
     if (prefs.gmail === false) {
       return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" })
+    }
+    // Only block actual sending, not drafts
+    if (prefs.gmailSend === false && !input.isDraft) {
+      return JSON.stringify({ success: false, error: "Gmail send email is disabled by user preference. You can still create drafts using the gmail_create_draft tool." })
     }
 
     const apiBase = CONFIG.url
@@ -418,14 +422,68 @@ export const gmailSendMessageTool = tool(
   },
   {
     name: "gmail_send_message",
-    description: "Send a new email or create a draft in Gmail",
+    description: "Send a new email or create a draft in Gmail. If user has disabled sending emails, this tool can still create drafts by setting isDraft to true.",
     schema: z.object({
       to: z.string().describe("Recipient email address"),
       subject: z.string().describe("Email subject"),
       body: z.string().describe("Email body content (HTML supported)"),
       cc: z.string().optional().describe("CC recipient(s)"),
       bcc: z.string().optional().describe("BCC recipient(s)"),
-      isDraft: z.boolean().optional().describe("Create as draft instead of sending (default: false)"),
+      isDraft: z.boolean().optional().describe("Create as draft instead of sending (default: false). Set to true if user has disabled email sending."),
+    }),
+  }
+)
+
+export const gmailCreateDraftTool = tool(
+  async (input: { to: string; subject: string; body: string; cc?: string; bcc?: string }) => {
+    const prefs = (getServerContextValue<any>("toolPreferences") || {}) as { gmail?: boolean }
+    if (prefs.gmail === false) {
+      return JSON.stringify({ success: false, error: "Gmail access is disabled by user preference" })
+    }
+
+    const apiBase = CONFIG.url
+    const token = getServerContextValue<string>("authToken")
+    if (!token) {
+      throw new Error("Missing auth token in server context")
+    }
+
+    const createDraftUrl = `${apiBase}/authentication/gmail/send_message/`
+    const createDraftResp = await fetch(createDraftUrl, { 
+      method: "POST", 
+      headers: { 
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        to: input.to,
+        subject: input.subject,
+        body: input.body,
+        cc: input.cc,
+        bcc: input.bcc,
+        isDraft: true
+      })
+    })
+    
+    if (!createDraftResp.ok) {
+      return JSON.stringify({ success: false, error: `HTTP ${createDraftResp.status}: ${createDraftResp.statusText}` })
+    }
+    const draftData = await createDraftResp.json()
+    
+    return JSON.stringify({ 
+      success: true, 
+      draft: draftData,
+      message: "Gmail draft created successfully. The draft can be found in the Drafts folder."
+    })
+  },
+  {
+    name: "gmail_create_draft",
+    description: "Create a draft email in Gmail. The draft will be saved in the Drafts folder and can be edited or sent later.",
+    schema: z.object({
+      to: z.string().describe("Recipient email address"),
+      subject: z.string().describe("Email subject"),
+      body: z.string().describe("Email body content (plain text or HTML supported)"),
+      cc: z.string().optional().describe("CC recipient(s), comma-separated for multiple"),
+      bcc: z.string().optional().describe("BCC recipient(s), comma-separated for multiple"),
     }),
   }
 )
