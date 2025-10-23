@@ -9,7 +9,6 @@ import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { NavSidebar } from "../../components/nav-sidebar";
 import { TooltipProvider } from "../../components/ui/tooltip";
-import { Button } from "../../components/ui/button";
 import { ApiService } from "../../services/apiService";
 import { TaskScheduler } from "./components/TaskScheduler";
 import { TaskTable } from "./components/TaskTable";
@@ -151,24 +150,12 @@ const TaskStudio = (): JSX.Element => {
         {/* Main Content Area */}
         <div className="flex-1 flex overflow-hidden pl-10">
           {/* Left Side - Task Table */}
-          <div className="flex-1 flex flex-col overflow-hidden">
-            {/* Header with Create Task Button */}
-            <div className="bg-background border-b border-border px-6 py-4 flex-shrink-0">
-              <div className="flex items-center justify-between">
-                <h1 className="text-2xl font-bold text-foreground pl-4">Task Studio</h1>
-                <Button 
-                  onClick={toggleTaskScheduler}
-                  variant={showTaskScheduler ? "outline" : "default"}
-                >
-                  {showTaskScheduler ? 'Cancel' : 'Create Task'}
-                </Button>
-              </div>
-            </div>
-
-            {/* Task Table - Full Height */}
-            <div className="flex-1 overflow-auto pl-6">
-              <TaskTable refreshTrigger={refreshTrigger} />
-            </div>
+          <div className="flex-1 flex flex-col overflow-hidden pl-6">
+            <TaskTable 
+              refreshTrigger={refreshTrigger} 
+              showTaskScheduler={showTaskScheduler}
+              onToggleTaskScheduler={toggleTaskScheduler}
+            />
           </div>
 
           {/* Right Side - Task Scheduler */}

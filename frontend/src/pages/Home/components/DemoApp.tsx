@@ -686,7 +686,7 @@ export default function DemoApp() {
     <DemoRuntimeProvider>
       <TooltipProvider>
         <div 
-          className="w-full flex items-center justify-center py-10 sm:py-12 md:py-14 lg:py-16 px-4 sm:px-4 relative"
+          className="w-full flex items-center justify-center py-10 sm:py-12 md:py-14 lg:py-16 px-4 sm:px-4 relative rounded-xl sm:rounded-2xl overflow-hidden"
           style={{
             backgroundImage: 'url(/wheat-field-wallpaper-mural-plain.jpg)',
             backgroundSize: 'cover',

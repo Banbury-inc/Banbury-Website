@@ -191,7 +191,7 @@ const Home = (): JSX.Element => {
                   <Button
                     variant="default"
                     size="lg"
-                    onClick={() => window.location.href = '/dashboard'}
+                    onClick={() => window.location.href = '/register'}
                   >
                     Get Started for Free
                   </Button>

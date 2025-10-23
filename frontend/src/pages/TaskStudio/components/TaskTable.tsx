@@ -2,38 +2,17 @@ import React, { useState, useEffect } from 'react'
 import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
+import { Checkbox } from '../../../components/ui/checkbox'
 import { Task, TaskStatus } from '../types'
 import { taskHandlers } from '../handlers/taskHandlers'
 
-// Simple checkbox component
-interface CheckboxProps {
-  checked?: boolean
-  onCheckedChange?: (checked: boolean) => void
-  className?: string
-  ref?: React.Ref<HTMLInputElement>
-}
-
-const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
-  ({ className, checked, onCheckedChange, ...props }, ref) => {
-    return (
-      <input
-        type="checkbox"
-        ref={ref}
-        checked={checked}
-        onChange={(e) => onCheckedChange?.(e.target.checked)}
-        className={`h-3 w-3 rounded border-gray-300 text-blue-600 focus:ring-blue-500 ${className || ''}`}
-        {...props}
-      />
-    )
-  }
-)
-Checkbox.displayName = "Checkbox"
-
 interface TaskTableProps {
   refreshTrigger: number
+  showTaskScheduler: boolean
+  onToggleTaskScheduler: () => void
 }
 
-export function TaskTable({ refreshTrigger }: TaskTableProps) {
+export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskScheduler }: TaskTableProps) {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<TaskStatus | 'all'>('all')
@@ -187,10 +166,11 @@ export function TaskTable({ refreshTrigger }: TaskTableProps) {
   }
 
   return (
-    <Card className="p-6 w-full h-full flex flex-col rounded-none">
+    <Card className="p-6 w-full h-full flex flex-col rounded-none bg-background">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h2 className="text-xl font-semibold">Tasks</h2>
+          <h1 className="text-2xl font-bold text-foreground">Task Studio</h1>
+          
           {selectedTasks.size > 0 && (
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
@@ -235,6 +215,13 @@ export function TaskTable({ refreshTrigger }: TaskTableProps) {
             onClick={() => setFilter('completed')}
           >
             Completed ({tasks.filter(t => t.status === 'completed').length})
+          </Button>
+          <Button 
+            onClick={onToggleTaskScheduler}
+            variant={showTaskScheduler ? "outline" : "default"}
+            size="sm"
+          >
+            {showTaskScheduler ? 'Cancel' : 'Create Task'}
           </Button>
         </div>
       </div>
