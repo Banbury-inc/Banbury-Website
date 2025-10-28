@@ -136,7 +136,7 @@ export const FileAttachment: React.FC<FileAttachmentProps> = ({
             title="Attach file"
             aria-label="Attach file"
           >
-            <Paperclip height={16} width={16} />
+            <Paperclip height={16} width={16} strokeWidth={1} />
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
