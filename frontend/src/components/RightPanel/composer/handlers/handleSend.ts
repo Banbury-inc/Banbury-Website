@@ -6,27 +6,35 @@ interface HandleSendParams {
 }
 
 export function handleSend({ composer, onSend }: HandleSendParams) {
-  // Get the text directly from the Tiptap editor, including mentions
-  const proseMirrorElements = document.querySelectorAll('.ProseMirror')
-  
-  // Find the chat composer's ProseMirror element (should be inside .bg-zinc-800)
-  let proseMirrorElement = null
-  let text = ''
-  
-  for (const element of Array.from(proseMirrorElements)) {
-    const isInChatComposer = element.closest('.bg-zinc-800') || element.closest('.min-h-16')
-    
-    if (isInChatComposer) {
-      proseMirrorElement = element
-      text = element.textContent || ''
-      break
-    }
-  }
-  
-  // If we still don't have text, try the hidden input
+  // Prefer the hidden textarea value, which tiptap keeps in sync (preserves newlines)
+  const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement | null
+  let text = input?.value ?? ''
+  let proseMirrorElement: Element | null = null
+
+  // Fallback: Get the text directly from the Tiptap editor DOM if the textarea is empty
   if (!text.trim()) {
-    const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement
-    text = input?.value || ''
+    const proseMirrorElements = document.querySelectorAll('.ProseMirror')
+
+    for (const element of Array.from(proseMirrorElements)) {
+      const isInChatComposer = element.closest('.bg-zinc-800') || element.closest('.min-h-16')
+
+      if (isInChatComposer) {
+        proseMirrorElement = element
+        // Extract paragraphs to preserve line breaks when possible
+        const paragraphs = Array.from(element.querySelectorAll('p'))
+        if (paragraphs.length > 0) {
+          text = paragraphs.map((p) => (p.textContent || '').trimEnd()).join('\n\n')
+        } else {
+          text = element.textContent || ''
+        }
+        break
+      }
+    }
+
+    // Keep reference for later clearing if we fell back to DOM
+    if (!proseMirrorElement && proseMirrorElements.length > 0) {
+      proseMirrorElement = proseMirrorElements[0]
+    }
   }
   
   // CRITICAL: Set document context with email content BEFORE any composer.send() call
@@ -104,7 +112,6 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
   }
     
   if (text.trim().length > 0) {
-    // Try multiple approaches to get the text into the composer
     const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement
     if (input) {
       // Set the input value and trigger all possible events

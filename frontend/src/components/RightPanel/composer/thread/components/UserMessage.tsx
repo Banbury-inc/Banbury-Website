@@ -2,7 +2,6 @@ import * as AssistantUI from "@assistant-ui/react"
 import { motion } from "framer-motion"
 import { Mail } from "lucide-react"
 
-import { MarkdownText } from "../../../markdown-text"
 import { FileAttachmentDisplay } from "../../components/file-attachment-display"
 import { BranchPicker } from "./BranchPicker"
 
@@ -13,6 +12,12 @@ const {
   MessagePrimitive,
   ActionBarPrimitive,
 } = AssistantUI as any
+
+const TextWithBreaks: FC<{ text?: string }> = ({ text = "" }) => (
+  <div className="text-[0.875rem] leading-[1.55] whitespace-pre-wrap">
+    {text}
+  </div>
+)
 
 export const UserMessage: FC = () => {
   return (
@@ -25,7 +30,7 @@ export const UserMessage: FC = () => {
       >
         <div className="col-start-1 row-start-1 relative">
           <div className="bg-muted text-foreground rounded-2xl px-4 py-2 break-words overflow-x-auto max-w-full">
-              <MessagePrimitive.Content components={{ Text: MarkdownText }} />
+              <MessagePrimitive.Content components={{ Text: TextWithBreaks }} />
               
               {/* Display attached files */}
               <MessagePrimitive.Attachments>

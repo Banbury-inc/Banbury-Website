@@ -152,7 +152,7 @@ export const Composer: FC<ComposerProps> = ({ attachedFiles, attachedEmails, onF
           />
 
           {/* Visible Tiptap editor with @ mention for files */}
-          <div className={`bg-accent border-0 ${(attachedFiles.length > 0 || attachedEmails.length > 0 || pendingChanges.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t border-zinc-300 dark:border-zinc-700 rounded-t-2xl'}`}>
+          <div className={`bg-accent border-0 ${(attachedFiles.length > 0 || attachedEmails.length > 0 || pendingChanges.length > 0) ? 'border-t-0 rounded-t-none' : 'border-t border-zinc-300 dark:border-zinc-700 rounded-t-2xl'} max-h-[50vh] overflow-y-auto`}>
             <ChatTiptapComposer
               hiddenInputRef={inputRef}
               userInfo={userInfo}

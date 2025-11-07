@@ -1,3 +1,5 @@
+import { ensureToolArguments } from "./validateToolCallArgs"
+
 interface ProcessStreamChunkParams {
   chunk: any
   allMessages: any[]
@@ -93,6 +95,12 @@ async function processAiMessage(
     if (processedToolCalls.has(toolCall.id)) continue
     
     processedToolCalls.add(toolCall.id)
+
+    if (!toolCall?.name) {
+      throw new Error("Received tool call without a tool name")
+    }
+
+    ensureToolArguments(toolCall.name, toolCall.args)
     
     // Send tool call start event
     send({
