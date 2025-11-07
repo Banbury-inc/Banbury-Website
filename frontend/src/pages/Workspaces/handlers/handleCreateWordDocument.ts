@@ -76,7 +76,7 @@ export const handleCreateWordDocument = async (
     // Create simple document content
     const content = `New Document
 
-Welcome to your new Word document!`;
+Welcome to your new document!`;
 
 
     // Generate filename - use provided name or default

@@ -27,11 +27,11 @@ const toastVariants = cva(
   {
     variants: {
       variant: {
-        default: "border-zinc-200/40 bg-zinc-900/95 text-zinc-100 ring-1 ring-zinc-300/20",
+        default: "default group bg-zinc-900/95 text-white ring-1 ring-zinc-300/95",
         destructive:
-          "destructive group border-red-300/30 bg-zinc-900/95 text-red-200 ring-1 ring-red-300/20",
-        success: "success group border-emerald-300/30 bg-zinc-900/95 text-emerald-200 ring-1 ring-emerald-300/20",
-        error: "error group border-red-300/30 bg-zinc-900/95 text-red-200 ring-1 ring-red-300/20",
+          "destructive group bg-red-500 text-error ring-1 ring-error/20",
+        success: "success group bg-emerald-700 text-white ring-1 ring-emerald-300/20",
+        error: "error group bg-red-700 text-white ring-1",
       },
     },
     defaultVariants: {
@@ -55,19 +55,19 @@ const Toast = React.forwardRef<
       <div
         className={cn(
           "absolute inset-y-0 left-0 w-1",
-          variant === "success" && "bg-emerald-400",
-          variant === "error" && "bg-red-400",
-          variant === "destructive" && "bg-red-400",
-          (!variant || variant === "default") && "bg-zinc-500/60"
+          variant === "success" && "bg-success",
+          variant === "error" && "bg-error",
+          variant === "destructive" && "bg-error",
+          (!variant || variant === "default") && "bg-zinc-900/95"
         )}
       />
       {/* Icon + content wrapper */}
       <div className="pl-3 pr-5 py-0.5 flex items-center gap-2">
         <div className="mt-0.5">
           {variant === "success" ? (
-            <CheckCircle2 className="h-4 w-4 text-emerald-400" />
+            <CheckCircle2 className="h-4 w-4 text-success" />
           ) : variant === "error" || variant === "destructive" ? (
-            <AlertTriangle className="h-4 w-4 text-red-400" />
+            <AlertTriangle className="h-4 w-4 text-error" />
           ) : (
             <Info className="h-4 w-4 text-zinc-300" />
           )}

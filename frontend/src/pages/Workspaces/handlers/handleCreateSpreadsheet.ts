@@ -76,11 +76,8 @@ export const handleCreateSpreadsheet = async (
   try {
     // Create simple spreadsheet data with headers and sample data
     const data = [
-      ['Name', 'Email', 'Phone', 'Department'],
-      ['John Doe', 'john.doe@example.com', '555-0101', 'Engineering'],
-      ['Jane Smith', 'jane.smith@example.com', '555-0102', 'Marketing'],
-      ['Bob Johnson', 'bob.johnson@example.com', '555-0103', 'Sales'],
-      ['Alice Brown', 'alice.brown@example.com', '555-0104', 'HR']
+      ['', '', '', ''],
+      ['', '', '', ''],
     ];
 
     // Generate filename - use provided name or default
