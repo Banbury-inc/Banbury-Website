@@ -28,6 +28,8 @@ export interface ToolPreferences {
   langgraph_mode?: boolean
   x_api?: boolean
   tiptap_ai?: boolean
+  model_provider?: "anthropic" | "openai"
+  model_id?: string
 }
 
 export interface DateTimeContext {

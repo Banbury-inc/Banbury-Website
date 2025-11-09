@@ -16,7 +16,7 @@
     "storybook:build": "storybook build",
     "storybook:screenshots": "test-storybook --url http://localhost:6006",
     "storybook:screenshots:ci": "concurrently --kill-others --success first \"npm run storybook\" \"npx wait-on http://localhost:6006 && npm run storybook:screenshots\"",
-    "test": "jest --runInBand --passWithNoTests",
+    "test": "jest --passWithNoTests",
     "test:coverage": "jest --runInBand --coverage",
     "clear_jest": "jest --clearCache",
     "lint": "eslint --ext .ts,.tsx ./src",

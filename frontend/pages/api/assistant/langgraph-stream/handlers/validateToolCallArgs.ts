@@ -1,3 +1,5 @@
+import { getServerContextValue } from "../../../../../src/assistant/langraph/serverContext"
+
 export interface MissingToolArgumentsDetails {
   toolName: string
   missingArgs: string[]
@@ -22,7 +24,7 @@ const REQUIRED_TOOL_ARGUMENTS: Record<string, string[]> = {
   sheet_ai: ['action'],
   tldraw_ai: ['action'],
   generate_image: ['prompt'],
-  create_file: ['fileName', 'filePath', 'content'],
+  create_file: ['fileName', 'filePath'],
   download_from_url: ['url'],
   stagehand_goto: ['url'],
   stagehand_observe: ['instruction'],
@@ -45,6 +47,23 @@ export function getMissingToolArguments(toolName: string, args: unknown): string
   }
 
   const parsedArgs = (args && typeof args === 'object') ? (args as Record<string, unknown>) : {}
+
+  if (toolName === 'create_file') {
+    const hasContentArg = typeof parsedArgs.content === 'string' && parsedArgs.content.trim().length > 0
+    const documentContext = getServerContextValue<string>('documentContext') || ''
+
+    // Check required args (fileName, filePath)
+    const missingRequiredArgs = requiredArgs.filter((argName) => isMissing(parsedArgs[argName]))
+
+    // Check if content is available (either via arg or context)
+    if (!hasContentArg && documentContext.trim().length === 0) {
+      // Content is missing and no document context available
+      return [...missingRequiredArgs, 'content']
+    }
+
+    // Content requirement satisfied; only return missing required args
+    return missingRequiredArgs
+  }
 
   return requiredArgs.filter((argName) => isMissing(parsedArgs[argName]))
 }

@@ -90,36 +90,42 @@ function createAnthropicContent(fileData: string, mimeType: string): any {
   }
 }
 
-function processUserMessage(content: any[]): HumanMessage | null {
+function processUserMessage(content: any[], provider: "anthropic" | "openai"): HumanMessage | null {
   const textParts = content.filter((p) => p.type === "text").map((p: any) => p.text)
   const fileAttachments = content.filter((p) => p.type === "file-attachment") as any[]
   
   const userText = textParts.join("\n\n")
   
   if (fileAttachments.length > 0) {
-    const anthropicContent: any[] = []
-    
-    // Add text content first
-    if (userText) {
-      anthropicContent.push({ type: "text", text: userText })
-    }
-    
-    // Add file attachments in Anthropic format
-    for (const fa of fileAttachments) {
-      if (!fa.fileData || !fa.mimeType) continue
+    if (provider === "anthropic") {
+      const anthropicContent: any[] = []
       
-      let anthropicMimeType = normalizeMimeType(fa.mimeType, fa.fileName)
+      if (userText) anthropicContent.push({ type: "text", text: userText })
       
-      // Special handling for Office documents - convert to text/plain
-      if (OFFICE_DOCUMENT_TYPES.includes(anthropicMimeType)) {
-        anthropicMimeType = 'text/plain'
-        fa.fileData = processOfficeDocument(fa.fileData, fa.mimeType, fa.fileName)
+      for (const fa of fileAttachments) {
+        if (!fa.fileData || !fa.mimeType) continue
+        
+        let anthropicMimeType = normalizeMimeType(fa.mimeType, fa.fileName)
+        
+        if (OFFICE_DOCUMENT_TYPES.includes(anthropicMimeType)) {
+          anthropicMimeType = 'text/plain'
+          fa.fileData = processOfficeDocument(fa.fileData, fa.mimeType, fa.fileName)
+        }
+        
+        anthropicContent.push(createAnthropicContent(fa.fileData, anthropicMimeType))
       }
       
-      anthropicContent.push(createAnthropicContent(fa.fileData, anthropicMimeType))
+      return new HumanMessage({ content: anthropicContent })
     }
     
-    return new HumanMessage({ content: anthropicContent })
+    const attachmentSummary = fileAttachments
+      .map((fa) => {
+        const sizeEstimate = fa?.fileData ? ` (~${Math.round((fa.fileData.length * 3) / 4 / 1024)} KB)` : ''
+        return `Attachment: ${fa?.fileName || 'Unnamed file'}${sizeEstimate}`
+      })
+      .join('\n')
+    const combined = [userText, attachmentSummary].filter(Boolean).join('\n\n') || 'User attached files.'
+    return new HumanMessage(combined)
   }
   
   if (userText) {
@@ -171,7 +177,7 @@ function processAssistantMessage(content: any[]): BaseMessage[] {
   return messages
 }
 
-export function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage[] {
+export function toLangChainMessages(messages: AssistantUiMessage[], provider: "anthropic" | "openai"): BaseMessage[] {
   const lc: BaseMessage[] = []
   
   for (const msg of messages) {
@@ -185,7 +191,7 @@ export function toLangChainMessages(messages: AssistantUiMessage[]): BaseMessage
     }
     
     if (msg.role === "user") {
-      const userMessage = processUserMessage(msg.content)
+      const userMessage = processUserMessage(msg.content, provider)
       if (userMessage) lc.push(userMessage)
       continue
     }

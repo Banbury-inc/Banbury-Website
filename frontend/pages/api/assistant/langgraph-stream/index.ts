@@ -1,6 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next"
 import { SystemMessage } from "@langchain/core/messages"
-import { reactAgent } from "./agent/agent"
+import { createReactAgentForProvider } from "./agent/agent"
 import { runWithServerContext } from "../../../../src/assistant/langraph/serverContext"
 import type { StreamRequestBody } from "./types"
 import { SYSTEM_PROMPT, API_CONFIG } from "./constants"
@@ -48,8 +48,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       authToken: token 
     })
 
+    // Normalize tool preferences before message conversion
+    const normalizedToolPreferences = normalizeToolPreferences({ toolPreferences: body.toolPreferences })
+    const modelProvider = normalizedToolPreferences.model_provider === "openai" ? "openai" : "anthropic"
+
     // Convert to LangChain messages
-    const lcMessages = toLangChainMessages(messagesWithFileData)
+    const lcMessages = toLangChainMessages(messagesWithFileData, modelProvider)
     
     // Only add system message if not already present
     let allMessages = lcMessages
@@ -75,10 +79,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       await runWithServerContext({ 
         authToken: token, 
-        toolPreferences: normalizeToolPreferences({ toolPreferences: body.toolPreferences }),
+        toolPreferences: normalizedToolPreferences,
         dateTimeContext: body.dateTimeContext,
+        documentContext: body.documentContext,
         webSearchDefaults: body.webSearchOptions || {}
       }, async () => {
+        const reactAgent = createReactAgentForProvider(modelProvider)
         // Use a custom streaming approach for character-by-character updates
         const stream = await reactAgent.stream(
           { messages: allMessages }, 

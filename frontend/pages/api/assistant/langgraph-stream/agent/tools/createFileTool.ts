@@ -5,7 +5,7 @@ import { getServerContextValue } from "../../../../../../src/assistant/langraph/
 
 // Create file tool (inline) to avoid module resolution issues
 export const createFileTool = tool(
-  async (input: { fileName: string; filePath: string; content: string; contentType?: string }) => {
+  async (input: { fileName: string; filePath: string; content?: string; contentType?: string }) => {
     const apiBase = CONFIG.url
     const token = getServerContextValue<string>("authToken")
 
@@ -16,7 +16,15 @@ export const createFileTool = tool(
     const lowerName = (input.fileName || input.filePath).toLowerCase()
     const ext = lowerName.includes('.') ? lowerName.split('.').pop() || '' : ''
     let resolvedType = input.contentType || 'text/plain'
-    let bodyContent: any = input.content
+    const contextContent = getServerContextValue<string>('documentContext') || ''
+    const providedContent = typeof input.content === 'string' ? input.content : ''
+    const initialContent = providedContent.trim().length > 0 ? providedContent : contextContent
+
+    if (!initialContent || initialContent.trim().length === 0) {
+      throw new Error('Missing required argument: content. The create_file tool requires a `content` parameter with the file contents. Please retry your tool call with all required arguments: fileName, filePath, and content.')
+    }
+
+    let bodyContent: any = initialContent
 
     // Local helpers to normalize and format plain text into HTML when appropriate
     const escapeHtml = (raw: string): string =>

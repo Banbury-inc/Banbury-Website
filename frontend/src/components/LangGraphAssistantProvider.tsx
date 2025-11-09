@@ -127,15 +127,16 @@ function createLangGraphRuntime(langGraphState: any) {
         .filter((part: any) => part.type === 'file-attachment');
       
       // Get tool preferences from localStorage
-      let toolPreferences = { web_search: true, tiptap_ai: true, memory: true };
+      let toolPreferences = { web_search: true, tiptap_ai: true, memory: true, model_provider: "anthropic" as const };
       try {
         const saved = localStorage.getItem("toolPreferences");
         if (saved) {
           const prefs = JSON.parse(saved);
           toolPreferences = {
-            web_search: prefs.web_search,
-            tiptap_ai: prefs.tiptap_ai,
-            memory: true // Always enable memory for LangGraph
+            web_search: prefs?.web_search !== false,
+            tiptap_ai: prefs?.tiptap_ai !== false,
+            memory: true, // Always enable memory for LangGraph
+            model_provider: prefs?.model_provider === "openai" ? "openai" : "anthropic",
           };
         }
       } catch (error) {

@@ -7,6 +7,7 @@ import {
   Wrench,
   Mic,
   MicOff,
+  ChevronDown,
 } from "lucide-react";
 
 import { ChatTiptapComposer } from "../../ChatTiptapComposer";
@@ -19,12 +20,22 @@ import {
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuCheckboxItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "../../ui/dropdown-menu";
 import { FileSystemItem } from "../../../utils/fileTreeUtils";
 import { ThreadScrollToBottom } from "./ThreadScrollToBottom";
 import { handleSend } from "./handlers/handleSend";
+import { handleModelProviderChange } from "./handlers/handleModelProviderChange";
+import { 
+  getModelDisplayName, 
+  AVAILABLE_MODELS, 
+  getModelById,
+  getDefaultModelForProvider,
+  type ModelProvider 
+} from "./handlers/getModelDisplayName";
 
 import type { FC } from "react";
 import { Typography } from "@/components/ui/typography";
@@ -34,6 +45,19 @@ const {
   ThreadPrimitive,
   useComposerRuntime,
 } = AssistantUI as any;
+
+interface ComposerToolPreferences {
+  web_search: boolean;
+  tiptap_ai: boolean;
+  read_file: boolean;
+  gmail: boolean;
+  langgraph_mode: boolean;
+  browser: boolean;
+  x_api: boolean;
+  slack: boolean;
+  model_provider: "anthropic" | "openai";
+  model_id?: string;
+}
 
 interface ComposerProps {
   attachedFiles: FileSystemItem[];
@@ -48,8 +72,8 @@ interface ComposerProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }) => void;
+  toolPreferences: ComposerToolPreferences;
+  onUpdateToolPreferences: (prefs: ComposerToolPreferences) => void;
   attachmentPayloads: Record<string, { fileData: string; mimeType: string }>;
   onAttachmentPayload: (fileId: string, payload: { fileData: string; mimeType: string }) => void;
   onSend?: () => void;
@@ -197,8 +221,8 @@ interface ComposerActionProps {
   } | null;
   isWebSearchEnabled: boolean;
   onToggleWebSearch: () => void;
-  toolPreferences: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean };
-  onUpdateToolPreferences: (prefs: { web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean }) => void;
+  toolPreferences: ComposerToolPreferences;
+  onUpdateToolPreferences: (prefs: ComposerToolPreferences) => void;
   onSend: () => void;
 }
 
@@ -301,6 +325,72 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
   return (
     <div className="bg-accent border-0 relative flex items-center justify-between rounded-b-2xl p-2">
       <div className="flex pl-4 items-center gap-2">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="primary"
+              className="h-8 px-3 gap-1.5"
+              title="Model"
+              aria-label="Model"
+            >
+              <Typography variant="small" className="text-xs font-medium">
+                {getModelDisplayName(toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider))}
+              </Typography>
+              <ChevronDown height={16} width={16} strokeWidth={1} />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="top" align="start" className="w-56 p-2 max-h-96 overflow-y-auto">
+            <DropdownMenuRadioGroup
+              value={toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider)}
+              onValueChange={(modelId: string) => {
+                const selectedModel = getModelById(modelId)
+                if (selectedModel) {
+                  onUpdateToolPreferences({ 
+                    ...toolPreferences, 
+                    model_id: modelId,
+                    model_provider: selectedModel.provider 
+                  })
+                }
+              }}
+            >
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                OpenAI
+              </DropdownMenuLabel>
+              {AVAILABLE_MODELS.filter(m => m.provider === "openai").map(model => (
+                <DropdownMenuRadioItem key={model.id} value={model.id}>
+                  <div className="flex flex-col gap-0.5">
+                    <Typography variant="small" className="text-xs">
+                      {model.name}
+                    </Typography>
+                    {model.description && (
+                      <Typography variant="small" className="text-[10px] text-muted-foreground">
+                        {model.description}
+                      </Typography>
+                    )}
+                  </div>
+                </DropdownMenuRadioItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                Anthropic
+              </DropdownMenuLabel>
+              {AVAILABLE_MODELS.filter(m => m.provider === "anthropic").map(model => (
+                <DropdownMenuRadioItem key={model.id} value={model.id}>
+                  <div className="flex flex-col gap-0.5">
+                    <Typography variant="small" className="text-xs">
+                      {model.name}
+                    </Typography>
+                    {model.description && (
+                      <Typography variant="small" className="text-[10px] text-muted-foreground">
+                        {model.description}
+                      </Typography>
+                    )}
+                  </div>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
         <FileAttachment
           onFileAttach={onFileAttach}
           attachedFiles={[]}
@@ -402,7 +492,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
           type="button"
           variant="primary"
           size="icon"
-          className={`${
+          className={`h-8 w-8 ${
             hasText 
               ? 'cursor-pointer bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-100' 
               : 'opacity-50 bg-zinc-300 dark:bg-zinc-600 text-zinc-500 dark:text-zinc-400 cursor-not-allowed'
@@ -424,7 +514,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
             size="icon"
             title="Stop generating"
             aria-label="Stop generating"
-            className="cursor-pointer bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-100" 
+            className="h-8 w-8 cursor-pointer bg-zinc-900 dark:bg-white text-white dark:text-black hover:bg-zinc-800 dark:hover:bg-zinc-100" 
           >
             <Square height={14} width={14} strokeWidth={1} />
           </Button>

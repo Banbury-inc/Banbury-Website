@@ -634,6 +634,32 @@ export const ChatTiptapComposer: React.FC<ChatTiptapComposerProps> = ({ hiddenIn
     };
   }, [editorInstance, hiddenInputRef]);
 
+  // Allow external clearing of the editor
+  useEffect(() => {
+    const handleClearEditor = () => {
+      if (!editorInstance) return;
+      try {
+        editorInstance.commands.clearContent(true);
+        editorInstance.commands.setContent('');
+        const el = hiddenInputRef.current;
+        if (el) {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new CustomEvent('tiptap-update', { bubbles: true, detail: { text: '' } }));
+        }
+      } catch (error) {
+        console.error('Error clearing editor:', error);
+      }
+    };
+
+    window.addEventListener('composer-clear', handleClearEditor);
+    
+    return () => {
+      window.removeEventListener('composer-clear', handleClearEditor);
+    };
+  }, [editorInstance, hiddenInputRef]);
+
 
   return (
     <div className={className} onClick={() => editorInstance?.chain().focus().run()}>

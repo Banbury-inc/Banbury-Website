@@ -1,4 +1,5 @@
 import { ChatAnthropic } from "@langchain/anthropic";
+import { ChatOpenAI } from "@langchain/openai";
 import { HumanMessage, SystemMessage, AIMessage, ToolMessage } from "@langchain/core/messages";
 import { StateGraph, START, END, MessagesAnnotation } from "@langchain/langgraph";
 import { createReactAgent } from "@langchain/langgraph/prebuilt";
@@ -73,12 +74,45 @@ interface AgentState {
   error?: string;
 }
 
-// Initialize the Anthropic model
-const anthropicModel = new ChatAnthropic({
-  model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-  apiKey: process.env.ANTHROPIC_API_KEY || "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",
-  temperature: 0.2,
-})
+type ModelProvider = "anthropic" | "openai"
+
+function getDefaultModelForProvider(provider: ModelProvider): string {
+  return provider === "openai" ? "gpt-4o-mini" : "claude-sonnet-4-20250514"
+}
+
+function createChatModel(provider: ModelProvider, modelId?: string) {
+  const actualModelId = modelId || getDefaultModelForProvider(provider)
+  
+  if (provider === "openai") {
+    return new ChatOpenAI({
+      model: actualModelId,
+      apiKey: process.env.OPENAI_API_KEY || "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",
+      temperature: 0.2,
+    })
+  }
+
+  return new ChatAnthropic({
+    model: actualModelId,
+    apiKey: process.env.ANTHROPIC_API_KEY || "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",
+    temperature: 0.2,
+  })
+}
+
+function resolveModelProvider(): ModelProvider {
+  const prefs = getServerContextValue<any>("toolPreferences")
+  return prefs?.model_provider === "openai" ? "openai" : "anthropic"
+}
+
+function resolveModelId(): string | undefined {
+  const prefs = getServerContextValue<any>("toolPreferences")
+  return prefs?.model_id
+}
+
+export function createReactAgentForProvider(provider: ModelProvider) {
+  const modelId = resolveModelId()
+  const llm = createChatModel(provider, modelId)
+  return createReactAgent({ llm, tools })
+}
 
 // Function to get current date/time context
 function getCurrentDateTimeContext(): string {
@@ -155,11 +189,6 @@ const tools = [
   stagehandExtractTool,
   stagehandCloseTool,
 ]
-const modelWithTools = anthropicModel.bindTools(tools)
-
-// React-style agent that handles tool-calling loops internally
-export const reactAgent = createReactAgent({ llm: anthropicModel, tools })
-
 // Define agent nodes following athena-intelligence patterns
 async function agentNode(state: AgentState): Promise<AgentState> {
   try {
@@ -204,6 +233,9 @@ async function agentNode(state: AgentState): Promise<AgentState> {
       ]
     }
 
+    const provider = resolveModelProvider()
+    const llm = createChatModel(provider)
+    const modelWithTools = llm.bindTools(tools)
     const response = await modelWithTools.invoke(messages)
     
     return {

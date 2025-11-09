@@ -71,27 +71,48 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
   const [selectedDrawioFile, setSelectedDrawioFile] = useState<FileSystemItem | null>(null);
   const [isWebSearchEnabled, setIsWebSearchEnabled] = useState(true);
   const [pendingChanges, setPendingChanges] = useState<Array<{ id: string; type: string; description: string }>>([]);
-  const [toolPreferences, setToolPreferences] = useState<{ web_search: boolean; tiptap_ai: boolean; read_file: boolean; gmail: boolean; langgraph_mode: boolean; browser: boolean; x_api: boolean; slack: boolean }>(() => {
+
+  interface ThreadToolPreferences {
+    web_search: boolean;
+    tiptap_ai: boolean;
+    read_file: boolean;
+    gmail: boolean;
+    langgraph_mode: boolean;
+    browser: boolean;
+    x_api: boolean;
+    slack: boolean;
+    model_provider: "anthropic" | "openai";
+  }
+
+  const deriveToolPreferences = (raw?: any): ThreadToolPreferences => {
+    const data = raw || {};
+    const mappedBrowser = typeof data.browser === "boolean"
+      ? Boolean(data.browser)
+      : typeof data.browserbase === "boolean"
+        ? Boolean(data.browserbase)
+        : false;
+
+    const provider = data.model_provider === "openai" ? "openai" : "anthropic";
+
+    return {
+      web_search: data.web_search !== false,
+      tiptap_ai: data.tiptap_ai !== false,
+      read_file: data.read_file !== false,
+      gmail: data.gmail !== false,
+      langgraph_mode: true,
+      browser: mappedBrowser,
+      x_api: typeof data.x_api === "boolean" ? data.x_api : false,
+      slack: typeof data.slack === "boolean" ? data.slack : false,
+      model_provider: provider,
+    };
+  };
+
+  const [toolPreferences, setToolPreferences] = useState<ThreadToolPreferences>(() => {
     try {
       const saved = localStorage.getItem("toolPreferences");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Always force langgraph_mode to true; map legacy 'browserbase' to new 'browser' (default OFF)
-        const mappedBrowser = (typeof parsed.browser === 'boolean') ? parsed.browser : (typeof parsed.browserbase === 'boolean' ? Boolean(parsed.browserbase) : false);
-        // Return only supported keys to drop legacy fields like 'browserbase' and 'tiptap_ai'
-        return {
-          web_search: parsed.web_search !== false,
-          tiptap_ai: parsed.tiptap_ai !== false,
-          read_file: parsed.read_file !== false,
-          gmail: parsed.gmail !== false,
-          langgraph_mode: true,
-          browser: mappedBrowser,
-          x_api: typeof parsed.x_api === 'boolean' ? parsed.x_api : false,
-          slack: typeof parsed.slack === 'boolean' ? parsed.slack : false,
-        };
-      }
+      if (saved) return deriveToolPreferences(JSON.parse(saved));
     } catch {}
-    return { web_search: true, tiptap_ai: true, read_file: true, gmail: true, langgraph_mode: true, browser: false, x_api: false, slack: false };
+    return deriveToolPreferences();
   });
 
   // Cache of pre-downloaded attachment payloads keyed by fileId
@@ -376,7 +397,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         setAttachedEmails([]);
       }
       if (conversation.metadata?.toolPreferences) {
-        setToolPreferences(conversation.metadata.toolPreferences);
+        setToolPreferences(deriveToolPreferences(conversation.metadata.toolPreferences));
       }
 
       if (!runtime) return;
@@ -937,7 +958,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         isWebSearchEnabled={isWebSearchEnabled}
         onToggleWebSearch={toggleWebSearch}
         toolPreferences={toolPreferences}
-        onUpdateToolPreferences={(prefs) => setToolPreferences(prefs)}
+        onUpdateToolPreferences={(prefs) => setToolPreferences(deriveToolPreferences(prefs))}
         attachmentPayloads={attachmentPayloads}
         onAttachmentPayload={handleAttachmentPayload}
         onFileView={handleDrawioFileView}

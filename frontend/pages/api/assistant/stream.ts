@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { z } from "zod";
 import { tool } from "@langchain/core/tools";
 import { ChatAnthropic } from "@langchain/anthropic";
+import { ChatOpenAI } from "@langchain/openai";
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "@langchain/core/messages";
 
 // Simple DOCX text extraction function
@@ -81,9 +82,9 @@ const tiptapAI: any = tool(
       targetText: z.string().optional().describe("The original text that was being modified"),
       actionType: z.enum(['rewrite', 'correct', 'expand', 'translate', 'summarize', 'outline', 'insert']).describe("The type of action performed"),
       language: z.string().optional().describe("Target language for translation actions")
-    })
+    }) as any
   }
-);
+) as any;
 
 const webSearch: any = tool(
   async (input: { query: string }) => {
@@ -306,18 +307,40 @@ const generateImage: any = tool(
       size: z.enum(['256x256', '512x512', '1024x1024']).optional(),
       folder: z.string().optional().describe('Target folder, default images'),
       fileBaseName: z.string().optional().describe('Base filename, default "Generated Image"'),
-    }),
+    }) as any
   }
-);
+) as any;
 
 
-const anthropicModel = new ChatAnthropic({
-  model: process.env.ANTHROPIC_MODEL || "claude-sonnet-4-20250514",
-  apiKey: "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",
-  temperature: 0.2,
-});
+type ModelProvider = "anthropic" | "openai";
 
-function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
+function getDefaultModelForProvider(provider: ModelProvider): string {
+  return provider === "openai" ? "gpt-4o-mini" : "claude-sonnet-4-20250514"
+}
+
+function createChatModel(provider: ModelProvider, modelId?: string) {
+  const actualModelId = modelId || getDefaultModelForProvider(provider)
+  
+  if (provider === "openai") {
+    return new ChatOpenAI({
+      model: actualModelId,
+      apiKey: process.env.OPENAI_API_KEY || "sk-proj-ntgCoxcey7c4DJvLWiJouAnoYeemQMBAufuC7wnLJBkbZYpGOe6hiiMur0OP7jBCQ7TaoE-gheT3BlbkFJExrPcUxXXu-kvuFlxkqb8UyYV5KAQQHmVv6RcGxYDglV0T3HLIYGWOmzCJTVtN2ohiQmSHoAA",
+      temperature: 0.2,
+    });
+  }
+
+  return new ChatAnthropic({
+    model: actualModelId,
+    apiKey: process.env.ANTHROPIC_API_KEY || "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",
+    temperature: 0.2,
+  });
+}
+
+function resolveModelProvider(provider?: string): ModelProvider {
+  return provider === "openai" ? "openai" : "anthropic";
+}
+
+function toLangChainMessages(messages: AssistantUiMessage[], provider: ModelProvider): any[] {
   const lc: any[] = [];
   for (const msg of messages) {
     if (msg.role === "system") {
@@ -333,6 +356,7 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
       
       // Create Anthropic-compatible message with attachments
       if (fileAttachments.length > 0) {
+        if (provider === "anthropic") {
         const anthropicContent: any[] = [];
         
         // Add text content first
@@ -460,46 +484,42 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
             ];
             
             if (officeDocumentTypes.includes(anthropicMimeType)) {
-              console.log(`📄 Office document detected: ${anthropicMimeType} → converting to text/plain for Anthropic compatibility`);
-              anthropicMimeType = 'text/plain';
-              
-              // Convert office document to text representation
+              console.log(`📄 Converting ${fa.fileName} to plain text for Anthropic compatibility`);
               try {
-                if (fa.mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
-                  // For DOCX files, extract text content
-                  const binaryData = Buffer.from(fa.fileData, 'base64');
-                  const extractedText = extractTextFromDocx(binaryData, fa.fileName);
-                  fa.fileData = Buffer.from(extractedText, 'utf8').toString('base64');
-                  console.log(`📝 Extracted text from DOCX: ${extractedText.length} characters`);
-                } else {
-                  // For other office documents, send descriptive message
-                  const fileInfo = `This is a ${fa.fileName} file (${fa.mimeType}). The file has been attached as a ${fa.mimeType} document. Please note that text extraction is not available for this format - only PDF and DOCX files can be fully processed. You may ask the user to provide key information from this document.`;
-                  fa.fileData = Buffer.from(fileInfo, 'utf8').toString('base64');
-                  console.log(`📝 Converted office document to descriptive text for Anthropic`);
-                }
-              } catch (error) {
-                console.error(`❌ Error processing office document:`, error);
-                const fallbackInfo = `This is a ${fa.fileName} file (${fa.mimeType}) that could not be processed. Please ask the user to provide the text content or key information from this document.`;
-                fa.fileData = Buffer.from(fallbackInfo, 'utf8').toString('base64');
-              }
-            }
-            
-            if (!supportedTypes.includes(anthropicMimeType)) {
-              console.warn(`⚠️ Unsupported MIME type for Anthropic: ${anthropicMimeType}`);
-              // Only fallback to text/plain for non-image types
-              if (!anthropicMimeType.startsWith('image/')) {
-                console.warn(`📄 Falling back to text/plain for non-image type`);
+                const buffer = Buffer.from(fa.fileData, 'base64');
                 anthropicMimeType = 'text/plain';
-              } else {
-                console.warn(`🖼️ Keeping image MIME type even if not in supported list`);
+                const textContent = extractTextFromDocx(buffer, fa.fileName);
+                anthropicContent.push({
+                  type: "text",
+                  text: textContent
+                });
+                console.log(`✅ Added converted text content (${textContent.length} characters)`);
+                continue;
+              } catch (error) {
+                console.error(`⚠️ Failed to convert ${fa.fileName}, falling back to base64 attachment:`, error);
+                anthropicMimeType = 'application/octet-stream';
               }
             }
             
-            console.log(`🔄 Normalized MIME type: ${anthropicMimeType}`);
+            if (!supportedTypes.includes(anthropicMimeType) && anthropicMimeType !== 'application/pdf') {
+              console.warn(`⚠️ Unsupported MIME type for Anthropic attachments: ${anthropicMimeType}. Converting to plain text.`);
+              try {
+                const buffer = Buffer.from(fa.fileData, 'base64');
+                const textContent = buffer.toString('utf8');
+                anthropicMimeType = 'text/plain';
+                anthropicContent.push({
+                  type: "text",
+                  text: textContent
+                });
+                console.log(`✅ Converted unsupported attachment to text (${textContent.length} characters)`);
+                continue;
+              } catch (error) {
+                console.error(`⚠️ Failed to convert unsupported attachment to text:`, error);
+              }
+            }
             
-            // Use different content types based on MIME type
+            // Choose the correct attachment type for Anthropic
             if (anthropicMimeType.startsWith('image/')) {
-              // Images use the image content type
               anthropicContent.push({
                 type: "image",
                 source: {
@@ -533,6 +553,16 @@ function toLangChainMessages(messages: AssistantUiMessage[]): any[] {
         }
         
         lc.push(new HumanMessage({ content: anthropicContent }));
+        } else {
+          const attachmentSummary = fileAttachments
+            .map((fa) => {
+              const sizeEstimate = fa?.fileData ? ` (~${Math.round((fa.fileData.length * 3) / 4 / 1024)} KB)` : "";
+              return `Attachment: ${fa?.fileName || "Unnamed file"}${sizeEstimate}`;
+            })
+            .join("\n");
+          const combined = [userContent, attachmentSummary].filter(Boolean).join("\n\n") || "User attached files.";
+          lc.push(new HumanMessage(combined));
+        }
       } else if (userContent) {
         lc.push(new HumanMessage(userContent));
       }
@@ -577,7 +607,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   };
 
   try {
-    const body = req.body as { messages: any[]; toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean } };
+    const body = req.body as { messages: any[]; toolPreferences?: { web_search?: boolean; tiptap_ai?: boolean; read_file?: boolean; gmail?: boolean; model_provider?: string } };
     // Normalize: fold any message-level attachments into content as file-attachment parts
     const normalizedMessages: AssistantUiMessage[] = Array.isArray(body.messages)
       ? body.messages.map((msg: any) => {
@@ -666,8 +696,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return out;
     })();
 
-    const lcMessages = toLangChainMessages(messagesWithFileData);
-    const prefs = body.toolPreferences || { web_search: true, tiptap_ai: true, read_file: true, gmail: true };
+    const providerRaw = (req.body as any)?.toolPreferences?.model_provider;
+    const provider = resolveModelProvider(typeof providerRaw === "string" ? providerRaw : undefined);
+    const incomingToolPrefs = ((body as any).toolPreferences ?? {}) as any;
+    const lcMessages = toLangChainMessages(messagesWithFileData, provider);
+    const prefs = {
+      web_search: incomingToolPrefs.web_search !== false,
+      tiptap_ai: incomingToolPrefs.tiptap_ai !== false,
+      read_file: incomingToolPrefs.read_file !== false,
+      gmail: incomingToolPrefs.gmail !== false,
+      model_provider: provider,
+    };
     const messages: any[] = [new SystemMessage(SYSTEM_PROMPT), ...lcMessages];
 
     // Create readFile tool with access to req
@@ -721,7 +760,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (prefs.tiptap_ai) enabledTools.push(tiptapAI);
     enabledTools.push(generateImage);
     // Bind with access to req in tool runtime via custom wrapper
-    const modelWithTools = anthropicModel.bindTools(enabledTools.map((t: any) => ({
+    const model = createChatModel(prefs.model_provider, prefs.model_id);
+    const modelWithTools = model.bindTools(enabledTools.map((t: any) => ({
       ...t,
       // @ts-ignore pass through req for tools that need it
       call: (args: any) => (t as any).invoke(args, { req }),

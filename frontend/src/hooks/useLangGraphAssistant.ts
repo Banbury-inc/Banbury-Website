@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react';
+import { getDocumentContext } from '../assistant/ClaudeRuntimeProvider/handlers/getDocumentContext';
 import { generateThreadId } from '../assistant/langraph/utils';
 
 // Types following athena-intelligence patterns
@@ -67,6 +68,7 @@ export interface ToolPreferences {
   web_search?: boolean;
   tiptap_ai?: boolean;
   memory?: boolean;
+  model_provider?: "anthropic" | "openai";
 }
 
 export function useLangGraphAssistant(initialThreadId?: string) {
@@ -88,7 +90,7 @@ export function useLangGraphAssistant(initialThreadId?: string) {
   const sendMessage = useCallback(async (
     content: string,
     attachments: FileAttachment[] = [],
-    toolPreferences: ToolPreferences = { web_search: true, tiptap_ai: true, memory: true }
+    toolPreferences: ToolPreferences = { web_search: true, tiptap_ai: true, memory: true, model_provider: "anthropic" }
   ) => {
     if (state.isLoading) return;
 
@@ -114,6 +116,14 @@ export function useLangGraphAssistant(initialThreadId?: string) {
       toolStatuses: new Map()
     }));
 
+    // Normalize tool preferences
+    const normalizedToolPreferences: ToolPreferences = {
+      web_search: toolPreferences?.web_search !== false,
+      tiptap_ai: toolPreferences?.tiptap_ai !== false,
+      memory: true,
+      model_provider: toolPreferences?.model_provider === "openai" ? "openai" : "anthropic",
+    };
+
     // Initialize assistant message
     currentMessageRef.current = {
       role: "assistant",
@@ -123,6 +133,8 @@ export function useLangGraphAssistant(initialThreadId?: string) {
     try {
       // Create abort controller for this request
       abortControllerRef.current = new AbortController();
+
+      const documentContext = getDocumentContext();
 
       // Call the LangGraph API endpoint
       const response = await fetch('/api/assistant/langgraph-stream', {
@@ -134,7 +146,8 @@ export function useLangGraphAssistant(initialThreadId?: string) {
         body: JSON.stringify({
           messages: [...state.messages, userMessage],
           threadId: state.threadId,
-          toolPreferences
+          toolPreferences: normalizedToolPreferences,
+          documentContext: documentContext || undefined
         }),
         signal: abortControllerRef.current.signal
       });

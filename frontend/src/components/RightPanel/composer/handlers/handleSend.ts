@@ -9,7 +9,6 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
   // Prefer the hidden textarea value, which tiptap keeps in sync (preserves newlines)
   const input = document.querySelector('textarea[aria-label="Message input"]') as HTMLTextAreaElement | null
   let text = input?.value ?? ''
-  let proseMirrorElement: Element | null = null
 
   // Fallback: Get the text directly from the Tiptap editor DOM if the textarea is empty
   if (!text.trim()) {
@@ -19,7 +18,6 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
       const isInChatComposer = element.closest('.bg-zinc-800') || element.closest('.min-h-16')
 
       if (isInChatComposer) {
-        proseMirrorElement = element
         // Extract paragraphs to preserve line breaks when possible
         const paragraphs = Array.from(element.querySelectorAll('p'))
         if (paragraphs.length > 0) {
@@ -29,11 +27,6 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
         }
         break
       }
-    }
-
-    // Keep reference for later clearing if we fell back to DOM
-    if (!proseMirrorElement && proseMirrorElements.length > 0) {
-      proseMirrorElement = proseMirrorElements[0]
     }
   }
   
@@ -142,13 +135,9 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
           onSend()
         }
         
-        // Clear after sending
+        // Clear after sending using proper event
         setTimeout(() => {
-          input.value = ''
-          input.dispatchEvent(new Event('input', { bubbles: true }))
-          if (proseMirrorElement) {
-            proseMirrorElement.innerHTML = '<p></p>'
-          }
+          window.dispatchEvent(new CustomEvent('composer-clear'))
         }, 100)
       }, 50) // Reduced delay since context is already set
     }

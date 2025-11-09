@@ -15,6 +15,7 @@ interface ToolPreferences {
   browser: boolean
   x_api: boolean
   slack: boolean
+  model_provider: "anthropic" | "openai"
 }
 
 export function AISettingsTab() {
@@ -33,6 +34,7 @@ export function AISettingsTab() {
           browser: typeof parsed.browser === 'boolean' ? parsed.browser : false,
           x_api: typeof parsed.x_api === 'boolean' ? parsed.x_api : false,
           slack: typeof parsed.slack === 'boolean' ? parsed.slack : false,
+          model_provider: parsed.model_provider === 'openai' ? 'openai' : 'anthropic',
         }
       }
     } catch {}
@@ -46,6 +48,7 @@ export function AISettingsTab() {
       browser: false,
       x_api: false,
       slack: false,
+      model_provider: 'anthropic',
     }
   })
 
