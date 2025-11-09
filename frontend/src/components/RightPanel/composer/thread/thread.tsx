@@ -1161,8 +1161,8 @@ const AssistantActionBar: FC = () => {
   return (
     <ActionBarPrimitive.Root
       hideWhenRunning
-      autohide="not-last"
-      autohideFloat="single-branch"
+      autohide="never"
+      autohideFloat="never"
       className="text-muted-foreground absolute right-0 bottom-0 mt-2 flex gap-1"
     >
       <ActionBarPrimitive.Copy asChild>
