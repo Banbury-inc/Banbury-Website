@@ -17,10 +17,12 @@ import {
   Hash,
   Minus,
   Type,
+  WrapText,
   Save,
   Download,
   MoreVertical,
   HelpCircle,
+  Check,
   X,
   Filter,
   Ruler,
@@ -51,6 +53,14 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { Button } from '../../../../components/ui/button';
 import styles from '../../../../styles/SimpleTiptapEditor.module.css';
+
+type WrapOption = 'overflow' | 'wrap' | 'clip';
+
+const wrapOptions: Array<{ value: WrapOption; label: string }> = [
+  { value: 'overflow', label: 'Overflow' },
+  { value: 'wrap', label: 'Wrap' },
+  { value: 'clip', label: 'Clip' },
+];
 
 interface CSVEditorToolbarProps {
   // Formatting handlers
@@ -155,6 +165,10 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
   // Other menu state
   const [borderAnchorEl, setBorderAnchorEl] = useState<null | HTMLElement>(null);
   const [alignmentAnchorEl, setAlignmentAnchorEl] = useState<null | HTMLElement>(null);
+  const [wrapAnchorEl, setWrapAnchorEl] = useState<null | HTMLElement>(null);
+
+  // Toolbar persistent selections
+  const [selectedWrapOption, setSelectedWrapOption] = useState<WrapOption>('overflow');
   
   const toolbarRef = useRef<HTMLDivElement>(null);
 
@@ -197,6 +211,61 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
     handleAlignmentClose();
   };
 
+  const handleWrapClick = (event: React.MouseEvent<HTMLElement>) => {
+    setWrapAnchorEl(event.currentTarget);
+  };
+  const handleWrapClose = () => setWrapAnchorEl(null);
+
+  const resetWrapStyles = () => {
+    const wrapStyleProperties: Array<'whiteSpace' | 'overflow' | 'textOverflow' | 'wordBreak' | 'overflowWrap'> = [
+      'whiteSpace',
+      'overflow',
+      'textOverflow',
+      'wordBreak',
+      'overflowWrap'
+    ];
+    wrapStyleProperties.forEach(property => {
+      try {
+        removeCellStyle(property);
+      } catch (error) {
+        console.error('Error clearing wrap style property:', property, error);
+      }
+    });
+  };
+
+  const handleWrapSelect = (option: WrapOption) => {
+    setSelectedWrapOption(option);
+    handleWrapClose();
+
+    try {
+      resetWrapStyles();
+
+      if (option === 'overflow') {
+        applyCellStyle('whiteSpace', 'nowrap');
+        applyCellStyle('overflow', 'visible');
+        applyCellStyle('textOverflow', 'clip');
+        applyCellStyle('wordBreak', 'normal');
+        applyCellStyle('overflowWrap', 'normal');
+        return;
+      }
+
+      if (option === 'wrap') {
+        applyCellStyle('whiteSpace', 'normal');
+        applyCellStyle('wordBreak', 'break-word');
+        applyCellStyle('overflow', 'hidden');
+        applyCellStyle('textOverflow', 'clip');
+        applyCellStyle('overflowWrap', 'anywhere');
+        return;
+      }
+
+      applyCellStyle('whiteSpace', 'nowrap');
+      applyCellStyle('overflow', 'hidden');
+      applyCellStyle('textOverflow', 'clip');
+    } catch (error) {
+      console.error('Error applying wrap option:', option, error);
+    }
+  };
+
   // Help dialog handlers
   const handleOpenHelpDialog = () => {
     setLocalHelpDialogOpen(true);
@@ -224,6 +293,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
     { id: 'fillColor', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleBackgroundColorClick(e) : handleBackgroundColorClick({} as any), icon: <PaintBucket size={16} />, title: 'Fill Color' },
     { id: 'borders', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleBorderClick(e) : handleBorderClick({} as any), icon: <Grid size={16} />, title: 'Borders' },
     { id: 'merge', handler: () => handleMergeCells(), icon: <Grid size={16} />, title: 'Merge Selected Cells' },
+    { id: 'wrap', handler: (event?: React.MouseEvent<HTMLElement>) => { if (event) handleWrapClick(event); }, icon: <WrapText size={16} />, title: 'Text Wrapping' },
     { id: 'alignment', handler: (e?: React.MouseEvent<HTMLElement>) => e ? handleAlignmentClick(e) : handleAlignmentClick({} as any), icon: <><AlignLeft size={16} /><ChevronDown size={12} /></>, title: 'Text Alignment' },
     { id: 'filters', handler: () => handleToggleFilters(), icon: <Filter size={16} />, title: 'Toggle Filters (Ctrl+K)' },
     { id: 'conditional', handler: () => onOpenConditionalPanel(), icon: <Ruler size={16} />, title: 'Conditional Formatting' },
@@ -258,7 +328,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
     
     for (const button of toolbarButtons) {
       // Check if this button needs a divider before it
-      const dividerGroups = ['bold', 'textColor', 'borders', 'merge', 'alignment', 'filters', 'cut', 'search', 'addRow', 'deleteRow', 'unmerge', 'export'];
+      const dividerGroups = ['bold', 'textColor', 'borders', 'merge', 'wrap', 'alignment', 'filters', 'cut', 'search', 'addRow', 'deleteRow', 'unmerge', 'export'];
       const needsDivider = dividerGroups.includes(button.id);
       
       const buttonTotalWidth = buttonWidth + (needsDivider ? dividerWidth : 0);
@@ -372,7 +442,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
           if (visibleButtons.includes(button.id)) {
             const showDividerBefore = () => {
               // Show divider before these button groups
-              const dividerGroups = ['currency','textColor', 'alignment', 'filters', 'cut', 'search', 'addRow', 'deleteRow', 'unmerge', 'export'];
+              const dividerGroups = ['currency','textColor', 'wrap', 'alignment', 'filters', 'cut', 'search', 'addRow', 'deleteRow', 'unmerge', 'export'];
               return dividerGroups.includes(button.id);
             };
 
@@ -387,7 +457,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
                   onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
                     try {
                       // For handlers that need event parameters, pass them through
-                      if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'alignment') {
+                      if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'wrap' || button.id === 'alignment') {
                         button.handler(e as any);
                       } else {
                         button.handler();
@@ -577,7 +647,7 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
               onClick={(e: React.MouseEvent<HTMLLIElement> | React.MouseEvent<HTMLButtonElement>) => {
                 handleOverflowClose();
                 // For handlers that need event parameters, we need to handle them specially
-                if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'alignment') {
+                if (button.id === 'textColor' || button.id === 'fillColor' || button.id === 'borders' || button.id === 'wrap' || button.id === 'alignment') {
                   // These handlers need event parameters, so we'll trigger them differently
                   if (button.id === 'textColor') {
                     handleTextColorClick(e as any);
@@ -585,6 +655,8 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
                     handleBackgroundColorClick(e as any);
                   } else if (button.id === 'borders') {
                     handleBorderClick(e as any);
+                  } else if (button.id === 'wrap') {
+                    handleWrapClick(e as any);
                   } else if (button.id === 'alignment') {
                     handleAlignmentClick(e as any);
                   }
@@ -604,6 +676,44 @@ const CSVEditorToolbar: React.FC<CSVEditorToolbarProps> = ({
               {button.title}
             </MenuItem>
           ))}
+      </Menu>
+
+      {/* Wrap Menu */}
+      <Menu
+        anchorEl={wrapAnchorEl}
+        open={Boolean(wrapAnchorEl)}
+        onClose={handleWrapClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        PaperProps={{
+          sx: {
+            minWidth: '180px',
+            border: '1px solid #3f3f46',
+            backgroundColor: lightMode ? 'white' : '#27272a',
+            boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+          }
+        }}
+      >
+        {wrapOptions.map(option => (
+          <MenuItem
+            key={option.value}
+            onClick={() => handleWrapSelect(option.value)}
+            sx={{
+              fontSize: '14px',
+              py: 1,
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1
+            }}
+          >
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <Typography variant="body2">
+                {option.label}
+              </Typography>
+              {selectedWrapOption === option.value && <Check size={16} />}
+            </Box>
+          </MenuItem>
+        ))}
       </Menu>
 
       {/* Text Color Menu */}

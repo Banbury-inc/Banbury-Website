@@ -1569,6 +1569,12 @@ const searchFieldKeyupCallback = useCallback(
                   } catch {}
                   td.className = mergedClasses.join(' ');
                   
+                  td.style.whiteSpace = 'nowrap';
+                  td.style.overflow = 'visible';
+                  td.style.textOverflow = 'clip';
+                  td.style.wordBreak = 'normal';
+                  td.style.setProperty('overflow-wrap', 'normal');
+
                   if (sty && Object.keys(sty).length > 0) {
                     const styleEntries = Object.entries(sty);
                     for (const [prop, val] of styleEntries) {
