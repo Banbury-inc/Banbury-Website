@@ -231,6 +231,18 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
   const [hasText, setHasText] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const buttonsRef = useRef<HTMLDivElement>(null);
+  const previousWidthRef = useRef<number>(0);
+  const isMeasuringRef = useRef<boolean>(true);
+  const [visibleButtons, setVisibleButtons] = useState({
+    model: true,
+    fileAttachment: true,
+    tools: true,
+    mic: true,
+    globe: true,
+  });
+  const [isMeasuring, setIsMeasuring] = useState(true);
 
   const getRecognition = () => {
     const SpeechRecognitionImpl = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -317,174 +329,297 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
     };
   }, []);
 
+  // Monitor container size and hide buttons when space is limited
+  useEffect(() => {
+    if (!containerRef.current || !buttonsRef.current) return
+
+    const checkButtonVisibility = () => {
+      const container = containerRef.current
+      const buttonsContainer = buttonsRef.current
+      if (!container || !buttonsContainer) return
+
+      const containerWidth = container.offsetWidth
+      if (containerWidth === 0) return // Container not ready yet
+      
+      const sendButtonWidth = 40 // h-8 w-8 = 32px + padding
+      const padding = 16 // p-2 = 8px on each side
+      const gap = 8 // gap-2 = 8px
+      
+      // Reserve space for send button and padding
+      const availableWidth = containerWidth - sendButtonWidth - padding * 2
+      if (availableWidth <= 0) {
+        // Not enough space for any buttons, hide all
+        setVisibleButtons({
+          model: false,
+          fileAttachment: false,
+          tools: false,
+          mic: false,
+          globe: false,
+        })
+        setIsMeasuring(false)
+        isMeasuringRef.current = false
+        previousWidthRef.current = containerWidth
+        return
+      }
+      
+      // Function to measure buttons and determine visibility
+      const measureButtons = () => {
+        // Get all button elements in priority order (most important first)
+        const buttonElements = Array.from(buttonsContainer.children) as HTMLElement[]
+        if (buttonElements.length === 0) {
+          // If no buttons are rendered yet and we're measuring, retry
+          if (isMeasuringRef.current) {
+            setTimeout(measureButtons, 50)
+          }
+          return
+        }
+
+        let totalWidth = 0
+        const buttonKeys: Array<keyof typeof visibleButtons> = ['model', 'fileAttachment', 'tools', 'mic', 'globe']
+        const newVisibility: typeof visibleButtons = {
+          model: false,
+          fileAttachment: false,
+          tools: false,
+          mic: false,
+          globe: false,
+        }
+
+        // Calculate which buttons fit, starting with highest priority
+        for (let i = 0; i < buttonElements.length && i < buttonKeys.length; i++) {
+          const button = buttonElements[i]
+          const buttonWidth = button.offsetWidth + gap
+          const key = buttonKeys[i]
+          
+          if (key && totalWidth + buttonWidth <= availableWidth) {
+            totalWidth += buttonWidth
+            newVisibility[key] = true
+          } else {
+            // Stop checking remaining buttons
+            break
+          }
+        }
+
+        setVisibleButtons(newVisibility)
+        setIsMeasuring(false)
+        isMeasuringRef.current = false
+        previousWidthRef.current = containerWidth
+      }
+      
+      // If container got wider, temporarily enable measuring to show all buttons for measurement
+      const containerGotWider = containerWidth > previousWidthRef.current && previousWidthRef.current > 0
+      if (containerGotWider) {
+        setIsMeasuring(true)
+        isMeasuringRef.current = true
+        // Wait for DOM to update before measuring
+        setTimeout(measureButtons, 50)
+        return
+      }
+      
+      // Otherwise measure immediately
+      measureButtons()
+    }
+
+    // Use ResizeObserver to watch for container size changes
+    const resizeObserver = new ResizeObserver(() => {
+      // Small delay to ensure DOM has updated
+      setTimeout(checkButtonVisibility, 0)
+    })
+
+    resizeObserver.observe(containerRef.current)
+
+    // Initial check after a brief delay to ensure all buttons are rendered
+    const timeoutId = setTimeout(() => {
+      checkButtonVisibility()
+    }, 100)
+
+    // Also check on window resize
+    window.addEventListener('resize', checkButtonVisibility)
+
+    return () => {
+      clearTimeout(timeoutId)
+      resizeObserver.disconnect()
+      window.removeEventListener('resize', checkButtonVisibility)
+    }
+  }, []);
+
   const handleSendFromButton = () => {
     // Simply call the onSend function which handles document context
     onSend();
   };
 
   return (
-    <div className="bg-accent border-0 relative flex items-center justify-between rounded-b-2xl p-2">
-      <div className="flex pl-4 items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="primary"
-              className="h-8 px-3 gap-1.5"
-              title="Model"
-              aria-label="Model"
-            >
-              <Typography variant="small" className="text-xs font-medium">
-                {getModelDisplayName(toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider))}
-              </Typography>
-              <ChevronDown height={16} width={16} strokeWidth={1} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56 p-2 max-h-96 overflow-y-auto">
-            <DropdownMenuRadioGroup
-              value={toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider)}
-              onValueChange={(modelId: string) => {
-                const selectedModel = getModelById(modelId)
-                if (selectedModel) {
-                  onUpdateToolPreferences({ 
-                    ...toolPreferences, 
-                    model_id: modelId,
-                    model_provider: selectedModel.provider 
-                  })
-                }
-              }}
-            >
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
-                OpenAI
-              </DropdownMenuLabel>
-              {AVAILABLE_MODELS.filter(m => m.provider === "openai").map(model => (
-                <DropdownMenuRadioItem key={model.id} value={model.id}>
-                  <div className="flex flex-col gap-0.5">
-                    <Typography variant="small" className="text-xs">
-                      {model.name}
-                    </Typography>
-                    {model.description && (
-                      <Typography variant="small" className="text-[10px] text-muted-foreground">
-                        {model.description}
+    <div ref={containerRef} className="bg-accent border-0 relative flex items-center justify-between rounded-b-2xl p-2">
+      <div ref={buttonsRef} className="flex pl-4 items-center gap-2">
+        {(isMeasuring || visibleButtons.model) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="primary"
+                className="h-8 px-3 gap-1.5"
+                title="Model"
+                aria-label="Model"
+              >
+                <Typography variant="small" className="text-xs font-medium">
+                  {getModelDisplayName(toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider))}
+                </Typography>
+                <ChevronDown height={16} width={16} strokeWidth={1} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56 p-2 max-h-96 overflow-y-auto">
+              <DropdownMenuRadioGroup
+                value={toolPreferences.model_id || getDefaultModelForProvider(toolPreferences.model_provider)}
+                onValueChange={(modelId: string) => {
+                  const selectedModel = getModelById(modelId)
+                  if (selectedModel) {
+                    onUpdateToolPreferences({ 
+                      ...toolPreferences, 
+                      model_id: modelId,
+                      model_provider: selectedModel.provider 
+                    })
+                  }
+                }}
+              >
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                  OpenAI
+                </DropdownMenuLabel>
+                {AVAILABLE_MODELS.filter(m => m.provider === "openai").map(model => (
+                  <DropdownMenuRadioItem key={model.id} value={model.id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Typography variant="small" className="text-xs">
+                        {model.name}
                       </Typography>
-                    )}
-                  </div>
-                </DropdownMenuRadioItem>
-              ))}
+                      {model.description && (
+                        <Typography variant="small" className="text-[10px] text-muted-foreground">
+                          {model.description}
+                        </Typography>
+                      )}
+                    </div>
+                  </DropdownMenuRadioItem>
+                ))}
+                <DropdownMenuSeparator />
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
+                  Anthropic
+                </DropdownMenuLabel>
+                {AVAILABLE_MODELS.filter(m => m.provider === "anthropic").map(model => (
+                  <DropdownMenuRadioItem key={model.id} value={model.id}>
+                    <div className="flex flex-col gap-0.5">
+                      <Typography variant="small" className="text-xs">
+                        {model.name}
+                      </Typography>
+                      {model.description && (
+                        <Typography variant="small" className="text-[10px] text-muted-foreground">
+                          {model.description}
+                        </Typography>
+                      )}
+                    </div>
+                  </DropdownMenuRadioItem>
+                ))}
+              </DropdownMenuRadioGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {(isMeasuring || visibleButtons.fileAttachment) && (
+          <FileAttachment
+            onFileAttach={onFileAttach}
+            attachedFiles={[]}
+            onFileRemove={onFileRemove}
+            userInfo={userInfo}
+          />
+        )}
+        {(isMeasuring || visibleButtons.tools) && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="primary"
+                size="icon"
+                className="h-8 w-8"
+                title="Tools"
+                aria-label="Tools"
+              >
+                <Wrench height={16} width={16} strokeWidth={1} />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="start" className="w-56 p-2">
+              <DropdownMenuLabel>
+                Tools
+              </DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
-                Anthropic
-              </DropdownMenuLabel>
-              {AVAILABLE_MODELS.filter(m => m.provider === "anthropic").map(model => (
-                <DropdownMenuRadioItem key={model.id} value={model.id}>
-                  <div className="flex flex-col gap-0.5">
-                    <Typography variant="small" className="text-xs">
-                      {model.name}
-                    </Typography>
-                    {model.description && (
-                      <Typography variant="small" className="text-[10px] text-muted-foreground">
-                        {model.description}
-                      </Typography>
-                    )}
-                  </div>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <FileAttachment
-          onFileAttach={onFileAttach}
-          attachedFiles={[]}
-          onFileRemove={onFileRemove}
-          userInfo={userInfo}
-        />
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="primary"
-              size="icon"
-              className="h-8 w-8"
-              title="Tools"
-              aria-label="Tools"
-            >
-              <Wrench height={16} width={16} strokeWidth={1} />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent side="top" align="start" className="w-56 p-2">
-            <DropdownMenuLabel>
-              Tools
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.web_search}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, web_search: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">Web Search</Typography>
-            </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.web_search}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, web_search: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">Web Search</Typography>
+              </DropdownMenuCheckboxItem>
 
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.read_file}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, read_file: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">Read File</Typography>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.gmail}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, gmail: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">Gmail</Typography>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.browser}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, browser: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">Browser</Typography>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.x_api}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, x_api: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">X (Twitter)</Typography>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem
-              checked={toolPreferences.slack}
-              onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, slack: Boolean(checked) })}
-            >
-              <Typography variant="small" className="text-xs text-muted-foreground">Slack</Typography>
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuCheckboxItem checked disabled>
-              <Typography variant="small" className="text-xs text-muted-foreground">Memory</Typography>
-            </DropdownMenuCheckboxItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <Button
-          variant="primary"
-          size="icon"
-          className={`h-8 w-8 ${
-            isRecording
-              ? "bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
-              : ""
-          }`}
-          onClick={isRecording ? stopRecording : startRecording}
-          title={isRecording ? "Stop recording" : "Start voice input"}
-          aria-label={isRecording ? "Stop recording" : "Start voice input"}
-          disabled={!(typeof window !== 'undefined' && (((window as any).SpeechRecognition) || ((window as any).webkitSpeechRecognition)))}
-        >
-          {isRecording ? <MicOff height={16} width={16} strokeWidth={1} /> : <Mic height={16} width={16} strokeWidth={1} />}
-        </Button>
-        <Button
-          variant="primary"
-          size="icon"
-          className={`h-8 w-8 ${
-            isWebSearchEnabled 
-              ? "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white" 
-              : ""
-          }`}
-          onClick={onToggleWebSearch}
-          title={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
-          aria-label={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
-        >
-          <Globe height={16} width={16} strokeWidth={1} />
-        </Button>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.read_file}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, read_file: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">Read File</Typography>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.gmail}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, gmail: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">Gmail</Typography>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.browser}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, browser: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">Browser</Typography>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.x_api}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, x_api: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">X (Twitter)</Typography>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem
+                checked={toolPreferences.slack}
+                onCheckedChange={(checked: boolean) => onUpdateToolPreferences({ ...toolPreferences, slack: Boolean(checked) })}
+              >
+                <Typography variant="small" className="text-xs text-muted-foreground">Slack</Typography>
+              </DropdownMenuCheckboxItem>
+              <DropdownMenuCheckboxItem checked disabled>
+                <Typography variant="small" className="text-xs text-muted-foreground">Memory</Typography>
+              </DropdownMenuCheckboxItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+        {(isMeasuring || visibleButtons.mic) && (
+          <Button
+            variant="primary"
+            size="icon"
+            className={`h-8 w-8 ${
+              isRecording
+                ? "bg-red-600 text-white hover:bg-red-700 dark:bg-red-600 dark:text-white dark:hover:bg-red-700"
+                : ""
+            }`}
+            onClick={isRecording ? stopRecording : startRecording}
+            title={isRecording ? "Stop recording" : "Start voice input"}
+            aria-label={isRecording ? "Stop recording" : "Start voice input"}
+            disabled={!(typeof window !== 'undefined' && (((window as any).SpeechRecognition) || ((window as any).webkitSpeechRecognition)))}
+          >
+            {isRecording ? <MicOff height={16} width={16} strokeWidth={1} /> : <Mic height={16} width={16} strokeWidth={1} />}
+          </Button>
+        )}
+        {(isMeasuring || visibleButtons.globe) && (
+          <Button
+            variant="primary"
+            size="icon"
+            className={`h-8 w-8 ${
+              isWebSearchEnabled 
+                ? "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-700 dark:text-white" 
+                : ""
+            }`}
+            onClick={onToggleWebSearch}
+            title={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
+            aria-label={isWebSearchEnabled ? "Disable web search" : "Enable web search"}
+          >
+            <Globe height={16} width={16} strokeWidth={1} />
+          </Button>
+        )}
       </div>
 
       <ThreadPrimitive.If running={false}>

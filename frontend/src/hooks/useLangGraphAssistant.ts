@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { getDocumentContext } from '../assistant/ClaudeRuntimeProvider/handlers/getDocumentContext';
 import { generateThreadId } from '../assistant/langraph/utils';
+import { getDefaultModelForProvider, getModelById } from '../components/RightPanel/composer/handlers/getModelDisplayName';
 
 // Types following athena-intelligence patterns
 export interface ToolCall {
@@ -69,6 +70,7 @@ export interface ToolPreferences {
   tiptap_ai?: boolean;
   memory?: boolean;
   model_provider?: "anthropic" | "openai";
+  model_id?: string;
 }
 
 export function useLangGraphAssistant(initialThreadId?: string) {
@@ -117,11 +119,17 @@ export function useLangGraphAssistant(initialThreadId?: string) {
     }));
 
     // Normalize tool preferences
+    const modelProvider = toolPreferences?.model_provider === "openai" ? "openai" : "anthropic";
+    const fallbackModelId = getDefaultModelForProvider(modelProvider);
+    const rawModelId = typeof toolPreferences?.model_id === "string" ? toolPreferences.model_id : fallbackModelId;
+    const modelId = getModelById(rawModelId)?.id || fallbackModelId;
+
     const normalizedToolPreferences: ToolPreferences = {
       web_search: toolPreferences?.web_search !== false,
       tiptap_ai: toolPreferences?.tiptap_ai !== false,
       memory: true,
-      model_provider: toolPreferences?.model_provider === "openai" ? "openai" : "anthropic",
+      model_provider: modelProvider,
+      model_id: modelId,
     };
 
     // Initialize assistant message

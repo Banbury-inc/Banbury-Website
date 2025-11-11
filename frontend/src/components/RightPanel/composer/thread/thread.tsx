@@ -37,6 +37,7 @@ import { createHandleDrawioFileView } from "../../handlers/handle-drawio-file-vi
 import { Composer } from "../Composer";
 import { UserMessage } from "./components/UserMessage";
 import { BranchPicker } from "./components/BranchPicker";
+import { getDefaultModelForProvider, getModelById } from "../handlers/getModelDisplayName";
 
 import type { FC } from "react";
 import { Typography } from "../../../ui/typography";
@@ -82,6 +83,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
     x_api: boolean;
     slack: boolean;
     model_provider: "anthropic" | "openai";
+    model_id: string;
   }
 
   const deriveToolPreferences = (raw?: any): ThreadToolPreferences => {
@@ -93,6 +95,9 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
         : false;
 
     const provider = data.model_provider === "openai" ? "openai" : "anthropic";
+    const fallbackModelId = getDefaultModelForProvider(provider);
+    const rawModelId = typeof data.model_id === "string" ? data.model_id : fallbackModelId;
+    const modelId = getModelById(rawModelId)?.id || fallbackModelId;
 
     return {
       web_search: data.web_search !== false,
@@ -104,6 +109,7 @@ export const Thread: FC<ThreadProps> = ({ userInfo, selectedFile, selectedEmail,
       x_api: typeof data.x_api === "boolean" ? data.x_api : false,
       slack: typeof data.slack === "boolean" ? data.slack : false,
       model_provider: provider,
+      model_id: modelId,
     };
   };
 

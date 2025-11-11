@@ -32,27 +32,66 @@ export function handleSend({ composer, onSend }: HandleSendParams) {
   
   // CRITICAL: Set document context with email content BEFORE any composer.send() call
   try {
-    // Get existing document content (docx, etc)
-    const documentContent = ''
+    // Get existing document content (docx, etc) - try to get current unsaved content from editor
+    let documentContent = ''
     try {
-      const documentEditors = Array.from(document.querySelectorAll('.ProseMirror[contenteditable="true"]'))
-      for (const element of documentEditors) {
-        // Skip if it's the current chat editor
-        const isInChatComposer = element.closest('.bg-zinc-800') || element.closest('.min-h-16')
-        if (isInChatComposer) continue
-        
-        // Check various document editor indicators
-        const hasSimpleTiptapClass = element.classList.contains('simple-tiptap-editor') || 
-                                     element.closest('.simple-tiptap-editor')
-        const isInAITiptap = element.closest('.min-h-\\[600px\\]') || 
-                            element.closest('.bg-card')
-        const isInWordViewer = element.closest('[class*="MuiBox"]') || 
-                              element.closest('.h-full.border-0.rounded-none')
-        
-        if (hasSimpleTiptapClass || isInAITiptap || isInWordViewer) {
-          const content = element.textContent || ''
-          if (content.trim() && content.length > 20) {
-            break // Found document content
+      // First, try to get editor from the registered global reference (most reliable)
+      if (typeof window !== 'undefined' && (window as any)._tiptapDocxEditors) {
+        const editors = (window as any)._tiptapDocxEditors;
+        // Return the most recently registered editor that's still active
+        for (let i = editors.length - 1; i >= 0; i--) {
+          const editor = editors[i];
+          if (editor && typeof editor.getHTML === 'function' && !editor.isDestroyed) {
+            const currentHtml = editor.getHTML();
+            if (currentHtml && currentHtml.trim().length > 20) {
+              // Convert HTML to plain text for context (preserving structure)
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = currentHtml;
+              const textContent = tempDiv.textContent || tempDiv.innerText || '';
+              if (textContent.trim().length > 20) {
+                documentContent = textContent;
+                break; // Found document content
+              }
+            }
+          }
+        }
+      }
+      
+      // Fallback: Try to find editor through DOM
+      if (!documentContent) {
+        const documentEditors = Array.from(document.querySelectorAll('.ProseMirror[contenteditable="true"]'))
+        for (const element of documentEditors) {
+          // Skip if it's the current chat editor
+          const isInChatComposer = element.closest('.bg-zinc-800') || element.closest('.min-h-16')
+          if (isInChatComposer) continue
+          
+          // Check various document editor indicators
+          const hasSimpleTiptapClass = element.classList.contains('simple-tiptap-editor') || 
+                                       element.closest('.simple-tiptap-editor')
+          const isInAITiptap = element.closest('.min-h-\\[600px\\]') || 
+                              element.closest('.bg-card')
+          const isInWordViewer = element.closest('[class*="MuiBox"]') || 
+                                element.closest('.h-full.border-0.rounded-none')
+          
+          if (hasSimpleTiptapClass || isInAITiptap || isInWordViewer) {
+            // Try to get HTML from editor instance if available
+            let content = '';
+            if ((element as any).__editor && typeof (element as any).__editor.getHTML === 'function') {
+              const html = (element as any).__editor.getHTML();
+              if (html) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = html;
+                content = tempDiv.textContent || tempDiv.innerText || '';
+              }
+            } else {
+              // Fallback to textContent
+              content = element.textContent || ''
+            }
+            
+            if (content.trim() && content.length > 20) {
+              documentContent = content;
+              break; // Found document content
+            }
           }
         }
       }

@@ -40,7 +40,28 @@ type FileMentionItem = {
 // Helper function to get document editor content if available
 const getDocumentEditorContent = (currentEditorDom?: Element | null): string => {
   try {
-    // Look for document editor content - be very specific to avoid chat composers
+    // First, try to get editor from the registered global reference (most reliable)
+    if (typeof window !== 'undefined' && (window as any)._tiptapDocxEditors) {
+      const editors = (window as any)._tiptapDocxEditors;
+      // Return the most recently registered editor that's still active
+      for (let i = editors.length - 1; i >= 0; i--) {
+        const editor = editors[i];
+        if (editor && typeof editor.getHTML === 'function' && !editor.isDestroyed) {
+          const currentHtml = editor.getHTML();
+          if (currentHtml && currentHtml.trim().length > 20) {
+            // Convert HTML to plain text for context (preserving structure)
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = currentHtml;
+            const textContent = tempDiv.textContent || tempDiv.innerText || '';
+            if (textContent.trim().length > 20) {
+              return `\n\nCurrent document content:\n${textContent}`;
+            }
+          }
+        }
+      }
+    }
+    
+    // Fallback: Look for document editor content through DOM - be very specific to avoid chat composers
     const documentEditors = Array.from(document.querySelectorAll('.ProseMirror[contenteditable="true"]'));
     
     for (const element of documentEditors) {
@@ -63,10 +84,21 @@ const getDocumentEditorContent = (currentEditorDom?: Element | null): string => 
                               element.closest('[data-role="composer"]') ||
                               element.closest('.min-h-16'); // ChatTiptapComposer class
       
-      
-      
       if ((hasSimpleTiptapClass || isInAITiptap || isInWordViewer) && !isInChatComposer) {
-        const content = element.textContent || '';
+        // Try to get HTML from editor instance if available
+        let content = '';
+        if ((element as any).__editor && typeof (element as any).__editor.getHTML === 'function') {
+          const html = (element as any).__editor.getHTML();
+          if (html) {
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            content = tempDiv.textContent || tempDiv.innerText || '';
+          }
+        } else {
+          // Fallback to textContent
+          content = element.textContent || '';
+        }
+        
         // Only include if it has substantial content
         if (content.trim() && content.length > 20) {
           return `\n\nCurrent document content:\n${content}`;
