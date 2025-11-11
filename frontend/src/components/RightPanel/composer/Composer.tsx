@@ -455,7 +455,7 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
             <DropdownMenuTrigger asChild>
               <Button
                 variant="primary"
-                className="h-8 px-3 gap-1.5"
+                className="h-8 px-3 gap-1.5 "
                 title="Model"
                 aria-label="Model"
               >
@@ -479,38 +479,21 @@ const ComposerAction: FC<ComposerActionProps> = ({ attachedFiles, attachedEmails
                   }
                 }}
               >
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
-                  OpenAI
-                </DropdownMenuLabel>
                 {AVAILABLE_MODELS.filter(m => m.provider === "openai").map(model => (
                   <DropdownMenuRadioItem key={model.id} value={model.id}>
                     <div className="flex flex-col gap-0.5">
                       <Typography variant="small" className="text-xs">
                         {model.name}
                       </Typography>
-                      {model.description && (
-                        <Typography variant="small" className="text-[10px] text-muted-foreground">
-                          {model.description}
-                        </Typography>
-                      )}
                     </div>
                   </DropdownMenuRadioItem>
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground px-2 py-1">
-                  Anthropic
-                </DropdownMenuLabel>
                 {AVAILABLE_MODELS.filter(m => m.provider === "anthropic").map(model => (
                   <DropdownMenuRadioItem key={model.id} value={model.id}>
                     <div className="flex flex-col gap-0.5">
                       <Typography variant="small" className="text-xs">
                         {model.name}
                       </Typography>
-                      {model.description && (
-                        <Typography variant="small" className="text-[10px] text-muted-foreground">
-                          {model.description}
-                        </Typography>
-                      )}
                     </div>
                   </DropdownMenuRadioItem>
                 ))}
