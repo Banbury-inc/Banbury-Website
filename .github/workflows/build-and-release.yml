@@ -33,12 +33,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend
+          cd packages
           npm install
 
       - name: Run ESLint
         run: |
-          cd frontend
+          cd packages
           npm run lint
 
   unit-tests:
@@ -59,12 +59,12 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cd frontend
+          cd packages
           npm install
 
       - name: Run Tests
         run: |
-          cd frontend
+          cd packages
           npm test
 
   deploy:
@@ -99,7 +99,7 @@ jobs:
           ZEP_API_KEY: ${{ secrets.ZEP_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: |
-          docker build --build-arg BROWSERBASE_API_KEY=$BROWSERBASE_API_KEY --build-arg BROWSERBASE_PROJECT_ID=$BROWSERBASE_PROJECT_ID --build-arg OPENAI_API_KEY=$OPENAI_API_KEY --build-arg ZEP_API_KEY=$ZEP_API_KEY --build-arg ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -f frontend/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./frontend
+          docker build --build-arg BROWSERBASE_API_KEY=$BROWSERBASE_API_KEY --build-arg BROWSERBASE_PROJECT_ID=$BROWSERBASE_PROJECT_ID --build-arg OPENAI_API_KEY=$OPENAI_API_KEY --build-arg ZEP_API_KEY=$ZEP_API_KEY --build-arg ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY -f packages/Dockerfile -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG ./packages
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
