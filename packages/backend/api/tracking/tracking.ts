@@ -11,7 +11,7 @@ interface TrackingData {
 }
 
 export default class Tracking {
-  constructor(api: ApiService) {}
+  constructor(_api: ApiService) {}
 
   static async trackPageView(path: string, additionalData?: {
     pageTitle?: string;

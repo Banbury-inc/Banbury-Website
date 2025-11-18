@@ -1,7 +1,7 @@
 import { ApiService } from "../apiService";
 
-export default class Calendar{
-    constructor(api: ApiService) {}
+export default class Knowledge{
+    constructor(_api: ApiService) {}
 
   /**
    * Get the full knowledge graph data

@@ -1,4 +1,5 @@
 import { Box } from '@mui/material';
+import Image from 'next/image';
 import DocPageLayout from '../DocPageLayout';
 import { Typography } from '../../../../components/ui/typography';
 const calendarDemo = require('../../../../assets/images/calendar_demo.mp4');
@@ -103,9 +104,11 @@ export default function CalendarFeatureTab() {
             border: '1px solid rgba(255,255,255,0.08)',
             mb: 3
           }}>
-            <img 
+            <Image 
               src="/create-calendar-event.png" 
               alt="Traditional calendar event creation form"
+              width={1200}
+              height={800}
               style={{ 
                 width: '100%', 
                 height: 'auto',
@@ -152,9 +155,11 @@ export default function CalendarFeatureTab() {
             border: '1px solid rgba(255,255,255,0.08)',
             mb: 3
           }}>
-            <img 
+            <Image 
               src="/edit-calendar-event.png" 
               alt="Traditional calendar event editing form"
+              width={1200}
+              height={800}
               style={{ 
                 width: '100%', 
                 height: 'auto',

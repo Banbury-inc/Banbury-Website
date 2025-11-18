@@ -1,13 +1,13 @@
 import { ApiService } from "../apiService";
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export default class Files {
-    constructor(api: ApiService) {}
+    constructor(_api: ApiService) {}
 
   /**
    * Get user's S3 cloud files
    */
-  static async getUserFiles(username: string) {
+  static async getUserFiles(_username: string) {
     try {
       // Ensure token is loaded
       ApiService.loadAuthToken();
@@ -29,8 +29,6 @@ export default class Files {
         error?: string;
         status_code?: number;
       }>(`/files/get_s3_files/`);
-
-      // console.log('S3 Files API Response:', response);
 
       // Handle both possible response formats from the backend
       if (response.result === 'success' && response.files) {

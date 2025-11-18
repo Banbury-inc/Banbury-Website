@@ -1,8 +1,4 @@
 import {
-  MOCK_DOCUMENT_FILE,
-  MOCK_EMPTY_DOCUMENT_FILE,
-  MOCK_SPREADSHEET_FILE,
-  MOCK_EMPTY_SPREADSHEET_FILE,
   BASIC_DOCUMENT_HTML,
   EMPTY_DOCUMENT_HTML,
   DOCUMENT_WITH_AI_CHANGES_HTML,
@@ -89,7 +85,6 @@ export async function mockUpdateS3File(
   // Simulate network delay
   await new Promise(resolve => setTimeout(resolve, 800))
   
-  console.log('Mock: Saved file', fileId, fileName)
   return { success: true }
 }
 

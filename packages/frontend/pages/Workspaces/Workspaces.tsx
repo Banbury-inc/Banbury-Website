@@ -41,8 +41,6 @@ import { Typography } from '../../components/ui/typography';
 import {
   UserInfo,
   FileTab,
-  EmailTab,
-  CalendarTab,
   WorkspaceTab,
   Panel,
   SplitDirection,
@@ -51,7 +49,7 @@ import {
 
 
 
-const Workspaces = (): JSX.Element => {
+const Workspaces = (): React.ReactNode => {
   const router = useRouter();
   const { toast } = useToast();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);

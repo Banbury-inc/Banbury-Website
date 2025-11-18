@@ -1,5 +1,5 @@
 import { ApiService } from "../apiService";
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export interface CalendarEvent {
   id: string
@@ -23,7 +23,7 @@ export interface ListEventsResponse {
 }
 
 export default class Calendar{
-    constructor(api: ApiService) {}
+    constructor(_api: ApiService) {}
 
   private static withAuthHeaders() {
     const token = typeof window !== 'undefined' ? localStorage.getItem('authToken') : null

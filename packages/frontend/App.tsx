@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { HelmetProvider, Helmet } from 'react-helmet-async';
 import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
-
 import API from './components/API';
 import Features from './components/Features';
 import News from './components/News';

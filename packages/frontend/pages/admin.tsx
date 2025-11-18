@@ -1,6 +1,5 @@
 import { 
   Users, 
-  Settings, 
   Database, 
   Activity, 
   Shield, 
@@ -11,10 +10,6 @@ import {
   EyeOff,
   RefreshCw,
   BarChart3,
-  Server,
-  HardDrive,
-  Network,
-  Clock,
   AlertTriangle,
   CheckCircle,
   XCircle

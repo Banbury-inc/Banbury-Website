@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import Image from 'next/image'
 import { Video, Upload, X } from 'lucide-react'
 import { Button } from '../../ui/button'
 import { Input } from '../../ui/input'
@@ -254,10 +255,13 @@ export function MeetingAgentTab({}: MeetingAgentTabProps) {
           {displayImageUrl ? (
             <div className="space-y-3">
               <div className="relative inline-block">
-                <img
+                <Image
                   src={displayImageUrl}
                   alt="Bot profile"
+                  width={128}
+                  height={128}
                   className="w-32 h-32 rounded-full object-cover border-2 border-zinc-300 dark:border-zinc-600"
+                  unoptimized={displayImageUrl.startsWith('data:')}
                 />
                 <button
                   onClick={handleRemoveImage}

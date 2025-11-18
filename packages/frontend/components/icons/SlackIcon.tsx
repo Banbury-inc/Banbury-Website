@@ -1,4 +1,5 @@
 import React from 'react'
+import Image from 'next/image'
 import slackLogo from '../../assets/images/slack.png'
 
 interface SlackIconProps {
@@ -7,12 +8,13 @@ interface SlackIconProps {
 }
 
 export function SlackIcon({ className, size = 48 }: SlackIconProps) {
+  const sizeNum = typeof size === 'string' ? parseInt(size, 10) : size
   return (
-    <img
-      src={slackLogo.src}
+    <Image
+      src={slackLogo}
       alt="Slack"
-      width={size}
-      height={size}
+      width={sizeNum}
+      height={sizeNum}
       className={className}
       style={{ display: 'block', objectFit: 'contain' }}
     />

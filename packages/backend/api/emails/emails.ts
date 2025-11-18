@@ -1,6 +1,5 @@
-import { Api } from "@mui/icons-material";
 import { ApiService } from "../apiService";
-import axios, { AxiosError } from 'axios';
+import axios from 'axios';
 
 export interface GmailMessageListResponse {
   messages?: Array<{ id: string; threadId: string }>
@@ -19,7 +18,7 @@ export interface GmailMessage {
 
 
 export default class Emails {
-    constructor(api: ApiService) {}
+    constructor(_api: ApiService) {}
   /**
    * Search emails by query
    */

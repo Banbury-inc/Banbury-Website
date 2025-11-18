@@ -1,4 +1,5 @@
 import React from 'react'
+import Image from 'next/image'
 import googleSheetsLogo from '../../assets/images/Google_Sheets_Logo_512px.png'
 
 interface GoogleSheetsIconProps {
@@ -7,12 +8,13 @@ interface GoogleSheetsIconProps {
 }
 
 export function GoogleSheetsIcon({ size = 48, className }: GoogleSheetsIconProps) {
+  const sizeNum = typeof size === 'string' ? parseInt(size, 10) : size
   return (
-    <img
-      src={googleSheetsLogo.src}
+    <Image
+      src={googleSheetsLogo}
       alt="Google Sheets"
-      width={size}
-      height={size}
+      width={sizeNum}
+      height={sizeNum}
       className={className}
     />
   )

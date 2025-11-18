@@ -1,6 +1,5 @@
 import { AlertCircle } from 'lucide-react';
 import { useState, useEffect, useRef } from 'react';
-
 import { useToast } from '../../ui/use-toast';
 import CSVEditor from './CSVEditor';
 import { ApiService } from '../../../../backend/api/apiService'
@@ -78,7 +77,7 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
         } else {
           // Download regular file from S3
           console.log('SpreadsheetViewer: Downloading file:', currentFile.file_id, currentFile.name);
-          const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+          const result = await ApiService.Files.downloadS3File(currentFile.file_id, currentFile.name);
           console.log('SpreadsheetViewer: Download result:', result);
           if (result.success && result.url) {
             currentUrl = result.url;
@@ -145,7 +144,7 @@ export function SpreadsheetViewer({ file, userInfo, onSaveComplete }: Spreadshee
         document.body.removeChild(a);
         setTimeout(() => window.URL.revokeObjectURL(url), 1000);
       } else {
-        const result = await ApiService.downloadS3File(currentFile.file_id, currentFile.name);
+        const result = await ApiService.Files.downloadS3File(currentFile.file_id, currentFile.name);
         if (result.success && result.url) {
           const a = document.createElement('a');
           a.href = result.url;

@@ -15,7 +15,7 @@ import {
 } from '../../../frontend/types/meeting-types';
 
 export default class MeetingAgent {
-  constructor(api: ApiService) {}
+  constructor(_api: ApiService) {}
 
   private static baseEndpoint = '/meeting-agent'
 

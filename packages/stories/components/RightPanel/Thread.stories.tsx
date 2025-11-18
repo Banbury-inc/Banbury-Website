@@ -1,7 +1,7 @@
 import React, { useEffect } from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { Thread } from "frontend/components/RightPanel/composer/thread/thread"
-import { AssistantRuntimeProvider, useLocalRuntime } from "@assistant-ui/react"
+import { AssistantRuntimeProvider, ChatModelRunOptions, useLocalRuntime } from "@assistant-ui/react"
 import { fn } from "@storybook/test"
 import { TooltipProvider } from "frontend/components/ui/tooltip"
 import { Toaster } from "frontend/components/ui/toaster"
@@ -11,9 +11,9 @@ import { Toaster } from "frontend/components/ui/toaster"
 function ThreadWrapper({ children, initialMessages = [] }: { children: React.ReactNode; initialMessages?: any[] }) {
   // Create a basic adapter that doesn't actually run anything
   const runtime = useLocalRuntime({
-    async *run({ messages }) {
+    async run({ messages }: ChatModelRunOptions) {
       // Just return a dummy response - we're using pre-loaded messages instead
-      yield { 
+      return { 
         content: [{ type: "text", text: "" }],
         status: { type: "complete", reason: "stop" }
       }

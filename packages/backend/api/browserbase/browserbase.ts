@@ -1,4 +1,3 @@
-import { CONFIG } from '../../../frontend/config/config';
 import { ApiService } from '../apiService';
 
 export interface BrowserbaseSessionResult {
@@ -10,7 +9,7 @@ export interface BrowserbaseSessionResult {
 }
 
 export default class Browserbase {
-  constructor(api: ApiService) {}
+  constructor(_api: ApiService) {}
 
   static async createSession(startUrl?: string): Promise<{ success: boolean; session?: BrowserbaseSessionResult; error?: string }> {
     try {

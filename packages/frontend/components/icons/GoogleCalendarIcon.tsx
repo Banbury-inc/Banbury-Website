@@ -1,4 +1,5 @@
 import React from 'react'
+import Image from 'next/image'
 import googleCalendarLogo from '../../assets/images/7123030_google_calendar_icon.png'
 
 interface GoogleCalendarIconProps {
@@ -7,12 +8,13 @@ interface GoogleCalendarIconProps {
 }
 
 export function GoogleCalendarIcon({ className, size = 200 }: GoogleCalendarIconProps) {
+  const sizeNum = typeof size === 'string' ? parseInt(size, 10) : size
   return (
-    <img
-      src={googleCalendarLogo.src}
+    <Image
+      src={googleCalendarLogo}
       alt="Google Calendar"
-      width={size}
-      height={size}
+      width={sizeNum}
+      height={sizeNum}
       className={className}
       style={{ display: 'block', objectFit: 'contain' }}
     />

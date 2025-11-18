@@ -5,7 +5,7 @@ import { ApiService } from "../apiService";
  * Debug service to test API endpoint availability
  */
 export default class Debug {
-  constructor(api: ApiService) {}
+  constructor(_api: ApiService) {}
   /**
    * Test if authentication endpoints are available
    */

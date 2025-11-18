@@ -187,7 +187,7 @@ export async function createXlsxBlob(data: string[][]): Promise<Blob> {
   })
   
   // Auto-size columns (optional, but makes it look nicer)
-  worksheet.columns.forEach((column, index) => {
+  worksheet.columns.forEach((column) => {
     let maxLength = 0
     column.eachCell?.({ includeEmpty: false }, (cell) => {
       const cellLength = cell.value ? cell.value.toString().length : 10

@@ -279,8 +279,6 @@ const generateImage: any = tool(
         return JSON.stringify({ ok: false, error: `Upload failed: ${text || uploadResp.statusText}` });
       }
 
-      const uploaded: any = await uploadResp.json();
-
       // Normalize a compact file_info for the UI to act on
       const result = {
         ok: true,

@@ -1,5 +1,6 @@
 {
   "root": true,
+  "ignorePatterns": ["**/*.test.ts", "**/*.test.tsx", "**/*.spec.ts", "**/*.spec.tsx"],
   "extends": [
     "next/core-web-vitals",
     "prettier"

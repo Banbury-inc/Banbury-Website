@@ -14,7 +14,7 @@ export interface WebSearchResponse {
 }
 
 export default class WebSearch {
-  constructor(api: ApiService) {}
+  constructor(_api: ApiService) {}
   /**
    * Searches the web using DuckDuckGo's instant answers API
    */
