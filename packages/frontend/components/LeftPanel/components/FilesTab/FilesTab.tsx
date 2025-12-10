@@ -124,16 +124,16 @@ export function FilesTab({
               <SelectContent>
                 <SelectItem value="local">
                   <Typography
-                    variant="small"
-                    className="text-sm font-medium"
+                    variant="xs"
+                    className="font-medium"
                   >
                     Local Files
                   </Typography>
                 </SelectItem>
                 <SelectItem value="drive">
                   <Typography
-                    variant="small"
-                    className="text-sm font-medium"
+                    variant="xs"
+                    className="font-medium"
                   >
                     Google Drive
                   </Typography>
@@ -144,7 +144,7 @@ export function FilesTab({
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => handleRefreshFiles({ setRefreshCounter: setLocalRefreshCounter, setIsRefreshing })}
               disabled={isRefreshing}
               title="Refresh"

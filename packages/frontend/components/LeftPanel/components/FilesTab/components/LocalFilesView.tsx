@@ -776,7 +776,7 @@ export function LocalFilesView({
             <div className="w-full flex items-center gap-2 text-left px-3 py-2" style={{ paddingLeft: '12px' }}>
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingRootFolderName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingRootFolderName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}
@@ -810,7 +810,7 @@ export function LocalFilesView({
             <div className="w-full flex items-center gap-2 text-left px-3 py-2" style={{ paddingLeft: '12px' }}>
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingDocumentName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingDocumentName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}
@@ -844,7 +844,7 @@ export function LocalFilesView({
             <div className="w-full flex items-center gap-2 text-left px-3 py-2" style={{ paddingLeft: '12px' }}>
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingSpreadsheetName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingSpreadsheetName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}
@@ -871,7 +871,7 @@ export function LocalFilesView({
             <div className="w-full flex items-center gap-2 text-left px-3 py-2" style={{ paddingLeft: '12px' }}>
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingDrawioName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingDrawioName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}
@@ -898,7 +898,7 @@ export function LocalFilesView({
             <div className="w-full flex items-center gap-2 text-left px-3 py-2" style={{ paddingLeft: '12px' }}>
               <div className="w-3" />
               <RefreshCw className="h-4 w-4 animate-spin" />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingTldrawName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingTldrawName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}

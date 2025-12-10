@@ -377,6 +377,11 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
     }
   }, [loadMessages, searchQuery])
 
+  // Get tab label
+  const getTabLabel = useCallback((tab: 'inbox' | 'sent' | 'drafts' | 'starred') => {
+    return tab === 'inbox' ? 'Inbox' : tab === 'sent' ? 'Sent' : tab === 'drafts' ? 'Drafts' : 'Starred'
+  }, [])
+
   // Handle tab change
   const handleTabChange = useCallback((tab: 'inbox' | 'sent' | 'drafts' | 'starred') => {
     setActiveTab(tab)
@@ -414,20 +419,32 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
             {/* Tab Navigation */}
             <Select value={activeTab} onValueChange={(value) => handleTabChange(value as 'inbox' | 'sent' | 'drafts' | 'starred')}>
               <SelectTrigger size="sm">
-                <SelectValue />
+                <SelectValue placeholder={getTabLabel(activeTab)}>
+                  <Typography variant="xs" className="font-medium">
+                    {getTabLabel(activeTab)}
+                  </Typography>
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="inbox">Inbox</SelectItem>
-                <SelectItem value="sent">Sent</SelectItem>
-                <SelectItem value="drafts">Drafts</SelectItem>
-                <SelectItem value="starred">Starred</SelectItem>
+                <SelectItem value="inbox">
+                  <Typography variant="xs" className="font-medium">Inbox</Typography>
+                </SelectItem>
+                <SelectItem value="sent">
+                  <Typography variant="xs" className="font-medium">Sent</Typography>
+                </SelectItem>
+                <SelectItem value="drafts">
+                  <Typography variant="xs" className="font-medium">Drafts</Typography>
+                </SelectItem>
+                <SelectItem value="starred">
+                  <Typography variant="xs" className="font-medium">Starred</Typography>
+                </SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => loadMessages()}
               disabled={loading}
               title="Refresh"
@@ -436,7 +453,7 @@ export function EmailTab({ onOpenEmailApp, onMessageSelect, onComposeEmail }: Em
             </Button>
             <Button
               variant="default"
-              size="icon"
+              size="sm"
               title="Compose"
               onClick={() => onComposeEmail ? onComposeEmail() : setComposeOpen(true)}
             >

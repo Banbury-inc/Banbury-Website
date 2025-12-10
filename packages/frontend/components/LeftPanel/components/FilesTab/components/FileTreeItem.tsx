@@ -566,7 +566,7 @@ export function FileTreeItem({
         )}
         {!hasChildren && <div className="w-3" />}
         <FileIconComponent className={`h-4 w-4 flex-shrink-0 ${fileIconData.color}`} />
-        <Typography variant="small" className="truncate min-w-0 flex-1">{item.name}</Typography>
+        <Typography variant="xs" className="truncate min-w-0 flex-1">{item.name}</Typography>
       </button>
     )
   )
@@ -630,7 +630,7 @@ export function FileTreeItem({
             >
               <div className="w-4" />
               <RefreshCw className="h-4 w-4 animate-spin" strokeWidth={1} />
-              <Typography variant="small" className="truncate min-w-0 flex-1">{pendingFolderName}</Typography>
+              <Typography variant="xs" className="truncate min-w-0 flex-1">{pendingFolderName}</Typography>
               <Typography variant="muted" className="text-xs">Creating...</Typography>
             </div>
           )}

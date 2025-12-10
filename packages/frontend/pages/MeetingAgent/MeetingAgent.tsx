@@ -636,16 +636,29 @@ export default function MeetingAgent() {
                           <table className="w-full">
                             <thead className="sticky top-0 bg-background border-b border-border">
                               <tr>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm w-12"></th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm w-12">
+                                </th>
                                 <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm w-12">
                                   <div className="h-4 w-4 bg-muted rounded animate-pulse"></div>
                                 </th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Meeting</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Platform</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Status</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Participants</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Start Time</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Duration</th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Meeting</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Platform</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Status</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Participants</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Start Time</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Duration</Typography>
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -684,12 +697,24 @@ export default function MeetingAgent() {
                                     className="rounded border-input bg-background text-primary focus:ring-ring"
                                   />
                                 </th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Meeting</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Platform</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Status</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Participants</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Start Time</th>
-                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">Duration</th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Meeting</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Platform</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Status</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Participants</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Start Time</Typography>
+                                </th>
+                                <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm">
+                                  <Typography variant="xs" className="font-medium">Duration</Typography>
+                                </th>
                               </tr>
                             </thead>
                             <tbody>
@@ -736,7 +761,7 @@ export default function MeetingAgent() {
                                     </td>
                                     <td className="py-3 px-4">
                                       <div className="flex items-center gap-2">
-                                        <Typography variant="p" className="font-medium text-foreground">
+                                        <Typography variant="xs" className="font-medium text-foreground">
                                           {session.title || 'Untitled Meeting'}
                                         </Typography>
                                         {session.status === 'recording' && (
@@ -747,25 +772,25 @@ export default function MeetingAgent() {
                                         )}
                                       </div>
                                     </td>
-                                    <td className="py-3 px-4 text-muted-foreground">{session.platform.name}</td>
+                                    <td className="py-3 px-4 text-muted-foreground">
+                                      <Typography variant="xs" className="font-medium">{session.platform.name}</Typography>
+                                    </td>
                                     <td className="py-3 px-4">
                                       <Badge variant={getStatusBadgeVariant(session.status)}>
-                                        {session.status}
+                                        <Typography variant="xs" className="font-medium">{session.status}</Typography>
                                       </Badge>
                                     </td>
                                     <td className="py-3 px-4">
                                       <div className="flex items-center gap-1">
                                         <Users className="h-3 w-3 text-muted-foreground" />
-                                        <Typography variant="small" className="text-sm text-muted-foreground">
-                                          {session.participants ? session.participants.length : 0}
-                                        </Typography>
+                                        <Typography variant="xs" className="font-medium text-muted-foreground">{session.participants ? session.participants.length : 0}</Typography>
                                       </div>
                                     </td>
                                     <td className="py-3 px-4 text-muted-foreground text-sm">
-                                      {new Date(session.startTime).toLocaleString()}
+                                      <Typography variant="xs" className="font-medium">{new Date(session.startTime).toLocaleString()}</Typography>
                                     </td>
                                     <td className="py-3 px-4 text-muted-foreground text-sm">
-                                      {session.duration ? `${Math.floor(session.duration / 60)}m ${session.duration % 60}s` : '-'}
+                                      <Typography variant="xs" className="font-medium">{session.duration ? `${Math.floor(session.duration / 60)}m ${session.duration % 60}s` : '-'}</Typography>
                                     </td>
                                   </tr>
                                   {/* Expanded Row Content */}

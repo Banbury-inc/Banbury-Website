@@ -104,7 +104,7 @@ export function DriveFileTreeItem({
         )}
         {!isFolder && <div className="w-3" />}
         {getFileIcon()}
-        <Typography variant="small" className="truncate min-w-0 flex-1">
+        <Typography variant="xs" className="truncate min-w-0 flex-1">
           {file.name}
         </Typography>
         {file.starred && (

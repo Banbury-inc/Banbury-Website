@@ -174,15 +174,13 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
           
           {selectedTasks.size > 0 && (
             <div className="flex items-center gap-2">
-              <Typography variant="small" className="text-sm text-muted-foreground">
-                {selectedTasks.size} selected
-              </Typography>
+              <Typography variant="xs" className="font-medium text-muted-foreground">{selectedTasks.size} selected</Typography>
               <Button
                 variant="destructive"
                 size="sm"
                 onClick={handleBatchDelete}
               >
-                Delete Selected
+                <Typography variant="xs" className="font-medium">Delete Selected</Typography>
               </Button>
             </div>
           )}
@@ -194,44 +192,42 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
             size="sm"
             onClick={() => setFilter('all')}
           >
-            All ({tasks.length})
+            <Typography variant="xs" className="font-medium">All ({tasks.length})</Typography>
           </Button>
           <Button
             variant={filter === 'scheduled' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter('scheduled')}
           >
-            Scheduled ({tasks.filter(t => t.status === 'scheduled').length})
+            <Typography variant="xs" className="font-medium">Scheduled ({tasks.filter(t => t.status === 'scheduled').length})</Typography>
           </Button>
           <Button
             variant={filter === 'running' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter('running')}
           >
-            Running ({tasks.filter(t => t.status === 'running').length})
+            <Typography variant="xs" className="font-medium">Running ({tasks.filter(t => t.status === 'running').length})</Typography>
           </Button>
           <Button
             variant={filter === 'completed' ? 'default' : 'outline'}
             size="sm"
             onClick={() => setFilter('completed')}
           >
-            Completed ({tasks.filter(t => t.status === 'completed').length})
+            <Typography variant="xs" className="font-medium">Completed ({tasks.filter(t => t.status === 'completed').length})</Typography>
           </Button>
           <Button 
             onClick={onToggleTaskScheduler}
             variant={showTaskScheduler ? "outline" : "default"}
             size="sm"
           >
-            {showTaskScheduler ? 'Cancel' : 'Create Task'}
+            <Typography variant="xs" className="font-medium">{showTaskScheduler ? 'Cancel' : 'Create Task'}</Typography>
           </Button>
         </div>
       </div>
 
       {filteredTasks.length === 0 ? (
         <div className="flex items-center justify-center flex-1">
-          <Typography variant="p" className="text-muted-foreground">
-            No tasks found for the selected filter.
-          </Typography>
+          <Typography variant="xs" className="font-medium text-muted-foreground">No tasks found for the selected filter.</Typography>
         </div>
       ) : (
         <div className="flex-1 overflow-auto min-w-0">
@@ -247,18 +243,32 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                     }}
                   />
                 </th>
-                <th className="text-left p-3 font-medium w-[20%]">Title</th>
-                <th className="text-left p-3 font-medium w-[10%]">Status</th>
-                <th className="text-left p-3 font-medium w-[10%]">Priority</th>
-                <th className="text-left p-3 font-medium w-[15%]">Scheduled</th>
-                <th className="text-left p-3 font-medium w-[10%]">Duration</th>
-                <th className="text-left p-3 font-medium w-[15%]">Result</th>
-                <th className="text-left p-3 font-medium w-[20%]">Actions</th>
+                <th className="text-left p-3 font-medium w-[20%]">
+                  <Typography variant="xs" className="font-medium">Title</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[10%]">
+                  <Typography variant="xs" className="font-medium">Status</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[10%]">
+                  <Typography variant="xs" className="font-medium">Priority</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[15%]">
+                  <Typography variant="xs" className="font-medium">Scheduled</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[10%]">
+                  <Typography variant="xs" className="font-medium">Duration</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[15%]">
+                  <Typography variant="xs" className="font-medium">Result</Typography>
+                </th>
+                <th className="text-left p-3 font-medium w-[20%]">
+                  <Typography variant="xs" className="font-medium">Actions</Typography>
+                </th>
               </tr>
             </thead>
             <tbody>
               {filteredTasks.map((task) => (
-                <tr key={task.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
+                <tr key={task.id} className="border-b hover:bg-muted-foreground/10">
                   <td className="p-3">
                     <Checkbox
                       checked={selectedTasks.has(task.id)}
@@ -267,9 +277,9 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                   </td>
                   <td className="p-3 min-w-0 overflow-hidden">
                     <div className="min-w-0">
-                      <Typography variant="p" className="font-medium truncate">{task.title}</Typography>
+                      <Typography variant="xs" className="truncate">{task.title}</Typography>
                       {task.description && (
-                        <Typography variant="small" className="text-sm text-gray-500 mt-1 truncate">
+                        <Typography variant="muted" className="mt-1 truncate">
                           {task.description.length > 50 
                             ? `${task.description.substring(0, 50)}...` 
                             : task.description
@@ -280,7 +290,7 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                         <div className="flex gap-1 mt-2 flex-wrap">
                           {task.tags.map((tag, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
-                              {tag}
+                              <Typography variant="xs" className="font-medium">{tag}</Typography>
                             </Badge>
                           ))}
                         </div>

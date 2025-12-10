@@ -63,8 +63,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
           <TabsTrigger value="files" className="flex items-center justify-center min-w-0" title="Files">
             <Folder className="h-4 w-4 flex-shrink-0" strokeWidth={1} />
             <Typography
-              variant="small"
-              className="text-sm font-medium ml-2 tab-label"
+              variant="xs"
+              className="font-medium ml-2 tab-label"
             >
               Files
             </Typography>
@@ -72,8 +72,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
           <TabsTrigger value="email" className="flex items-center justify-center min-w-0" title="Email">
             <Mail className="h-4 w-4 flex-shrink-0" strokeWidth={1} />
             <Typography
-              variant="small"
-              className="text-sm ml-2 tab-label"
+              variant="xs"
+              className="ml-2 tab-label"
             >
               Email
             </Typography>
@@ -81,8 +81,8 @@ export function LeftPanel({ currentView, userInfo, onFileSelect, selectedFile, o
           <TabsTrigger value="calendar" className="flex items-center justify-center min-w-0" title="Calendar">
             <CalendarIcon className="h-4 w-4 flex-shrink-0" strokeWidth={1} />
             <Typography
-              variant="small"
-              className="text-sm ml-2 tab-label"
+              variant="xs"
+              className="ml-2 tab-label"
             >
               Calendar
             </Typography>

@@ -129,7 +129,6 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
       <div className="flex flex-col bg-background">
         <div className="flex items-center justify-between px-4 py-3 border-b">
           <div className="flex items-center gap-4">
-            <Typography variant="small" className="font-medium">Calendar</Typography>
           </div>
           <div className="flex items-center gap-2">
             <Button
@@ -144,15 +143,15 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
               }}
             >
               <Typography
-                variant="small"
-                className="text-sm font-medium"
+                variant="xs"
+                className="font-medium"
               >
                 Open Calendar
               </Typography>
             </Button>
             <Button
               variant="outline"
-              size="icon"
+              size="sm"
               onClick={() => loadEvents(undefined, searchQuery)}
               disabled={loading}
               title="Refresh"
@@ -161,7 +160,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
             </Button>
             <Button
               variant="default"
-              size="icon"
+              size="sm"
               onClick={handleCreateEvent}
               title="Create Event"
             >
@@ -217,7 +216,7 @@ export function CalendarTab({ onOpenCalendarApp, onEventSelect, onCreateEvent }:
                 <Typography variant="muted">Loading events...</Typography>
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto bg-background" onScroll={onScroll}>
+              <div className="flex-1 overflow-y-auto" onScroll={onScroll}>
                 {events.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full p-4">
                     <Calendar className="h-12 w-12 mb-4 opacity-50 text-muted-foreground" strokeWidth={1} />

@@ -18,6 +18,7 @@ const typographyVariants = cva("font-mono", {
       lead: "text-xl text-black dark:text-gray-400",
       large: "text-lg font-semibold text-black dark:text-white",
       small: "text-sm font-medium leading-none text-black dark:text-gray-300",
+      xs: "text-xs font-medium leading-none text-black dark:text-gray-300",
       muted: "text-sm text-black dark:text-gray-400",
     },
   },
@@ -46,6 +47,7 @@ const Typography = React.forwardRef<HTMLElement, TypographyProps>(
       lead: "p",
       large: "div",
       small: "small",
+      xs: "small",
       muted: "p",
     } as const
 
