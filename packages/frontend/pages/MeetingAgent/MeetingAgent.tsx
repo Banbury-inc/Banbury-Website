@@ -570,7 +570,6 @@ export default function MeetingAgent() {
                     <CardHeader className="border-b border-border">
                       <div className='flex items-center justify-between'>
                         <div className="flex items-center gap-2">
-                          <Video className="h-5 w-5 text-foreground" />
                           <CardTitle className="text-foreground">Meetings</CardTitle>
                         </div>
                         <div className="flex items-center gap-2">
@@ -635,7 +634,7 @@ export default function MeetingAgent() {
                       {isLoading ? (
                         <div className="flex-1 overflow-y-auto min-h-0">
                           <table className="w-full">
-                            <thead className="sticky top-0 bg-black z-10 border-b border-border">
+                            <thead className="sticky top-0 bg-background border-b border-border">
                               <tr>
                                 <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm w-12"></th>
                                 <th className="text-left py-3 px-4 text-muted-foreground font-medium text-sm w-12">

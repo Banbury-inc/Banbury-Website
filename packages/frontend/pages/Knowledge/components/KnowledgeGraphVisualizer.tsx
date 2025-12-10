@@ -3,6 +3,7 @@ import * as d3 from 'd3-force';
 import { zoom, zoomIdentity } from 'd3-zoom';
 import { drag } from 'd3-drag';
 import { select } from 'd3-selection';
+import { Typography } from '../../../components/ui/typography';
 
 interface KnowledgeEntity {
   id: string;
@@ -232,7 +233,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
 
     // Set up force simulation
     const simulation = d3.forceSimulation<GraphNode>(nodes)
-      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id(d => d.id).distance(80))
+      .force('link', d3.forceLink<GraphNode, GraphLink>(links).id((d: GraphNode) => d.id).distance(80))
       .force('charge', d3.forceManyBody().strength(-200))
       .force('center', d3.forceCenter(dimensions.width / 2, dimensions.height / 2))
       .force('collision', d3.forceCollide().radius(20));
@@ -257,16 +258,16 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
       .append('g')
       .attr('class', 'node')
       .call(drag<SVGGElement, GraphNode>()
-        .on('start', (event, d) => {
+        .on('start', (event: any, d: GraphNode) => {
           if (!event.active) simulation.alphaTarget(0.3).restart();
           d.fx = d.x;
           d.fy = d.y;
         })
-        .on('drag', (event, d) => {
+        .on('drag', (event: any, d: GraphNode) => {
           d.fx = event.x;
           d.fy = event.y;
         })
-        .on('end', (event, d) => {
+        .on('end', (event: any, d: GraphNode) => {
           if (!event.active) simulation.alphaTarget(0);
           d.fx = null;
           d.fy = null;
@@ -275,12 +276,12 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
 
     // Add circles for nodes
     node.append('circle')
-      .attr('r', (d) => {
+      .attr('r', (d: GraphNode) => {
         if (d.type === 'entity') return 8;
         if (d.type === 'user') return 6;
         return 5; // fact
       })
-      .attr('fill', (d) => {
+      .attr('fill', (d: GraphNode) => {
         if (selectedNode && d.data === selectedNode) {
           return '#000000'; // Selected node
         }
@@ -294,9 +295,9 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
 
     // Add labels for nodes
     node.append('text')
-      .text((d) => d.name)
+      .text((d: any) => (d as GraphNode).name)
       .attr('text-anchor', 'middle')
-      .attr('dy', (d) => {
+      .attr('dy', (d: GraphNode) => {
         if (d.type === 'entity') return 18;
         if (d.type === 'user') return 16;
         return 14; // fact
@@ -307,7 +308,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
       .style('pointer-events', 'none');
 
     // Add click handlers
-    node.on('click', (event, d) => {
+    node.on('click', (event: any, d: GraphNode) => {
       event.stopPropagation(); // Prevent background click
       if (onNodeClick) {
         onNodeClick(d.data);
@@ -315,7 +316,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
     });
 
     // Add background click handler to deselect
-    svg.on('click', (event) => {
+    svg.on('click', (event: any) => {
       if (event.target === svg.node()) {
         if (onNodeClick) {
           onNodeClick(null as any);
@@ -324,14 +325,14 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
     });
 
     // Update positions on simulation tick
-    simulation.on('tick', () => {
+    simulation.on('tick', (event: any) => {
       link
-        .attr('x1', (d) => (d.source as GraphNode).x!)
-        .attr('y1', (d) => (d.source as GraphNode).y!)
-        .attr('x2', (d) => (d.target as GraphNode).x!)
-        .attr('y2', (d) => (d.target as GraphNode).y!);
+        .attr('x1', (d: GraphLink) => (d.source as unknown as GraphNode).x!)
+        .attr('y1', (d: GraphLink) => (d.source as unknown as GraphNode).y!)
+        .attr('x2', (d: GraphLink) => (d.target as unknown as GraphNode).x!)
+        .attr('y2', (d: GraphLink) => (d.target as unknown as GraphNode).y!);
 
-      node.attr('transform', (d) => `translate(${d.x},${d.y})`);
+      node.attr('transform', (d: GraphNode) => `translate(${d.x},${d.y})`);
     });
 
     // Cleanup function
@@ -362,7 +363,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
       <div ref={containerRef} className="w-full h-full flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500 mx-auto mb-2"></div>
-          <p className="text-zinc-400 text-sm">Loading graph...</p>
+          <Typography variant="muted" className="text-sm">Loading graph...</Typography>
         </div>
       </div>
     );
@@ -375,7 +376,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
         width={dimensions.width}
         height={dimensions.height}
         className="w-full h-full"
-        style={{ background: '#000000' }}
+        style={{ background: 'transparent' }}
       >
         <defs>
           <filter id="glow">
@@ -389,18 +390,24 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
       </svg>
       
       {/* Legend */}
-      <div className="absolute top-2 left-2 bg-zinc-900/90 backdrop-blur-sm rounded-md p-2 text-white text-xs border border-zinc-700">
+      <div className="absolute top-2 left-2 bg-background backdrop-blur-sm rounded-md p-2 text-foreground text-xs border border-border">
         <div className="flex items-center gap-1.5 mb-1">
           <div className="w-2 h-2 rounded-full bg-green-500"></div>
-          <span>Entities</span>
+          <Typography variant="small" asChild>
+            <span>Entities</span>
+          </Typography>
         </div>
         <div className="flex items-center gap-1.5 mb-1">
           <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-          <span>Users</span>
+          <Typography variant="small" asChild>
+            <span>Users</span>
+          </Typography>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="w-2 h-2 rounded-full bg-yellow-500"></div>
-          <span>Facts</span>
+          <Typography variant="small" asChild>
+            <span>Facts</span>
+          </Typography>
         </div>
       </div>
 
@@ -416,7 +423,7 @@ const KnowledgeGraphVisualizer: React.FC<KnowledgeGraphVisualizerProps> = ({
               );
             }
           }}
-          className="bg-zinc-900/90 backdrop-blur-sm hover:bg-zinc-800/90 text-zinc-300 hover:text-white px-2 py-1 rounded text-xs transition-colors border border-zinc-700"
+          className="bg-background backdrop-blur-sm hover:bg-background hover:text-foreground px-2 py-1 rounded text-xs transition-colors border border-border"
         >
           Reset
         </button>

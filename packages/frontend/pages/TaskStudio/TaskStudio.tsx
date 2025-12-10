@@ -2,13 +2,13 @@
 import {
   Box,
   CircularProgress,
-  Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import { useRouter } from 'next/router';
 import { useState, useEffect } from 'react';
 import { NavSidebar } from "../../components/nav-sidebar";
 import { TooltipProvider } from "../../components/ui/tooltip";
+import { Typography } from "../../components/ui/typography";
 import { ApiService } from "../../../backend/api/apiService";
 import { TaskScheduler } from "./components/TaskScheduler";
 import { TaskTable } from "./components/TaskTable";
@@ -166,7 +166,7 @@ const TaskStudio = (): JSX.Element => {
           } overflow-hidden`}>
             <div className="w-96 border-l border-border bg-background flex flex-col h-full">
               <div className="p-5 border-b border-border flex-shrink-0">
-                <h2 className="text-lg font-semibold text-foreground">Create New Task</h2>
+                <Typography variant="h2" className="text-lg font-semibold text-foreground">Create New Task</Typography>
               </div>
               <div className="flex-1 overflow-auto p-6">
                 <TaskScheduler onTaskCreated={handleTaskCreated} />

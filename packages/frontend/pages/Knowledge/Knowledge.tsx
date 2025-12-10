@@ -8,10 +8,10 @@ import {
   Eye
 } from 'lucide-react'
 
-import { Button } from '../components/ui/button'
-import { NavSidebar } from '../components/nav-sidebar'
-import { ApiService } from '../../backend/api/apiService'
-import KnowledgeGraphVisualizer from '../components/KnowledgeGraphVisualizer'
+import { Button } from '../../components/ui/button'
+import { NavSidebar } from '../../components/nav-sidebar'
+import { ApiService } from '../../../backend/api/apiService'
+import KnowledgeGraphVisualizer from './components/KnowledgeGraphVisualizer'
 
 // Utility function to convert UTC timestamp to Eastern time
 const convertToEasternTime = (timestamp: string): string => {
@@ -136,24 +136,24 @@ const Knowledge = () => {
 
   if (loading) {
     return (
-      <div className="flex h-screen bg-gradient-to-b from-black to-zinc-950">
+      <div className="flex h-screen bg-background">
         <NavSidebar onLogout={handleLogout} />
         <div className="flex-1 ml-16 flex items-center justify-center">
-          <div className="h-10 w-10 rounded-full border-2 border-zinc-800 border-t-blue-500 animate-spin"></div>
+          <div className="h-10 w-10 rounded-full border-2 border-border border-t-blue-500 animate-spin"></div>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen bg-gradient-to-b from-black to-zinc-950">
+    <div className="flex h-screen bg-background">
       <NavSidebar onLogout={handleLogout} />
       <div className="flex-1 ml-16 flex flex-col min-w-0">
         {/* Main Content */}
         <div className="flex-1 flex">
           {/* Knowledge Graph Visualization */}
           <div className="flex-1">
-            <div className="h-full overflow-hidden bg-zinc-900/60 supports-[backdrop-filter]:bg-zinc-900/40 backdrop-blur border-r border-zinc-800/60">
+            <div className="h-full overflow-hidden bg-background border-r border-border">
               {error && (
                 <div className="absolute top-4 left-4 right-4 z-20 p-3 bg-red-900/30 border border-red-800/70 text-red-200 rounded-md shadow-lg">
                   <strong>Error:</strong> {error}
@@ -170,7 +170,7 @@ const Knowledge = () => {
               ) : searchResults ? (
                 // Search Results View
                 <div className="h-full flex flex-col">
-                  <div className="sticky top-0 z-10 flex items-center justify-between p-3 border-b border-zinc-800/60 bg-zinc-900/60 supports-[backdrop-filter]:bg-zinc-900/40 backdrop-blur">
+                  <div className="sticky top-0 z-10 flex items-center justify-between p-3 border-b border-border bg-background">
                     <h3 className="text-sm font-medium text-white">
                       Search Results
                     </h3>
@@ -199,25 +199,16 @@ const Knowledge = () => {
               ) : knowledgeGraph ? (
                 // Full Knowledge Graph View
                 <div className="h-full flex flex-col">
-                  <div className="sticky top-0 z-10 flex items-center justify-between p-3 border-b border-zinc-800/60 bg-zinc-900/60 supports-[backdrop-filter]:bg-zinc-900/40 backdrop-blur">
-                    <h3 className="text-sm font-medium text-white">Knowledge Graph</h3>
+                  <div className="sticky top-0 z-10 flex items-center justify-between p-3 border-b border-border bg-background">
+                    <h3 className="text-sm font-medium text-foreground">Knowledge Graph</h3>
                     <div className="flex gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-white border-zinc-700 hover:bg-zinc-800/60 text-xs h-7 px-2"
+                        className="text-foreground border-border hover:bg-zinc-800/60 text-xs h-7 px-2"
                         onClick={loadKnowledgeGraph}
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
                         Refresh
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-white border-zinc-700 hover:bg-zinc-800/60 text-xs h-7 px-2"
-                      >
-                        <Upload className="h-3 w-3 mr-1" />
-                        Import
                       </Button>
                     </div>
                   </div>
@@ -235,19 +226,18 @@ const Knowledge = () => {
                 // Empty State
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center">
-                    <Network className="h-12 w-12 text-zinc-600 mx-auto mb-3" />
-                    <h3 className="text-sm font-medium text-white mb-2">Knowledge Graph</h3>
-                    <p className="text-zinc-400 text-sm mb-3">
+                    <Network className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="text-sm font-medium text-foreground mb-2">Knowledge Graph</h3>
+                    <p className="text-muted-foreground text-sm mb-3">
                       No knowledge graph data available. Start by adding some entities or facts.
                     </p>
                     <div className="flex gap-2 justify-center">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="text-white border-zinc-700 hover:bg-zinc-800/60 text-xs h-7 px-2"
+                        className="text-foreground border-border hover:bg-zinc-800/60 text-xs h-7 px-2"
                         onClick={loadKnowledgeGraph}
                       >
-                        <RefreshCw className="h-3 w-3 mr-1" />
                         Refresh
                       </Button>
                     </div>
@@ -258,7 +248,7 @@ const Knowledge = () => {
           </div>
 
           {/* Sidebar - Node Details */}
-          <div className="w-80 border-l border-zinc-800/60 bg-zinc-950/40 supports-[backdrop-filter]:bg-zinc-950/30 backdrop-blur p-6 overflow-y-auto min-w-0">
+          <div className="w-80 border-l border-border bg-background p-6 overflow-y-auto min-w-0">
             <h3 className="text-base font-semibold text-white tracking-tight mb-4">Node Details</h3>
             {selectedNode ? (
               <div className="space-y-4">

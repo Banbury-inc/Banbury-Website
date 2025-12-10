@@ -3,6 +3,7 @@ import { Button } from '../../../components/ui/button'
 import { Card } from '../../../components/ui/card'
 import { Badge } from '../../../components/ui/badge'
 import { Checkbox } from '../../../components/ui/checkbox'
+import { Typography } from '../../../components/ui/typography'
 import { Task, TaskStatus } from '../types'
 import { taskHandlers } from '../handlers/taskHandlers'
 
@@ -159,7 +160,7 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
     return (
       <Card className="p-6 w-full h-full flex flex-col rounded-none">
         <div className="flex items-center justify-center flex-1">
-          <div className="text-muted-foreground">Loading tasks...</div>
+          <Typography variant="p" className="text-muted-foreground">Loading tasks...</Typography>
         </div>
       </Card>
     )
@@ -169,13 +170,13 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
     <Card className="p-6 w-full h-full flex flex-col rounded-none bg-background">
       <div className="flex items-center justify-between mb-4 flex-shrink-0">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold text-foreground">Task Studio</h1>
+          <Typography variant="h2" className="text-lg font-bold text-foreground">Task Studio</Typography>
           
           {selectedTasks.size > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
+              <Typography variant="small" className="text-sm text-muted-foreground">
                 {selectedTasks.size} selected
-              </span>
+              </Typography>
               <Button
                 variant="destructive"
                 size="sm"
@@ -227,12 +228,14 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
       </div>
 
       {filteredTasks.length === 0 ? (
-        <div className="flex items-center justify-center flex-1 text-muted-foreground">
-          No tasks found for the selected filter.
+        <div className="flex items-center justify-center flex-1">
+          <Typography variant="p" className="text-muted-foreground">
+            No tasks found for the selected filter.
+          </Typography>
         </div>
       ) : (
-        <div className="flex-1 overflow-auto">
-          <table className="w-full border-collapse">
+        <div className="flex-1 overflow-auto min-w-0">
+          <table className="w-full border-collapse table-fixed">
             <thead>
               <tr className="border-b">
                 <th className="text-left p-3 font-medium w-12">
@@ -244,13 +247,13 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                     }}
                   />
                 </th>
-                <th className="text-left p-3 font-medium">Title</th>
-                <th className="text-left p-3 font-medium">Status</th>
-                <th className="text-left p-3 font-medium">Priority</th>
-                <th className="text-left p-3 font-medium">Scheduled</th>
-                <th className="text-left p-3 font-medium">Duration</th>
-                <th className="text-left p-3 font-medium">Result</th>
-                <th className="text-left p-3 font-medium">Actions</th>
+                <th className="text-left p-3 font-medium w-[20%]">Title</th>
+                <th className="text-left p-3 font-medium w-[10%]">Status</th>
+                <th className="text-left p-3 font-medium w-[10%]">Priority</th>
+                <th className="text-left p-3 font-medium w-[15%]">Scheduled</th>
+                <th className="text-left p-3 font-medium w-[10%]">Duration</th>
+                <th className="text-left p-3 font-medium w-[15%]">Result</th>
+                <th className="text-left p-3 font-medium w-[20%]">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -262,19 +265,19 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                       onCheckedChange={(checked: boolean) => handleSelectTask(task.id, checked)}
                     />
                   </td>
-                  <td className="p-3">
-                    <div>
-                      <div className="font-medium">{task.title}</div>
+                  <td className="p-3 min-w-0 overflow-hidden">
+                    <div className="min-w-0">
+                      <Typography variant="p" className="font-medium truncate">{task.title}</Typography>
                       {task.description && (
-                        <div className="text-sm text-gray-500 mt-1">
+                        <Typography variant="small" className="text-sm text-gray-500 mt-1 truncate">
                           {task.description.length > 50 
                             ? `${task.description.substring(0, 50)}...` 
                             : task.description
                           }
-                        </div>
+                        </Typography>
                       )}
                       {task.tags && task.tags.length > 0 && (
-                        <div className="flex gap-1 mt-2">
+                        <div className="flex gap-1 mt-2 flex-wrap">
                           {task.tags.map((tag, index) => (
                             <Badge key={index} variant="outline" className="text-xs">
                               {tag}
@@ -284,33 +287,37 @@ export function TaskTable({ refreshTrigger, showTaskScheduler, onToggleTaskSched
                       )}
                     </div>
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 min-w-0 overflow-hidden">
                     <Badge variant={getStatusBadgeVariant(task.status)}>
                       {task.status.charAt(0).toUpperCase() + task.status.slice(1)}
                     </Badge>
                   </td>
-                  <td className="p-3">
+                  <td className="p-3 min-w-0 overflow-hidden">
                     <Badge variant={getPriorityBadgeVariant(task.priority)}>
                       {task.priority.charAt(0).toUpperCase() + task.priority.slice(1)}
                     </Badge>
                   </td>
-                  <td className="p-3 text-sm">
-                    {formatDate(task.scheduledDate)}
+                  <td className="p-3 min-w-0 overflow-hidden">
+                    <Typography variant="small" className="text-sm truncate" title={formatDate(task.scheduledDate)}>
+                      {formatDate(task.scheduledDate)}
+                    </Typography>
                   </td>
-                  <td className="p-3 text-sm">
-                    {formatDuration(task.estimatedDuration)}
+                  <td className="p-3 min-w-0 overflow-hidden">
+                    <Typography variant="small" className="text-sm truncate">
+                      {formatDuration(task.estimatedDuration)}
+                    </Typography>
                   </td>
-                  <td className="p-3 text-sm max-w-[280px]">
+                  <td className="p-3 min-w-0 overflow-hidden">
                     {task.error ? (
-                      <div className="text-red-500 truncate" title={task.error}>{task.error}</div>
+                      <Typography variant="small" className="text-red-500 truncate block" title={task.error}>{task.error}</Typography>
                     ) : task.result ? (
-                      <div className="truncate" title={task.result}>{task.result}</div>
+                      <Typography variant="small" className="truncate text-sm block" title={task.result}>{task.result}</Typography>
                     ) : (
-                      <span className="text-gray-400">-</span>
+                      <Typography variant="small" className="text-gray-400">-</Typography>
                     )}
                   </td>
-                  <td className="p-3">
-                    <div className="flex gap-2">
+                  <td className="p-3 min-w-0 overflow-hidden">
+                    <div className="flex gap-2 flex-wrap">
                       {task.status === 'scheduled' && (
                         <Button
                           size="sm"
