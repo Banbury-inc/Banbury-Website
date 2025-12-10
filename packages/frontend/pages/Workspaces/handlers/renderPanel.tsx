@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import OlympusTabs, { Tab as OlympusTab } from '../../../components/common/Tabs/Tabs';
 import { DocumentViewer } from '../../../components/MiddlePanel/DocumentViewer/DocumentViewer';
 import { EmailComposer } from '../../../components/MiddlePanel/EmailViewer/EmailComposer';
@@ -19,7 +20,7 @@ import { isNotebookFile, isTldrawFile, isDriveImageFile, isDrivePdfFile, isDrive
 import DrawioViewer from '../../../components/MiddlePanel/CanvasViewer/DrawioViewer';
 import TldrawViewer from '../../../components/MiddlePanel/CanvasViewer/TldrawViewer';
 import { GoogleDriveViewer } from '../../../components/MiddlePanel/GoogleDriveViewer';
-import { Typography } from '../../../components/ui/typography';
+import BanburyLogo from '../../../assets/images/Logo.png';
 
 interface UserInfo {
   username: string;
@@ -426,12 +427,14 @@ export const renderPanel = ({
           </>
         ) : (
           <div className="h-full flex items-center justify-center">
-            <div className="text-center max-w-md">
-              <Typography variant="h2" className="text-2xl font-bold text-zinc-900 dark:text-white mb-4">Welcome to Workspaces</Typography>
-              <Typography variant="p" className="text-zinc-600 dark:text-gray-300 mb-4">
-                This panel is ready for files. Select a file from the sidebar to open it here.
-              </Typography>
-            </div>
+            <Image 
+              src={BanburyLogo} 
+              alt="Banbury" 
+              className="opacity-20 dark:opacity-15"
+              width={80}
+              height={80}
+              priority
+            />
           </div>
         )}
       </div>

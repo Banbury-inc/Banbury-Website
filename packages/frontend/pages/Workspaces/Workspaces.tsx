@@ -1,5 +1,6 @@
 import { Allotment } from 'allotment';
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { ClaudeRuntimeProvider } from '../../assistant/ClaudeRuntimeProvider/ClaudeRuntimeProvider';
 import { LeftPanel } from "../../components/LeftPanel/LeftPanel";
 import { MiddlePanel } from "../../components/MiddlePanel/MiddlePanel";
@@ -8,6 +9,7 @@ import { NavSidebar } from "../../components/nav-sidebar";
 import { FileSystemItem } from '../../utils/fileTreeUtils';
 import 'allotment/dist/style.css';
 import { X, FolderOpen, Trash2, Menu } from 'lucide-react';
+import BanburyLogo from '../../assets/images/Logo.png';
 import { SplitZones } from '../../components/common/SplitZones';
 import { useRouter } from 'next/router';
 import { dropTargetForElements, monitorForElements } from '@atlaskit/pragmatic-drag-and-drop/element/adapter';
@@ -37,7 +39,6 @@ import { loadConversations, saveCurrentConversation, loadConversation, deleteCon
 import { findPanel, getAllTabs, updatePanelActiveTab, addTabToPanel, removeTabFromPanel } from './handlers/panelUtils';
 import { openFileInTab, openEmailInTab, handleCloseTab, handleTabChange } from './handlers/tabManagement';
 import { isDrawioFile, isTldrawFile } from './handlers/fileTypeUtils';
-import { Typography } from '../../components/ui/typography';
 import {
   UserInfo,
   FileTab,
@@ -364,12 +365,14 @@ const Workspaces = (): React.ReactNode => {
     
     return (
       <div className="h-full flex items-center justify-center">
-        <div className="text-center max-w-md">
-          <Typography variant="h1" className="text-4xl font-bold text-white mb-4">Welcome to Workspaces</Typography>
-          <Typography variant="p" className="text-gray-300 text-lg mb-6">
-            Your collaborative workspace environment is ready. Create, organize, and manage your projects with ease.
-          </Typography>
-        </div>
+        <Image 
+          src={BanburyLogo} 
+          alt="Banbury" 
+          className="opacity-20 dark:opacity-15"
+          width={80}
+          height={80}
+          priority
+        />
       </div>
     );
   }, [renderPanel]);
