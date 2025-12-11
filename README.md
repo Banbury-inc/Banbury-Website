@@ -15,59 +15,11 @@
 
 ---
 
-## 📸 Screenshots
-
 <div align="center">
-
-### Workspace Interface
 
 ![Workspaces](packages/public/workspaces.png)
 
-*Main workspace view with file management and AI assistant*
-
-### Email Composer
-
-![Email Composer](packages/public/composer-with-attached-file.png)
-
-*Smart email composer with AI-powered features and attachments*
-
-### Calendar Integration
-
-![Create Calendar Event](packages/public/create-calendar-event.png)
-
-*Seamless Google Calendar integration for event management*
-
-![Edit Calendar Event](packages/public/edit-calendar-event.png)
-
-*Edit and manage calendar events with ease*
-
-### AI Chat Interface
-
-![Chatbox](packages/public/Chatbox.png)
-
-*Intelligent AI assistant for workflow automation*
-
-![Chatbox 2](packages/public/Chatbox2.png)
-
-*Advanced AI chat with context awareness*
-
-### Component Showcase
-
-![Left Panel](packages/public/Components-LeftPanel--Default.png)
-
-*Intuitive left panel with file navigation*
-
-![Composer Tools](packages/public/Components-Composer--With-All-Tools-Enabled.png)
-
-*Full-featured composer with all tools enabled*
-
-![Composer Attachments](packages/public/Components-Composer--With-Attached-Files.png)
-
-*Email composer with file attachments*
-
 </div>
-
----
 
 ## ✨ Features
 
