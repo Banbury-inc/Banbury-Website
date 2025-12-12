@@ -50,14 +50,18 @@ export const AIDocumentEditor: React.FC = () => {
   }, [documentContent]);
 
   const handleSaveDocument = () => {
-    // Implement save functionality
-    const blob = new Blob([documentContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'document.html';
-    a.click();
-    URL.revokeObjectURL(url);
+    try {
+      // Implement save functionality
+      const blob = new Blob([documentContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'document.html';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      throw error;
+    }
   };
 
   const handleExportDocx = () => {
@@ -202,7 +206,7 @@ Please use the tiptap_ai tool to provide your response so it can be directly app
               {/* Editor Container */}
               <div className="flex-1 p-6 overflow-auto">
                 <div className="max-w-4xl mx-auto">
-                  <AITiptapEditor
+                    <AITiptapEditor
                     initialContent={documentContent}
                     onContentChange={setDocumentContent}
                     placeholder="Start writing your document... Use the AI assistant on the right for help!"

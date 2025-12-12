@@ -64,7 +64,7 @@ export async function handleCreateDrawio(
     const file = new File([blob], fileName, { type: 'application/xml' });
 
     // Upload the file using the existing API service
-    await ApiService.uploadToS3(file, fileName, 'web-editor', fileName, '');
+    await ApiService.Files.uploadToS3(file, fileName, 'web-editor', fileName, '');
 
     // Trigger sidebar refresh to show the new file
     triggerSidebarRefresh();

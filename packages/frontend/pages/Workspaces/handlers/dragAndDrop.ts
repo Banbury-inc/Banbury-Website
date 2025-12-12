@@ -175,7 +175,7 @@ export const splitTabToNewPanel = (
     setPanelLayout(prev => removeTabFromPanel(prev, contextMenu.panelId, contextMenu.tabId));
     
     // Create new panel with the tab
-    splitPanel(contextMenu.panelId, direction, tab);
+    splitPanel(contextMenu.panelId, direction, tab as FileTab);
   }
   
   closeContextMenu();

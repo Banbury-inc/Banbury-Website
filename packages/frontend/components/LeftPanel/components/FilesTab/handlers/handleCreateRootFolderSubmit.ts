@@ -29,7 +29,7 @@ export async function handleCreateRootFolderSubmit({
   setPendingRootFolderName(name)
   
   try {
-    await ApiService.createFolder('', name)
+    await ApiService.Files.createFolder('', name)
     if (onFolderCreated) {
       await onFolderCreated(name)
     }

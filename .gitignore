@@ -1,2 +1,4 @@
 .env
 
+# Cursor debug logs
+.cursor/debug.log

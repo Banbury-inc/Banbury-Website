@@ -578,14 +578,34 @@ export function LocalFilesView({
   const onDeleteSelectedFiles = async () => {
     const selectedItems = collectSelectedFileItems(fileSystem, selectedIds)
     if (!selectedItems.length) return
+    if (!userInfo?.username) {
+      alert('User information not available')
+      return
+    }
+    
     try {
-      await Promise.all(
-        selectedItems.map(async it => it.file_id ? ApiService.Files.deleteS3File(it.file_id) : Promise.resolve())
-      )
+      const fileItems = selectedItems.filter(it => it.type === 'file' && it.file_id)
+      const folderItems = selectedItems.filter(it => it.type === 'folder')
+      
+      // Delete files
+      const fileDeletions = fileItems.map(async it => {
+        if (it.file_id) {
+          await ApiService.Files.deleteS3File(it.file_id)
+          onFileDeleted?.(it.file_id)
+        }
+      })
+      
+      // Delete folders
+      const folderDeletions = folderItems.map(async it => {
+        const result = await ApiService.Files.deleteFolder(it.path, userInfo.username)
+        onFolderDeleted?.(it.path)
+        return result
+      })
+      
+      await Promise.all([...fileDeletions, ...folderDeletions])
       fetchUserFiles()
-      selectedItems.forEach(it => it.file_id && onFileDeleted?.(it.file_id))
     } catch (error) {
-      alert('Failed to delete some files. Please try again.')
+      alert('Failed to delete some items. Please try again.')
     } finally {
       clearSelection()
     }

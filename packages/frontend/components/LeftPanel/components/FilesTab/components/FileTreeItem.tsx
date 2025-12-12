@@ -400,7 +400,7 @@ export function FileTreeItem({
     if (!item.file_id) return
     
     try {
-      await ApiService.deleteS3File(item.file_id)
+      await ApiService.Files.deleteS3File(item.file_id)
       onFileDeleted?.(item.file_id)
     } catch (error) {
       alert('Failed to delete file. Please try again.')
@@ -411,7 +411,7 @@ export function FileTreeItem({
     if (item.type !== 'folder') return
     try {
       if (!userInfo?.username) throw new Error('User information not available')
-      const result = await ApiService.deleteFolder(item.path, userInfo.username)
+      const result = await ApiService.Files.deleteFolder(item.path, userInfo.username)
       toast({
         title: 'Folder deleted',
         description: result.failed > 0 
@@ -446,7 +446,7 @@ export function FileTreeItem({
         const newFullName = newNameWithoutExtension.trim() + originalExtension
         
         // Pass the full filename (with extension) to the API
-        await ApiService.renameS3File(item.file_id, newFullName, item.path)
+        await ApiService.Files.renameS3File(item.file_id, newFullName, item.path)
         
         // Calculate the new path with the full filename
         const newPath = item.path.replace(item.name, newFullName)
@@ -457,7 +457,7 @@ export function FileTreeItem({
           throw new Error('User information not available')
         }
         
-        const result = await ApiService.renameFolder(item.path, newName.trim(), userInfo.username)
+        const result = await ApiService.Files.renameFolder(item.path, newName.trim(), userInfo.username)
         if (result.success) {
           onFolderRenamed?.(result.oldPath, result.newPath)
         }
@@ -495,7 +495,7 @@ export function FileTreeItem({
     setNewFolderName('New Folder')
     setIsCreatingFolderPending(true)
     setPendingFolderName(name)
-    ApiService.createFolder(item.path, name)
+    ApiService.Files.createFolder(item.path, name)
       .then(() => {
         onFolderCreated?.(item.path ? `${item.path}/${name}` : name)
       })

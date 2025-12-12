@@ -337,7 +337,7 @@ export function DocumentViewer({ file, userInfo, onSaveComplete }: DocumentViewe
         }
       } else {
         // Update the existing file in S3 using the new update endpoint
-        const updateResult = await ApiService.updateS3File(
+        const updateResult = await ApiService.Files.updateS3File(
           currentFile.file_id || currentFile.id,
           fileToUpload,
           currentFile.name

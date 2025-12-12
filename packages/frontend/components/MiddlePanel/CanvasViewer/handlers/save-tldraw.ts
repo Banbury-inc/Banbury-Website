@@ -30,7 +30,7 @@ export function createSaveTldrawHandler({ editorRef, fileId, fileName, onSaved, 
       const blob = new Blob([content], { type: 'application/json' })
 
 
-      const res = await ApiService.updateS3File(fileId, blob, fileName)
+      const res = await ApiService.Files.updateS3File(fileId, blob, fileName)
 
       if (onSaved) onSaved(content)
       if (clearUnsaved) clearUnsaved()

@@ -14,7 +14,7 @@ export async function deleteSelectedFiles(items: FileSystemItem[]): Promise<Dele
   if (!fileItems.length) return { deleted: 0, failed: 0, failedItems: [] }
 
   const results = await Promise.allSettled(
-    fileItems.map(async it => ApiService.deleteS3File(it.file_id as string).then(() => it))
+    fileItems.map(async it => ApiService.Files.deleteS3File(it.file_id as string).then(() => it))
   )
 
   let deleted = 0

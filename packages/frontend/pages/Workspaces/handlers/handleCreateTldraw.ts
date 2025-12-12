@@ -1,5 +1,5 @@
 import { ApiService } from '../../../../backend/api/apiService';
-import { UserInfo } from '../Workspaces';
+import { UserInfo } from '../types';
 
 export const handleCreateTldraw = async (
   userInfo: UserInfo | null | undefined,
@@ -32,7 +32,7 @@ export const handleCreateTldraw = async (
     const blob = new Blob([JSON.stringify(tldrawContent, null, 2)], { type: 'application/json' });
     const file = new File([blob], fileName, { type: 'application/json' });
 
-    await ApiService.uploadToS3(file, fileName, 'web-editor', filePath, '');
+    await ApiService.Files.uploadToS3(file, fileName, 'web-editor', filePath, '');
 
     toast({
       title: 'Success',

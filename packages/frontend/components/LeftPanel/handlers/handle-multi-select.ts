@@ -19,7 +19,7 @@ export function collectSelectedFileItems(fileSystem: FileSystemItem[], selectedI
 
   const walk = (items: FileSystemItem[]) => {
     for (const it of items) {
-      if (it.type === 'file' && selectedIds.has(it.id)) results.push(it)
+      if (selectedIds.has(it.id)) results.push(it)
       if (it.children && it.children.length > 0) walk(it.children)
     }
   }
