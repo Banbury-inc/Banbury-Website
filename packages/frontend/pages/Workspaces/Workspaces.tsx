@@ -931,7 +931,7 @@ const Workspaces = (): React.ReactNode => {
                 
                 {/* Main Content Panel - Only show when files are open */}
                 {getAllTabs(panelLayout).length > 0 && (
-                  <Allotment.Pane minSize={400}>
+                  <Allotment.Pane minSize={400} preferredSize={1200}>
                     <MiddlePanel
                       isFileSidebarCollapsed={isFileSidebarCollapsed}
                       isAssistantPanelCollapsed={isAssistantPanelCollapsed}
